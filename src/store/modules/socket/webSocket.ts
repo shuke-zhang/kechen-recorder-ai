@@ -32,15 +32,12 @@ export class WebSocket extends EventEmitter<{
     this.isConnect = false
     this.isInitiative = false
     this.socketInstance = null
-    this.emit('log', '🛜 初始化websocket连接')
+    this.emit('log', '🛜 初始化websocket')
+
     this.socketInstance = uni.connectSocket({
       url: this.url,
-      header: {
-        'content-type': 'application/json',
-      },
       success: () => {
         this.isCreate = true
-        console.log('[ws]', '已经连接')
         this.emit('connect')
       },
       fail: (err) => {
@@ -60,7 +57,7 @@ export class WebSocket extends EventEmitter<{
       // 监听 WebSocket 连接打开事件
       try {
         this.socketInstance?.onOpen((res) => {
-          this.emit('log', '🛜 WebSocket 连接成功')
+          this.emit('log', '🛜 WebSocket 连接成功真实的成功')
           this.isConnect = true
           this.emit('open', res)
 
@@ -69,12 +66,8 @@ export class WebSocket extends EventEmitter<{
         // 监听 WebSocket 接受到服务器的消息事件
         this.socketInstance?.onMessage((res) => {
           const _data = JSON.parse(res.data)
-          const data = {
-            msgType: _data.msgType,
-            val: parseJSON(_data.val),
-          }
-          this.emit('log', `✉️ ${data.msgType} ${JSON.stringify(data.val) || 'no message'}`)
-          this.emit('message', data)
+          this.emit('log', `✉️  ${JSON.stringify(_data) || 'no message'}`)
+          this.emit('message', JSON.stringify(_data))
         })
         // 监听 WebSocket 连接关闭事件
         this.socketInstance?.onClose((e) => {
@@ -99,7 +92,6 @@ export class WebSocket extends EventEmitter<{
         // 监听 WebSocket 错误事件
         this.socketInstance?.onError((e) => {
           this.emit('log', `🛜 出错了 ${e.errMsg}`)
-          console.log('WebSocket 出错了', e)
           this.isInitiative = false
           this.isConnect = false
           this.reconnect()
@@ -120,12 +112,11 @@ export class WebSocket extends EventEmitter<{
    */
   sendMessage(value: any) {
     const param = JSON.stringify(value)
-    this.emit('log', `🛜 sendMessage ${param}`)
+    this.emit('log', `🛜 sendMessage 方法触发`)
     return new Promise((resolve, reject) => {
       this.socketInstance?.send({
         data: param,
         success() {
-          console.log('消息发送成功', value)
           resolve(true)
         },
         fail(error) {
@@ -155,6 +146,7 @@ export class WebSocket extends EventEmitter<{
 
   /**
    * @description 关闭 WebSocket 连接
+   * @param reason 关闭原因，默认是关闭
    */
   closeSocket(reason = '关闭') {
     this.emit('log', '🛜 关闭')

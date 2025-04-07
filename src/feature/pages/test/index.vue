@@ -5,48 +5,65 @@
 </route>
 
 <script setup lang="ts">
-const router = useRouter()
+import XunfeiRecorder from './xunfei/xunfei-recorder'
+import { useXunFeiWebSocket } from './xunfei-websocket'
 
-const currentPages = getCurrentPages()
-const vm = currentPages[0].$vm
-console.log(currentPages[0], 'currentPages[0]')
-
-console.log(vm, 'currentPages')
-onReady(() => {
-})
-
-const scaleVm = getPageExpose('pages/scale/index')
-console.log(scaleVm, '测试')
-
-function handleClick(isRefresh: boolean) {
-  router.back()
-  if (isRefresh) {
-    scaleVm.updateData()
-  }
+const sss = new XunfeiRecorder({
+  APPID: 'f9b52f87',
+  APISecret: 'ZDVkYzU5YmFhZmNlODVkM2RlNDMyNDhl',
+  APIKey: '287ae449056d33e0f4995f480737564a',
+  url: 'wss://iat-api.xfyun.cn/v2/iat',
+  host: 'iat-api.xfyun.cn',
+}, onTextChanged)
+const text = ref('')
+function onTextChanged(data: string) {
+  text.value = data
 }
 
-function handleClickVm() {
-  const vm = getPageVm<typeof import ('@/pages/scale/index.vue')['default']>()
-  console.log(vm, 'test组件内部使用vm方式')
-  vm?.testExpose()
+// 开始录音
+function startRecord() {
+  console.log('页面点击录音开始')
+  text.value = ''
+  sss.start()
+  sss.on('log', (msg: string) => {
+    console.log(msg)
+  })
 }
+
+// 停止录音
+function endRecord() {
+  console.log('页面点击录音结束')
+  text.value = ''
+  sss.stop()
+}
+
+const { handleSocketStart, handleSocketStop } = useXunFeiWebSocket()
 </script>
 
 <template>
-  <view>
-    内容
+  <view class="audioPlay">
+    <button type="primary" class="mt-100rpx" @click="startRecord">
+      开始录音
+    </button>
+    <button type="primary" class="mt-100rpx" @click="endRecord">
+      停止录音
+    </button>
+
+    <button type="primary" class="mt-100rpx" @click="handleSocketStart">
+      socket连接测试
+    </button>
+
+    <button type="primary" class="mt-100rpx" @click="handleSocketStop">
+      socket连接关闭
+    </button>
+
+    <view class="mt-100rpx card flex flex-col">
+      <text>
+        识别结果：
+      </text>
+      <text class="text-primary">
+        {{ text }}
+      </text>
+    </view>
   </view>
-  <button type="primary" class="mt-40rpx" @click="handleClick(false)">
-    点击跳转不做刷新
-  </button>
-  <button type="primary" class="mt-40rpx" @click="handleClick(true)">
-    点击跳转并且刷新
-  </button>
-
-  <button type="primary" class="mt-40rpx" @click="handleClickVm(true)">
-    点击跳转采用vm的方式
-  </button>
 </template>
-
-<style  lang="scss">
-</style>

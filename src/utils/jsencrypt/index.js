@@ -1,10 +1,4 @@
-// import JSEncrypt from 'jsencrypt-plus'
-// 如果下面那行无效的话用这个
-// import JSEncrypt from './jsencrypt.js'
-// import * as JSEncrypt from './jsencrypt.js'
-
-// 上面那行无效的话
-// import * as JSEncrypt from 'jsencrypt-plus'
+import * as JSEncrypt from './jsencrypt.js'
 
 const publicKey = 'MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAKoR8mX0rGKLqzcWmOzbfj64K8ZIgOdH\n'
   + 'nzkXSOVOZbFu/TJhZ7rFAN+eaGkl3C4buccQd/EjEsj9ir7ijT7h96MCAwEAAQ=='

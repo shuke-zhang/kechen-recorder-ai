@@ -39,6 +39,7 @@ export default class RecorderCoreManager extends EventEmitter {
   public start() {
     if (this.isRunning)
       return
+    console.log('开始录音-class-start')
     this.reset()
     this.isRunning = true
     this.resultText = ''
@@ -55,7 +56,7 @@ export default class RecorderCoreManager extends EventEmitter {
     this.isRunning = false
     this.sendLastFrame()
     this.clearHandlerInterval()
-    this.socketTask?.closeSocket('stop by user')
+    this.socketTask?.closeSocket('手动关闭')
     this.socketTask = null
   }
 
@@ -78,12 +79,15 @@ export default class RecorderCoreManager extends EventEmitter {
       this.socketUrl = this.getWebSocketUrl() as string
       if (!this.socketUrl)
         return
+      console.log('初始化Socket-class')
 
-      this.socketTask = new WebSocket(this.socketUrl)
+      this.socketTask = new WebSocket(this.socketUrl, false)
       this.socketTask.reset()
       this.socketTask.initSocket()
 
       this.socketTask.on('open', () => {
+        console.log('✅ WebSocket已连接')
+
         this.emit('log', '✅ WebSocket已连接')
         setTimeout(() => this.sendAudioData(), 100)
       })

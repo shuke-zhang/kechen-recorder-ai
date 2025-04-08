@@ -127,9 +127,16 @@ export default {
           // #endif
         },
         onProcess_renderjs: `function(buffers,powerLevel,duration,sampleRate,_newBufferIdx,_asyncEnd){
-                //App中在这里修改buffers才会改变生成的音频文件
-                //App中是在renderjs中进行的可视化图形绘制，因此需要写在这里，this是renderjs模块的this（也可以用This变量）；如果代码比较复杂，请直接在renderjs的methods里面放个方法xxxFunc，这里直接使用this.xxxFunc(args)进行调用
-                if(this.waveView) this.waveView.input(buffers[buffers.length-1],powerLevel,sampleRate);
+              if (this.lastIdx > _newBufferIdx) {
+                this.chunk = null // 重新录音了，重置环境
+              }
+              this.lastIdx = _newBufferIdx
+              this.chunk = Recorder.SampleData(buffers, sampleRate, 16000, this.chunk)
+              const pcmInt16 = new Int16Array(this.chunk.data)
+              const arrayBuffer = pcmInt16.buffer
+              this.$ownerInstance.callMethod("pushPcmData", { array: Array.from(pcmInt16) })
+
+              if(this.waveView) this.waveView.input(buffers[buffers.length-1],powerLevel,sampleRate);
             }`,
 
         takeoffEncodeChunk: true ? null : (chunkBytes) => {
@@ -156,7 +163,7 @@ export default {
 
       RecordApp.UniWebViewActivate(this) // App环境下必须先切换成当前页面WebView
       RecordApp.Start(set, () => {
-        console.log('已开始录音')
+        console.log('RecordApp-已开始录音')
         this.handleStart1()
         this.RecorderCoreManager.on('log', (msg) => {
           console.log(msg)
@@ -213,6 +220,11 @@ export default {
     },
     onTextChanged(data) {
       this.text = data
+    },
+    pushPcmData({ array }) {
+      const pcmInt16 = new Int16Array(array)
+      const buffer = pcmInt16.buffer
+      this.RecorderCoreManager.pushAudioData(buffer)
     },
 
   },

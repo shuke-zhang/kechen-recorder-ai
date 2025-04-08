@@ -7,103 +7,108 @@ export class WebSocket extends EventEmitter<{
   log: (msg: string) => void
 }> {
   url: string
-  /** WebSocket 是否创建成功 */
   isCreate: boolean
-  /** WebSocket 是否已经连接 */
   isConnect: boolean
-  /** 是否主动断开 */
   isInitiative: boolean
-  /** WebSocket 实例 */
   socketInstance: null | UniNamespace.SocketTask = null
   reconnectTimer: NodeJS.Timeout | null = null
   retryTime = 5
-  constructor(url = 'ws://192.168.3.117:8899/demo') {
+  /** 当关闭后是否自动重连 */
+  autoReconnect = true // ✅ 是否启用自动重连（默认开启）
+
+  constructor(url = 'ws://192.168.3.117:8899/demo', autoReconnect = true) {
     super()
     this.url = url
+    this.autoReconnect = autoReconnect
     this.isCreate = false
     this.isConnect = false
     this.isInitiative = false
-    this.socketInstance = null
   }
 
-  // 初始化websocket连接
+  // 初始化连接
   initSocket = debounce(() => {
     this.isCreate = false
     this.isConnect = false
     this.isInitiative = false
     this.socketInstance = null
     this.emit('log', '🛜 初始化websocket')
+    console.log('初始化websocket-内部')
 
     this.socketInstance = uni.connectSocket({
       url: this.url,
       success: () => {
         this.isCreate = true
+        console.log('uni.connectSocket初始化成功')
         this.emit('connect')
+        // #ifdef APP
+        this.createSocket() // ✅ 成功之后再注册监听器
+        // #endif
       },
       fail: (err) => {
         console.error(err)
+        this.emit('log', '🛜 初始化失败!')
         this.isCreate = false
       },
     })
-    this.createSocket()
+    // #ifdef MP-WEIXIN
+    this.createSocket() // ✅ 成功之后再注册监听器
+    // #endif
   })
 
-  /**
-   * @description 创建websocket连接
-   */
   createSocket() {
-    if (this.isCreate) {
-      this.emit('log', '🛜 WebSocket 开始初始化')
-      // 监听 WebSocket 连接打开事件
-      try {
-        this.socketInstance?.onOpen((res) => {
-          this.emit('log', '🛜 WebSocket 连接成功真实的成功')
-          this.isConnect = true
-          this.emit('open', res)
-
-          // 打开心跳检测
-        })
-        // 监听 WebSocket 接受到服务器的消息事件
-        this.socketInstance?.onMessage((res) => {
-          const _data = JSON.parse(res.data)
-          this.emit('log', `✉️  ${JSON.stringify(_data) || 'no message'}`)
-          this.emit('message', JSON.stringify(_data))
-        })
-        // 监听 WebSocket 连接关闭事件
-        this.socketInstance?.onClose((e) => {
-          if (e.reason === 'logout') {
-            this.emit('log', '🛜 服务器关闭 logout')
-            return
-          }
-          if (e.reason === 'no-user-info') {
-            this.emit('log', '🛜 客户端关闭 no-user-info')
-            return
-          }
-          this.emit('log', `🛜 其他原因关闭 ${e.code} ${e.reason}`)
-          console.log('e', e)
-          console.log('WebSocket 关闭了')
-
-          const id = getCacheUserInfo()?.userId
-          this.isInitiative = false
-          this.isConnect = false
-          if (id)
-            this.reconnect()
-        })
-        // 监听 WebSocket 错误事件
-        this.socketInstance?.onError((e) => {
-          this.emit('log', `🛜 出错了 ${e.errMsg}`)
-          this.isInitiative = false
-          this.isConnect = false
-          this.reconnect()
-        })
-      }
-      catch (error) {
-        this.emit('log', '🛜 创建出错了')
-        console.warn(error)
-      }
+    if (!this.isCreate || !this.socketInstance) {
+      this.emit('log', '🛜 createSocket 被跳过，未成功创建')
+      return
     }
-    else {
-      this.emit('log', '🛜 初始化失败!')
+
+    try {
+      this.emit('log', '🛜 WebSocket 开始初始化')
+
+      this.socketInstance.onOpen((res) => {
+        this.emit('log', '🛜 WebSocket 连接成功真实的成功')
+        console.log('WebSocket 连接成功真实的成功')
+        this.isConnect = true
+        this.emit('open', res)
+      })
+
+      this.socketInstance.onMessage((res) => {
+        const _data = JSON.parse(res.data)
+        this.emit('log', `✉️  ${JSON.stringify(_data) || 'no message'}`)
+        this.emit('message', JSON.stringify(_data))
+      })
+
+      this.socketInstance.onClose((e) => {
+        this.emit('log', `🛜 WebSocket 关闭，reason: ${e.reason}`)
+        console.log('WebSocket 关闭了', e)
+
+        this.isInitiative = false
+        this.isConnect = false
+        this.socketInstance = null
+
+        if (this.autoReconnect) {
+          this.emit('log', '🛜 自动重连中...')
+          this.reconnect()
+        }
+
+        this.emit('close', e.reason)
+      })
+
+      this.socketInstance.onError((e) => {
+        this.emit('log', `🛜 WebSocket 错误：${e.errMsg}`)
+        this.isInitiative = false
+        this.isConnect = false
+
+        if (this.autoReconnect) {
+          this.emit('log', '🛜 连接错误后尝试重连')
+          this.reconnect()
+        }
+
+        this.emit('error', e.errMsg)
+      })
+    }
+    catch (error) {
+      this.emit('log', '🛜 创建出错了')
+      console.warn(error)
     }
   }
 
@@ -112,7 +117,7 @@ export class WebSocket extends EventEmitter<{
    */
   sendMessage(value: any) {
     const param = JSON.stringify(value)
-    this.emit('log', `🛜 sendMessage 方法触发`)
+    this.emit('log', `🛜 sendMessage 触发`)
     return new Promise((resolve, reject) => {
       this.socketInstance?.send({
         data: param,
@@ -128,57 +133,68 @@ export class WebSocket extends EventEmitter<{
   }
 
   /**
-   *  @description 重新连接
+   * @description 手动重连
    */
   reconnect = debounce(() => {
-    // 停止发送心跳
-    // clearTimeout(this.reconnectTimer!);
-    // 如果不是人为关闭的话，进行重连
-    this.emit('log', `🛜 reconnect ${this.isInitiative}`)
-    if (!this.isInitiative) {
-      this.emit('log', '🛜 重新连接 initSocket')
-      this.initSocket()
+    if (!this.autoReconnect) {
+      this.emit('log', '🛜 autoReconnect=false，阻止自动重连')
+      return
     }
-    else {
-      // this.emit('log', '🛜 重新连接 initSocket');
-    }
+    this.emit('log', '🛜 reconnect 被触发')
+    this.initSocket()
   }, 300)
 
   /**
-   * @description 关闭 WebSocket 连接
-   * @param reason 关闭原因，默认是关闭
+   * @description 关闭连接
+   * @param reason 关闭原因
    */
-  closeSocket(reason = '关闭') {
-    this.emit('log', '🛜 关闭')
+  closeSocket(reason = '手动关闭') {
+    this.emit('log', `🛜 正在关闭 WebSocket，原因：${reason}`)
+    this.isInitiative = true
 
     if (!this.socketInstance || !this.isCreate)
       return
-    this.socketInstance?.close({
+
+    this.socketInstance.close({
       reason,
       success: () => {
         this.onClose(reason)
       },
       fail: (e) => {
+        this.emit('log', '🛜 WebSocket 关闭失败，强制关闭并尝试重连')
         console.log(e)
-        this.emit('log', '🛜 关闭 WebSocket 失败222')
         this.emit('error', `${JSON.stringify(e)}`)
-        this.onClose('关闭 WebSocket 失败 强行关闭')
-        this.reconnect()
-        this.emit('log', `🛜 isCreate ${this.isCreate} 222`)
+        this.onClose('关闭失败 强制断开')
       },
     })
   }
 
   /**
-   * @description 重置
+   * @description 手动处理关闭后的清理
    */
   onClose(reason: string) {
-    this.emit('log', `🛜 onClose reason >>> ${reason}`)
+    this.emit('log', `🛜 onClose 清理状态: ${reason}`)
     this.isCreate = false
     this.isConnect = false
-    this.isInitiative = true
     this.socketInstance = null
-    this.emit('close', reason)
-    this.reset()
+  }
+
+  /**
+   * @description 设置是否自动重连
+   */
+  enableAutoReconnect(enable: boolean) {
+    this.autoReconnect = enable
+    this.emit('log', `🛜 设置 autoReconnect=${enable}`)
+  }
+
+  /**
+   * @description 完全重置所有状态
+   */
+  reset() {
+    this.emit('log', `🛜 重置 WebSocket 状态`)
+    this.isCreate = false
+    this.isConnect = false
+    this.isInitiative = false
+    this.socketInstance = null
   }
 }

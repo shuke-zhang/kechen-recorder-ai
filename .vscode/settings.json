@@ -119,5 +119,9 @@
     "xfyun",
     "xunfei",
     "zhipu"
+  ],
+  "i18n-ally.localesPaths": [
+    "src/components/Recorder-UniCore/i18n",
+    "src/utils/Recorder-UniCore/i18n"
   ]
 }

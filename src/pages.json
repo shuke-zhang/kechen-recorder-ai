@@ -118,6 +118,20 @@
             "navigationBarTitleText": "子包测试页-弹窗",
             "backgroundColorTop": "#000000"
           }
+        },
+        {
+          "path": "test/recorder-core/index-copy",
+          "type": "page",
+          "style": {
+            "navigationBarTitleText": "recorder-core插件页面"
+          }
+        },
+        {
+          "path": "test/recorder-core/index",
+          "type": "page",
+          "style": {
+            "navigationBarTitleText": "recorder-core插件页面"
+          }
         }
       ]
     }

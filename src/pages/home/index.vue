@@ -12,6 +12,14 @@ const router = useRouter()
 function handleListDataPreview() {
   router.push('/feature/pages/test/index')
 }
+
+function handleRecorderCore() {
+  router.push('/feature/pages/test/recorder-core/index')
+}
+
+function handleRecorderCoreClass() {
+  router.push('/feature/pages/test/recorder-core/index-copy')
+}
 </script>
 
 <template>
@@ -20,6 +28,14 @@ function handleListDataPreview() {
 
     <button @click="handleListDataPreview">
       跳转
+    </button>
+
+    <button class="mt-40rpx" @click="handleRecorderCore">
+      跳转recorder-core
+    </button>
+
+    <button class="mt-40rpx" @click="handleRecorderCoreClass">
+      跳转recorder-core-class
     </button>
   </view>
 </template>

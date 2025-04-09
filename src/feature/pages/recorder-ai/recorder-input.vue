@@ -5,6 +5,10 @@ import { COLOR_BLACK_1 } from '@/utils/const'
 const props = defineProps({
   modelValue: String,
   focus: Boolean,
+  showRecordingButton: {
+    type: Boolean,
+    default: false,
+  },
   placeholder: String,
   btnText: {
     type: String,
@@ -16,22 +20,31 @@ const props = defineProps({
 const emit = defineEmits<{
   'update:modelValue': [string]
   'update:focus': [boolean]
+  'update:showRecordingButton': [boolean]
   'confirm': []
   'recorderConfirm': []
   'recorderClose': []
+  'recorderTouchStart': []
+  'showRecorder': []
+  'recorderTouchEnd': []
 }>()
 
 const inputValue = useVModel(props, 'modelValue', emit)
 const isFocus = useVModel(props, 'focus', emit)
 
-const showRecordingButton = ref(false) // 是否显示“按住说话”按钮
+const showRecordingButton = useVModel(props, 'showRecordingButton', emit)
 const recording = ref(false)
 const cancelRecording = ref(false)
 const inputBottom = ref('0px')
 const touchStartY = ref(0)
 
 function handleRecorderIconClick() {
-  showRecordingButton.value = !showRecordingButton.value
+  if (showRecordingButton.value) {
+    return showRecordingButton.value = !showRecordingButton.value
+  }
+  else {
+    return emit('showRecorder')
+  }
 }
 
 // 用户手指按下录音按钮
@@ -39,6 +52,7 @@ function handleTouchStart(e: TouchEvent) {
   recording.value = true
   cancelRecording.value = false
   touchStartY.value = e.touches[0].clientY
+  emit('recorderTouchStart')
 }
 
 // 手指移动过程中判断是否上滑取消
@@ -49,13 +63,13 @@ function handleTouchMove(e: TouchEvent) {
 
 // 手指松开，发送或取消
 function handleTouchEnd() {
+  emit('recorderTouchEnd')
+
   if (cancelRecording.value) {
     emit('recorderClose')
-    console.log('取消录音')
   }
   else {
     emit('recorderConfirm')
-    console.log('发送录音')
   }
   resetRecordingState()
 }
@@ -63,7 +77,6 @@ function handleTouchEnd() {
 function resetRecordingState() {
   recording.value = false
   cancelRecording.value = false
-  showRecordingButton.value = false
 }
 
 function handleFocus() {

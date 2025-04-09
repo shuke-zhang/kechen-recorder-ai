@@ -1,18 +1,13 @@
-<route lang="json">
-    {
-         "style": { "navigationBarTitleText": "recorder-core插件页面" }
-    }
-</route>
-
 <script>
 import Recorder from 'recorder-core' // 使用import、require都行
 // 必须引入的RecordApp核心文件（文件路径是 /src/app-support/app.js）
 import RecordApp from 'recorder-core/src/app-support/app'
-import XunfeiRecorder from '../xunfei/xunfei-recorder-copy.ts'
-import RecorderCoreManager from './recorder-core.ts'
+import RecorderCoreManager from './xunfei/recorder-core.ts'
+import RecorderInput from './recorder-input.vue'
+
 // 所有平台必须引入的uni-app支持文件（如果编译出现路径错误，请把@换成 ../../ 这种）
 // import '@/uni_modules/Recorder-UniCore/app-uni-support.js'
-import '../../../../../uni_modules/Recorder-UniCore/app-uni-support.js'
+import '../../../../uni_modules/Recorder-UniCore/app-uni-support.js'
 /** 需要编译成微信小程序时，引入微信小程序支持文件 */
 // #ifdef MP-WEIXIN
 import 'recorder-core/src/app-support/app-miniProgram-wx-support.js'
@@ -27,24 +22,21 @@ import 'recorder-core/src/engine/pcm'
 import 'recorder-core/src/extensions/waveview'
 // #endif
 export default {
+
+  emits: ['recorderClose', 'recorderConfirm', 'confirm', 'speechRecognition'],
   data() {
     return {
-      xunfeiRecorder: null,
       text: '',
       RecorderCoreManager: null, // 录音核心管理类
+      showRecordingButton: false, // 显示录音按钮
     }
   },
   mounted() {
+    console.log(this.isMounted, this, '结果')
+
     this.isMounted = true
     // 页面onShow时【必须调用】的函数，传入当前组件this
     RecordApp.UniPageOnShow(this)
-    this.xunfeiRecorder = new XunfeiRecorder({
-      APPID: 'f9b52f87',
-      APISecret: 'ZDVkYzU5YmFhZmNlODVkM2RlNDMyNDhl',
-      APIKey: '287ae449056d33e0f4995f480737564a',
-      url: 'wss://iat-api.xfyun.cn/v2/iat',
-      host: 'iat-api.xfyun.cn',
-    }, this.onTextChanged, this)
 
     this.RecorderCoreManager = new RecorderCoreManager({
       APPID: 'f9b52f87',
@@ -58,13 +50,7 @@ export default {
   onShow() { // onShow可能比mounted先执行，页面可能还未准备好
     if (this.isMounted)
       RecordApp.UniPageOnShow(this)
-    this.xunfeiRecorder = new XunfeiRecorder({
-      APPID: 'f9b52f87',
-      APISecret: 'ZDVkYzU5YmFhZmNlODVkM2RlNDMyNDhl',
-      APIKey: '287ae449056d33e0f4995f480737564a',
-      url: 'wss://iat-api.xfyun.cn/v2/iat',
-      host: 'iat-api.xfyun.cn',
-    }, this.onTextChanged, this)
+
     this.RecorderCoreManager = new RecorderCoreManager({
       APPID: 'f9b52f87',
       APISecret: 'ZDVkYzU5YmFhZmNlODVkM2RlNDMyNDhl',
@@ -74,19 +60,23 @@ export default {
     }, this.onTextChanged)
   },
   methods: {
-    // 请求录音权限
+  // 请求录音权限
     recReq() {
-      // 编译成App时提供的授权许可（编译成H5、小程序为免费授权可不填写）；如果未填写授权许可，将会在App打开后第一次调用请求录音权限时，弹出“未获得商用授权时，App上仅供测试”提示框
-      // RecordApp.UniAppUseLicense='我已获得UniAppID=*****的商用授权';
-
-      RecordApp.UniWebViewActivate(this) // App环境下必须先切换成当前页面WebView
-      RecordApp.RequestPermission(() => {
-        console.log('已获得录音权限，可以开始录音了')
-      }, (msg, isUserNotAllow) => {
-        if (isUserNotAllow) { // 用户拒绝了录音权限
-          // 这里你应当编写代码进行引导用户给录音权限，不同平台分别进行编写
-        }
-        console.error(`请求录音权限失败：${msg}`)
+    // 编译成App时提供的授权许可（编译成H5、小程序为免费授权可不填写）；如果未填写授权许可，将会在App打开后第一次调用请求录音权限时，弹出“未获得商用授权时，App上仅供测试”提示框
+    // RecordApp.UniAppUseLicense='我已获得UniAppID=*****的商用授权';
+      return new Promise((resolve, reject) => {
+        RecordApp.UniWebViewActivate(this) // App环境下必须先切换成当前页面WebView
+        RecordApp.RequestPermission(
+          () => {
+            console.log('✅ 已获得录音权限，可以开始录音了')
+            resolve()
+          },
+          (msg, isUserNotAllow) => {
+            const errMsg = `请求录音权限失败：${msg} - ${isUserNotAllow ? '用户拒绝' : '其他原因'}`
+            console.error(errMsg)
+            reject(new Error(errMsg))
+          },
+        )
       })
     },
     recStart() {
@@ -98,8 +88,6 @@ export default {
         sampleRate: 16000,
         bitRate: 16, // mp3格式，指定采样率hz、比特率kbps，其他参数使用默认配置；注意：是数字的参数必须提供数字，不要用字符串；需要使用的type类型，需提前把格式支持文件加载进来，比如使用wav格式需要提前加载wav.js编码引擎
         onProcess: (buffers, powerLevel, duration, sampleRate, _newBufferIdx, _asyncEnd) => {
-          console.log('识别到音频数据')
-
           if (lastIdx > _newBufferIdx) {
             chunk = null // 重新录音了，重置环境
           }
@@ -126,41 +114,41 @@ export default {
           // #ifdef H5 || MP-WEIXIN
           if (this.waveView)
             this.waveView.input(buffers[buffers.length - 1], powerLevel, sampleRate)
-          // #endif
+        // #endif
         },
         onProcess_renderjs: `function(buffers,powerLevel,duration,sampleRate,_newBufferIdx,_asyncEnd){
-              if (this.lastIdx > _newBufferIdx) {
-                this.chunk = null // 重新录音了，重置环境
-              }
-              this.lastIdx = _newBufferIdx
-              this.chunk = Recorder.SampleData(buffers, sampleRate, 16000, this.chunk)
-              const pcmInt16 = new Int16Array(this.chunk.data)
-              const arrayBuffer = pcmInt16.buffer
-              this.$ownerInstance.callMethod("pushPcmData", { array: Array.from(pcmInt16) })
+            if (this.lastIdx > _newBufferIdx) {
+              this.chunk = null // 重新录音了，重置环境
+            }
+            this.lastIdx = _newBufferIdx
+            this.chunk = Recorder.SampleData(buffers, sampleRate, 16000, this.chunk)
+            const pcmInt16 = new Int16Array(this.chunk.data)
+            const arrayBuffer = pcmInt16.buffer
+            this.$ownerInstance.callMethod("pushPcmData", { array: Array.from(pcmInt16) })
 
-              if(this.waveView) this.waveView.input(buffers[buffers.length-1],powerLevel,sampleRate);
-            }`,
+            if(this.waveView) this.waveView.input(buffers[buffers.length-1],powerLevel,sampleRate);
+          }`,
 
         takeoffEncodeChunk: true ? null : (chunkBytes) => {
           console.log('chunkBytes', chunkBytes)
 
-          // 全平台通用：实时接收到编码器编码出来的音频片段数据，chunkBytes是Uint8Array二进制数据，可以实时上传（发送）出去
-          // App中如果未配置RecordApp.UniWithoutAppRenderjs时，建议提供此回调，因为录音结束后会将整个录音文件从renderjs传回逻辑层，由于uni-app的逻辑层和renderjs层数据交互性能实在太拉跨了，大点的文件传输会比较慢，提供此回调后可避免Stop时产生超大数据回传
+        // 全平台通用：实时接收到编码器编码出来的音频片段数据，chunkBytes是Uint8Array二进制数据，可以实时上传（发送）出去
+        // App中如果未配置RecordApp.UniWithoutAppRenderjs时，建议提供此回调，因为录音结束后会将整个录音文件从renderjs传回逻辑层，由于uni-app的逻辑层和renderjs层数据交互性能实在太拉跨了，大点的文件传输会比较慢，提供此回调后可避免Stop时产生超大数据回传
         },
         takeoffEncodeChunk_renderjs: true
           ? null
           : `function(chunkBytes){
-                //App中这里可以做一些仅在renderjs中才生效的事情，不提供也行，this是renderjs模块的this（也可以用This变量）
-            }`,
+              //App中这里可以做一些仅在renderjs中才生效的事情，不提供也行，this是renderjs模块的this（也可以用This变量）
+          }`,
 
         start_renderjs: `function(){
-                //App中可以放一个函数，在Start成功时renderjs中会先调用这里的代码，this是renderjs模块的this（也可以用This变量）
-                //放一些仅在renderjs中才生效的事情，比如初始化，不提供也行
-            }`,
+              //App中可以放一个函数，在Start成功时renderjs中会先调用这里的代码，this是renderjs模块的this（也可以用This变量）
+              //放一些仅在renderjs中才生效的事情，比如初始化，不提供也行
+          }`,
         stop_renderjs: `function(arrayBuffer,duration,mime){
-                //App中可以放一个函数，在Stop成功时renderjs中会先调用这里的代码，this是renderjs模块的this（也可以用This变量）
-                //放一些仅在renderjs中才生效的事情，不提供也行
-            }`,
+              //App中可以放一个函数，在Stop成功时renderjs中会先调用这里的代码，this是renderjs模块的this（也可以用This变量）
+              //放一些仅在renderjs中才生效的事情，不提供也行
+          }`,
       }
 
       RecordApp.UniWebViewActivate(this) // App环境下必须先切换成当前页面WebView
@@ -174,8 +162,8 @@ export default {
         // view里面放一个canvas，canvas需要指定宽高（下面style里指定了300*100）
         // <canvas type="2d" class="recwave-WaveView" style="width:300px;height:100px"></canvas>
         RecordApp.UniFindCanvas(this, ['.recwave-WaveView'], `
-                this.waveView=Recorder.WaveView({compatibleCanvas:canvas1, width:300, height:100});
-            `, (canvas1) => {
+              this.waveView=Recorder.WaveView({compatibleCanvas:canvas1, width:300, height:100});
+          `, (canvas1) => {
           this.waveView = Recorder.WaveView({ compatibleCanvas: canvas1, width: 300, height: 100 })
         })
       }, (msg) => {
@@ -199,11 +187,11 @@ export default {
     // 停止录音
     recStop() {
       RecordApp.Stop((arrayBuffer, duration, mime) => {
-        // 全平台通用：arrayBuffer是音频文件二进制数据，可以保存成文件或者发送给服务器
-        // App中如果在Start参数中提供了stop_renderjs，renderjs中的函数会比这个函数先执行
+      // 全平台通用：arrayBuffer是音频文件二进制数据，可以保存成文件或者发送给服务器
+      // App中如果在Start参数中提供了stop_renderjs，renderjs中的函数会比这个函数先执行
 
         // 注意：当Start时提供了takeoffEncodeChunk后，你需要自行实时保存录音文件数据，因此Stop时返回的arrayBuffer的长度将为0字节
-        this.handleStop1()
+        // this.RecorderCoreManager.stop()
         // 如果当前环境支持Blob，也可以直接构造成Blob文件对象，和Recorder使用一致
         if (typeof (Blob) != 'undefined' && typeof (window) == 'object') {
           const blob = new Blob([arrayBuffer], { type: mime })
@@ -222,13 +210,51 @@ export default {
     },
     onTextChanged(data) {
       this.text = data
+      this.$emit('speechRecognition', this.text)
     },
     pushPcmData({ array }) {
       const pcmInt16 = new Int16Array(array)
       const buffer = pcmInt16.buffer
       this.RecorderCoreManager.pushAudioData(buffer)
     },
-
+    handleShowRecorder() {
+      this.recReq().then(() => {
+        console.log('录音权限已获得sss ')
+        this.showRecordingButton = true
+      }).catch((err) => {
+        this.showRecordingButton = false
+        console.log('录音权限未获得', err)
+        showToastError(err)
+      })
+    },
+    handleRecorderTouchStart() {
+      console.log('录音按钮按下开始录音')
+      try {
+        this.recStart()
+      }
+      catch (error) {
+        showToastError(error)
+      }
+    },
+    handleRecorderTouchEnd() {
+      console.log('录音按钮松开')
+      this.RecorderCoreManager.stop()
+      if (!this.RecorderCoreManager.isRecording) {
+        this.recStop()
+      }
+    },
+    // 录音按钮取消录音
+    handleRecorderClose() {
+      this.$emit('recorderClose')
+    },
+    // 录音按钮发送录音
+    handleRecorderConfirm() {
+      this.$emit('recorderConfirm')
+    },
+    // 录音按钮发送录音
+    handleConfirm() {
+      this.$emit('confirm')
+    },
   },
 }
 </script>
@@ -236,33 +262,35 @@ export default {
 <!-- #ifdef APP -->
 <script module="recorderCore" lang="renderjs">
 /**需要编译成App时，你需要添加一个renderjs模块，然后一模一样的import上面那些js（微信的js除外）
-    ，因为App中默认是在renderjs（WebView）中进行录音和音频编码**/
+  ，因为App中默认是在renderjs（WebView）中进行录音和音频编码**/
 import 'recorder-core'
 import RecordApp from 'recorder-core/src/app-support/app'
-import '../../../../../uni_modules/Recorder-UniCore/app-uni-support.js'
+// import '../../../../../uni_modules/Recorder-UniCore/app-uni-support.js'
+import '../../../../uni_modules/Recorder-UniCore/app-uni-support.js'
 //按需引入你需要的录音格式支持文件，和插件
 import 'recorder-core/src/engine/pcm'
 
 import 'recorder-core/src/extensions/waveview'
 export default {
-    mounted(){
-        //App的renderjs必须调用的函数，传入当前模块this
-        RecordApp.UniRenderjsRegister(this);
-    },
-    methods: {
-        //这里定义的方法，在逻辑层中可通过 RecordApp.UniWebViewVueCall(this,'this.xxxFunc()') 直接调用
-        //调用逻辑层的方法，请直接用 this.$ownerInstance.callMethod("xxxFunc",{args}) 调用，二进制数据需转成base64来传递
-    }
+
+  mounted(){
+      //App的renderjs必须调用的函数，传入当前模块this
+      RecordApp.UniRenderjsRegister(this );
+  },
+  methods: {
+      //这里定义的方法，在逻辑层中可通过 RecordApp.UniWebViewVueCall(this,'this.xxxFunc()') 直接调用
+      //调用逻辑层的方法，请直接用 this.$ownerInstance.callMethod("xxxFunc",{args}) 调用，二进制数据需转成base64来传递
+  }
 }
 </script>
- <!-- #endif -->
+<!-- #endif -->
 
 <template>
   <view>
     <button class="mt-40rpx" type="primary" @click="recReq">
       请求录音权限
     </button>
-    <button class="mt-40rpx" type="primary" @click="recStart">
+    <!-- <button class="mt-40rpx" type="primary" @click="recStart">
       开始录音
     </button>
     <button class="mt-40rpx" type="primary" @click="recPause">
@@ -273,7 +301,7 @@ export default {
     </button>
     <button class="mt-40rpx" type="primary" @click="recStop">
       停止录音
-    </button>
+    </button> -->
     <button class="mt-40rpx" type="primary" @click="recStart">
       开始识别1
     </button>
@@ -282,7 +310,7 @@ export default {
       停止识别1
     </button>
 
-    <button class="mt-40rpx" type="primary" @click="text = ''">
+    <button class="mt-40rpx" type="primary" @click="onTextChanged('')">
       清空内容
     </button>
 
@@ -296,6 +324,22 @@ export default {
         {{ text }}
       </text>
     </view>
+
+    <RecorderInput
+      v-model:model-value="content"
+      v-model:focus="isFocus"
+      v-model:show-recording-button="showRecordingButton"
+      placeholder="请输入您的问题..."
+      is-offset
+      class="flex-1"
+      btn-text="发送"
+      @recorder-close="handleRecorderClose"
+      @show-recorder="handleShowRecorder"
+      @recorder-touch-start="handleRecorderTouchStart"
+      @recorder-touch-end="handleRecorderTouchEnd"
+      @recorder-confirm="handleRecorderConfirm"
+      @confirm="handleConfirm"
+    />
   </view>
 </template>
 

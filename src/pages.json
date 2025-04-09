@@ -94,11 +94,15 @@
           "path": "recorder-ai/index",
           "type": "page",
           "style": {
-            "navigationBarTitleText": "按住说话"
+            "navigationBarTitleText": "录音"
           }
         },
         {
-          "path": "recorder-ai/test-input",
+          "path": "recorder-ai/recorder-ai",
+          "type": "page"
+        },
+        {
+          "path": "recorder-ai/recorder-input",
           "type": "page"
         },
         {

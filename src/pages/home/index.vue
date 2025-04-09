@@ -24,6 +24,10 @@ function handleRecorderCoreClass() {
 function handleRecorderBtn() {
   router.push('/feature/pages/recorder-ai/index')
 }
+
+function handleRecorderBtnces() {
+  router.push('/feature/pages/recorder-ai/recorder-ai/recorder-ai')
+}
 </script>
 
 <template>
@@ -43,7 +47,11 @@ function handleRecorderBtn() {
     </button>
 
     <button class="mt-40rpx" @click="handleRecorderBtn">
-      跳转说话按钮
+      跳转recorder-ai-index
+    </button>
+
+    <button class="mt-40rpx" @click="handleRecorderBtnces">
+      跳转说话按钮cews
     </button>
   </view>
 </template>

@@ -6,6 +6,13 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "629337",
+      "name": "声音",
+      "font_class": "recorder",
+      "unicode": "e64c",
+      "unicode_decimal": 58956
+    },
+    {
       "icon_id": "1654615",
       "name": "闹钟",
       "font_class": "time",

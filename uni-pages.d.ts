@@ -11,6 +11,8 @@ interface NavigateToOptions {
        "/pages/mine/index" |
        "/feature/pages/list-data-preview/detail" |
        "/feature/pages/list-data-preview/index" |
+       "/feature/pages/recorder-ai/index" |
+       "/feature/pages/recorder-ai/test-input" |
        "/feature/pages/sub-test/index" |
        "/feature/pages/test/index" |
        "/feature/pages/yaml/index" |

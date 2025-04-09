@@ -18,6 +18,7 @@ export type IconFontType = 'account-code' |
 'questions' |
 'qwen' |
 'record' |
+'recorder' |
 'right' |
 'search' |
 'time' |

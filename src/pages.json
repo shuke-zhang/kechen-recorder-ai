@@ -91,6 +91,17 @@
           }
         },
         {
+          "path": "recorder-ai/index",
+          "type": "page",
+          "style": {
+            "navigationBarTitleText": "按住说话"
+          }
+        },
+        {
+          "path": "recorder-ai/test-input",
+          "type": "page"
+        },
+        {
           "path": "sub-test/index",
           "type": "page",
           "style": {

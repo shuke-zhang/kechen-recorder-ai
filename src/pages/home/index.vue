@@ -20,6 +20,10 @@ function handleRecorderCore() {
 function handleRecorderCoreClass() {
   router.push('/feature/pages/test/recorder-core/index-copy')
 }
+
+function handleRecorderBtn() {
+  router.push('/feature/pages/recorder-ai/index')
+}
 </script>
 
 <template>
@@ -36,6 +40,10 @@ function handleRecorderCoreClass() {
 
     <button class="mt-40rpx" @click="handleRecorderCoreClass">
       跳转recorder-core-class
+    </button>
+
+    <button class="mt-40rpx" @click="handleRecorderBtn">
+      跳转说话按钮
     </button>
   </view>
 </template>

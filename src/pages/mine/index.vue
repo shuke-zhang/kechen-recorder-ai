@@ -6,21 +6,13 @@
 </route>
 
 <script setup lang="ts">
-const userStore = useUserStore()
-function handleLogout() {
-  userStore.performLogout()
-}
+import test from './test.vue'
 </script>
 
 <template>
-  <view class="container ">
-    个人中心
-    <button
-      class="mx-32rpx h-100rpx border-0 border-rd-24rpx  flex-center p-0  color-primary "
-      @click="handleLogout"
-    >
-      退出登录
-    </button>
+  <view class=" ">
+    <test />
+    <test class="mt-20rpx" />
   </view>
 </template>
 

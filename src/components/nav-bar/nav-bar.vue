@@ -95,6 +95,13 @@ onBeforeUnmount(() => {
           :color="transparent ? '#fff' : 'inherit'"
         />
       </view>
+
+      <view v-else class="left-content withe-auto left-content-slot">
+        <slot
+          name="left"
+        />
+      </view>
+
       <view
         class="uni-navbar-content"
         :class="{ 'is-left': isLeft }"
@@ -202,6 +209,13 @@ onBeforeUnmount(() => {
   align-items: center;
   width: 45px;
   height: 100%;
+}
+
+.withe-auto {
+  width: auto;
+}
+.left-content-slot {
+  padding-left: 15px;
 }
 
 .uni-navbar-content {

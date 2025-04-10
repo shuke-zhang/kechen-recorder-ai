@@ -70,6 +70,10 @@
       "style": {
         "navigationBarTitleText": "柯臣"
       }
+    },
+    {
+      "path": "pages/mine/test",
+      "type": "page"
     }
   ],
   "subPackages": [
@@ -94,7 +98,8 @@
           "path": "recorder-ai/index",
           "type": "page",
           "style": {
-            "navigationBarTitleText": "录音"
+            "navigationBarTitleText": "录音",
+            "navigationStyle": "custom"
           }
         },
         {

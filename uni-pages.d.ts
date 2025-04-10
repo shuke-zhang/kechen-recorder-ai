@@ -9,6 +9,7 @@ interface NavigateToOptions {
        "/pages/ai/index" |
        "/pages/auth/index" |
        "/pages/mine/index" |
+       "/pages/mine/test" |
        "/feature/pages/list-data-preview/detail" |
        "/feature/pages/list-data-preview/index" |
        "/feature/pages/recorder-ai/index" |

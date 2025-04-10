@@ -33,7 +33,8 @@ function handleRecorderBtnces() {
 <template>
   <view class="container">
     首页
-
+    <icon-font name="questions" class="test-class" />
+    <icon-font name="questions" class="ml-80rpx sssss" />
     <button @click="handleListDataPreview">
       跳转
     </button>

@@ -1,4 +1,5 @@
 <!-- eslint-disable import/first -->
+<!-- eslint-disable import/first -->
 <!-- eslint-disable import/no-duplicates -->
 <!-- eslint-disable import/no-duplicates -->
 
@@ -48,6 +49,7 @@ import 'recorder-core/src/engine/pcm'
 // eslint-disable-next-line import/first, import/no-duplicates
 import 'recorder-core/src/extensions/waveview'
 // #endif
+
 const vueInstance = getCurrentInstance()?.proxy as any // 必须定义到最外面，getCurrentInstance得到的就是当前实例this
 
 const {
@@ -61,9 +63,6 @@ const {
   handleRecorderTouchEnd,
   handleRecorderConfirm,
   handleConfirm,
-  recReq,
-  recStart,
-  recStop,
 } = useRecorder({
   RecordApp: RecordAppInstance,
   Recorder: RecorderInstance,
@@ -82,41 +81,43 @@ onShow(() => {
 </script>
 
 <template>
-  <button class="mt-40rpx" type="primary" @click="recReq">
-    请求录音权限
-  </button>
-  <button class="mt-40rpx" type="primary" @click="recStart">
-    开始识别1
-  </button>
-
-  <button class="mt-40rpx" type="primary" @click="recStop">
-    停止识别1
-  </button>
   <view>
-    识别结果：
-    <text class="text-primary">
-      {{ textRes }}
-    </text>
+    <nav-bar :show-back="false">
+      <template #left>
+        <view class="flex items-center">
+          <icon-font name="questions" />
+          <view class="ml-20rpx">
+            <icon-font name="questions" />
+          </view>
+        </view>
+      </template>
+      ai对话
+    </nav-bar>
+
+    <RecorderInput
+      v-model:model-value="content"
+      v-model:focus="isFocus"
+      v-model:show-recording-button="showRecordingButton"
+      placeholder="请输入您的问题..."
+      is-offset
+      class="flex-1"
+      btn-text="发送"
+      @recorder-close="handleRecorderClose"
+      @show-recorder="handleShowRecorder"
+      @recorder-touch-start="handleRecorderTouchStart"
+      @recorder-touch-end="handleRecorderTouchEnd"
+      @recorder-confirm="handleRecorderConfirm"
+      @confirm="handleConfirm"
+    />
   </view>
-  <RecorderInput
-    v-model:model-value="content"
-    v-model:focus="isFocus"
-    v-model:show-recording-button="showRecordingButton"
-    placeholder="请输入您的问题..."
-    is-offset
-    class="flex-1"
-    btn-text="发送"
-    @recorder-close="handleRecorderClose"
-    @show-recorder="handleShowRecorder"
-    @recorder-touch-start="handleRecorderTouchStart"
-    @recorder-touch-end="handleRecorderTouchEnd"
-    @recorder-confirm="handleRecorderConfirm"
-    @confirm="handleConfirm"
-  />
 </template>
+
+<style lang="scss">
+
+</style>
 
 <route lang="json">
   {
-       "style": { "navigationBarTitleText": "录音" }
+       "style": { "navigationBarTitleText": "录音","navigationStyle": "custom"}
   }
 </route>

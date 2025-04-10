@@ -34,6 +34,10 @@ import { default as RecordAppInstance } from 'recorder-core/src/app-support/app'
 import RecorderInput from './recorder-input.vue'
 // eslint-disable-next-line import/first
 import useRecorder from './hooks/useRecorder'
+// eslint-disable-next-line import/first
+import useAiPage from './hooks/useAiPage'
+// eslint-disable-next-line import/first
+import { NAV_BAR_HEIGHT, getStatusBarHeight } from '@/components/nav-bar/nav-bar'
 
 // eslint-disable-next-line import/first, import/no-duplicates
 import '../../../../uni_modules/Recorder-UniCore/app-uni-support.js'
@@ -51,7 +55,9 @@ import 'recorder-core/src/extensions/waveview'
 // #endif
 
 const vueInstance = getCurrentInstance()?.proxy as any // 必须定义到最外面，getCurrentInstance得到的就是当前实例this
-
+const pageHeight = computed(() => {
+  return `${getStatusBarHeight() + NAV_BAR_HEIGHT + 1}px`
+})
 const {
   textRes,
   content,
@@ -69,6 +75,8 @@ const {
   vueInstance,
 })
 
+const { aiPageContent } = useAiPage(pageHeight.value)
+
 onMounted(() => {
   (vueInstance as any).isMounted = true
   RecordAppInstance.UniPageOnShow(vueInstance)
@@ -82,17 +90,14 @@ onShow(() => {
 
 <template>
   <view>
-    <nav-bar :show-back="false">
+    <!-- <nav-bar :show-back="false">
       <template #left>
-        <view class="flex items-center">
-          <icon-font name="questions" />
-          <view class="ml-20rpx">
-            <icon-font name="questions" />
-          </view>
-        </view>
+        <icon-font name="questions" />
       </template>
       ai对话
-    </nav-bar>
+    </nav-bar> -->
+
+    <view :style="aiPageContent" />
 
     <RecorderInput
       v-model:model-value="content"
@@ -118,6 +123,6 @@ onShow(() => {
 
 <route lang="json">
   {
-       "style": { "navigationBarTitleText": "录音","navigationStyle": "custom"}
+       "style": { "navigationBarTitleText": "录音" }
   }
 </route>

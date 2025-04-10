@@ -98,8 +98,7 @@
           "path": "recorder-ai/index",
           "type": "page",
           "style": {
-            "navigationBarTitleText": "录音",
-            "navigationStyle": "custom"
+            "navigationBarTitleText": "录音"
           }
         },
         {

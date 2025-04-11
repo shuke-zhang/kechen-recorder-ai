@@ -112,8 +112,8 @@ onHide(() => {
 <template>
   <view class="comment-input-container" :style="{ bottom: inputBottom }">
     <!-- 正常模式 -->
-    <button class="recorder-btn" @click="handleRecorderIconClick">
-      <icon-font :name="showRecordingButton ? 'record' : 'recorder'" :class="COLOR_BLACK_1" />
+    <button class="recorder-btn bg-black-3" @click="handleRecorderIconClick">
+      <icon-font :name="showRecordingButton ? 'keyboard' : 'recorder'" :color="COLOR_WHITE" size="48" />
     </button>
 
     <template v-if="!showRecordingButton">
@@ -221,6 +221,7 @@ onHide(() => {
     height: 80rpx;
     color: #fff;
     font-size: 28rpx;
+    margin-left: 20rpx;
     border-radius: 40rpx;
     display: flex;
     align-items: center;

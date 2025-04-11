@@ -6,9 +6,30 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "35102432",
+      "name": "复制06",
+      "font_class": "copy",
+      "unicode": "ea32",
+      "unicode_decimal": 59954
+    },
+    {
+      "icon_id": "10109106",
+      "name": "录音",
+      "font_class": "recorder",
+      "unicode": "e610",
+      "unicode_decimal": 58896
+    },
+    {
+      "icon_id": "18403710",
+      "name": "键盘",
+      "font_class": "keyboard",
+      "unicode": "e6d8",
+      "unicode_decimal": 59096
+    },
+    {
       "icon_id": "629337",
       "name": "声音",
-      "font_class": "recorder",
+      "font_class": "sound",
       "unicode": "e64c",
       "unicode_decimal": 58956
     },

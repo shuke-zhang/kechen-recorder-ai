@@ -6,11 +6,13 @@ export type IconFontType = 'account-code' |
 'camera' |
 'close' |
 'close1' |
+'copy' |
 'deepseek' |
 'doubao' |
 'edit' |
 'fasong' |
 'jump' |
+'keyboard' |
 'left' |
 'loop' |
 'play' |
@@ -21,6 +23,7 @@ export type IconFontType = 'account-code' |
 'recorder' |
 'right' |
 'search' |
+'sound' |
 'time' |
 'user' |
 'zhipu';

@@ -10,7 +10,19 @@
   text-align: center;
 }
 
+.icon-copy:before {
+  content: "\ea32";
+}
+
 .icon-recorder:before {
+  content: "\e610";
+}
+
+.icon-keyboard:before {
+  content: "\e6d8";
+}
+
+.icon-sound:before {
   content: "\e64c";
 }
 

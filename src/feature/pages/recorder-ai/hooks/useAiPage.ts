@@ -43,6 +43,17 @@ export default function useAiPage(height: string) {
     popupVisible.value = true
     console.log('toggle')
   }
+  /**
+   * @description 复制内容
+   */
+  function handleCopy(str: string) {
+    uni.setClipboardData({
+      data: str,
+      success: () => {
+        showToastSuccess('复制成功')
+      },
+    })
+  }
 
   /**
    * 切换 AI 模型
@@ -110,6 +121,7 @@ export default function useAiPage(height: string) {
     onSuccess,
     onFinish,
     handleSendMsg,
+    handleCopy,
     setAiContent,
   }
 }

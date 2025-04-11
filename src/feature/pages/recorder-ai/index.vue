@@ -76,6 +76,7 @@ const {
   handleToggle,
   handleChangeAiModel,
   handleSendMsg,
+  handleCopy,
   setAiContent,
 } = useAiPage(pageHeight.value)
 
@@ -244,14 +245,14 @@ onShow(() => {
               >
                 <view v-if="msg.content">
                   <UaMarkdown :source="msg.content" :show-line="false" />
-                  <view class="h-2rpx  bg-black-3" />
+                  <view class="h-2rpx  bg-black-3 my-10rpx" />
 
-                  <view class="flex items-center">
-                    <view class="border-rd-16rpx">
-                      <icon-font name="right" :color="COLOR_PRIMARY" :size="28" />
+                  <view class="flex items-center justify-end ">
+                    <view class="border-rd-16rpx size-60rpx bg-#e8ecf5 flex-center" @click="handleCopy(msg.content)">
+                      <icon-font name="copy" :color="COLOR_PRIMARY" :size="28" />
                     </view>
-                    <view class="border-rd-16rpx ml-20rpx">
-                      <icon-font name="right" :color="COLOR_PRIMARY" :size="28" />
+                    <view class="border-rd-16rpx size-60rpx  bg-#e8ecf5 flex-center  ml-20rpx">
+                      <icon-font name="sound" :color="COLOR_PRIMARY" :size="28" />
                     </view>
                   </view>
                 </view>

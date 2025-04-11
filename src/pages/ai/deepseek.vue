@@ -118,10 +118,6 @@ defineExpose({
               <view v-if=" msg.streaming && !(msg.content && msg.content.length)" class="flex-center">
                 <uni-load-more icon-type="auto" status="loading" :show-text="false" />
               </view>
-              <!--
-              <button v-if="!msg.streaming" hover-stop-propagation @click="handleContinue">
-                重新生成
-              </button> -->
             </view>
           </view>
         </view>

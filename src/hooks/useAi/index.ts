@@ -6,6 +6,10 @@ export interface AiMessage extends AiModel.AiRequestMessagesModel {
    * @description 是否是流式传输中的临时消息
    */
   streaming?: boolean
+  /**
+   * @description 用户消息临时加载状态
+   */
+  isRecordingPlaceholder?: boolean
 }
 export function useAi(options: AiOptionsModel) {
   // const optionsParams = {
@@ -14,6 +18,13 @@ export function useAi(options: AiOptionsModel) {
   //   '通义千问': options.params,
   //   '智谱清言': options.params,
   // }
+  /**
+   * @description 模型名称
+   * deepseek-r1'
+   * doubao'
+   * 通义千问'
+   * 智谱清言'
+   */
   const modelName = ref(options.name)
   /**
    * @description 聊天内容s

@@ -19,6 +19,7 @@ export default class RecorderCoreManager extends EventEmitter {
   public socketUrl = ''
   public resultText = ''
   public resultTextTemp = ''
+  // 是否正在录音
   public isRunning = false
   public isReady = false
 
@@ -49,16 +50,25 @@ export default class RecorderCoreManager extends EventEmitter {
 
   /** 关闭识别流程 */
   public stop() {
-    if (!this.isRunning)
-      return
-    this.isRunning = false
-    this.sendLastFrame()
-    this.clearHandlerInterval()
-    // 延迟关闭WebSocket，确保最后一帧数据发送完成
-    setTimeout(() => {
-      this.socketTask?.closeSocket('手动关闭')
-      this.socketTask = null
-    }, 1000)
+    return new Promise((resolve, reject) => {
+      try {
+        if (!this.isRunning)
+          return
+        this.isRunning = false
+
+        this.sendLastFrame()
+        this.clearHandlerInterval()
+        // 延迟关闭WebSocket，确保最后一帧数据发送完成
+        setTimeout(() => {
+          this.socketTask?.closeSocket('手动关闭')
+          this.socketTask = null
+          resolve('stop')
+        }, 1000)
+      }
+      catch (error) {
+        reject(error)
+      }
+    })
   }
 
   /** 销毁识别器，彻底释放资源 */
@@ -110,18 +120,8 @@ export default class RecorderCoreManager extends EventEmitter {
 
   /** 持续发送音频数据帧 */
   private sendAudioData() {
-    console.log('sendAudioData函数触发---1111')
-
     if (!this.socketTask?.isConnect)
       return
-    console.log('sendAudioData函数触发---2222')
-
-    const firstAudio = this.audioDataList.shift()
-    console.log('sendAudioData函数触发---333', firstAudio)
-
-    // if (!firstAudio)
-    //   return
-    console.log('sendAudioData函数触发---555')
 
     const firstFrame = {
       common: { app_id: this.APPID },
@@ -139,10 +139,8 @@ export default class RecorderCoreManager extends EventEmitter {
         audio: '',
       },
     }
-    console.log('sendAudioData函数触发---666')
 
     this.socketTask.sendMessage(firstFrame)
-    console.log('sendAudioData函数触发---777')
 
     this.emit('log', '📤 发送第一帧')
 
@@ -152,13 +150,13 @@ export default class RecorderCoreManager extends EventEmitter {
         return
       }
 
-      if (this.audioDataList.length === 0) {
-        if (!this.isRunning) {
-          this.sendLastFrame()
-          this.clearHandlerInterval()
-        }
-        return
-      }
+      // if (this.audioDataList.length === 0) {
+      //   if (!this.isRunning) {
+      //     this.sendLastFrame()
+      //     this.clearHandlerInterval()
+      //   }
+      //   return
+      // }
 
       const buffer = this.audioDataList.shift()
       if (!buffer)

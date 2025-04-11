@@ -23,9 +23,14 @@ export default function useRecorder(options: AnyObject) {
     url,
     host,
   }, onTextChanged)
-
+  /** 识别是否关闭 */
+  const isRunning = ref(false)
   /** 输入框内容 */
   const content = ref('')
+  /** 是否已经按下了录音按钮 */
+  const iseRecorderTouchStart = ref(false)
+  /** 是否是取消操作 */
+  const isRecorderClose = ref(false)
   /** 是否触发焦点 */
   const isFocus = ref(false)
   /** 显示录音按钮 */
@@ -144,12 +149,15 @@ export default function useRecorder(options: AnyObject) {
    */
   function handleStart() {
     RecorderCoreClass.start()
+    if (RecorderCoreClass.isRunning) {
+      isRunning.value = true
+    }
   }
   /**
    * 语音识别关闭操作
    */
   function handleStop() {
-    RecorderCoreClass.stop()
+    return RecorderCoreClass.stop()
   }
 
   /**
@@ -185,8 +193,9 @@ export default function useRecorder(options: AnyObject) {
    * 录音按钮按下
    */
   function handleRecorderTouchStart() {
-    console.log('录音按钮按下开始录音')
     try {
+      iseRecorderTouchStart.value = true
+      isRecorderClose.value = false
       recStart()
     }
     catch (error: any) {
@@ -198,17 +207,23 @@ export default function useRecorder(options: AnyObject) {
    * 录音按钮松开
    */
   function handleRecorderTouchEnd() {
-    console.log('录音按钮松开')
-    RecorderCoreClass.stop()
-    if (!RecorderCoreClass.isRunning) {
-      recStop()
-    }
+    return RecorderCoreClass.stop().then(() => {
+      if (!RecorderCoreClass.isRunning) {
+        isRunning.value = false
+        recStop()
+        console.log('松开录音按钮-useRecorder')
+      }
+    })
   }
 
   /**
    * 录音按钮取消录音
    */
   function handleRecorderClose() {
+    console.log('录音按钮取消录音-useRecorder')
+
+    // 是否是取消录音
+    isRecorderClose.value = true
     handleStop()
   }
   /**
@@ -216,16 +231,13 @@ export default function useRecorder(options: AnyObject) {
    */
   function handleRecorderConfirm() {
   }
-  /**
-   * 录音滑动发送录音
-   */
-  function handleConfirm() {
-  }
+
   /**
    * 识别结果实时返回
    */
   function onTextChanged(text: string) {
     textRes.value = text
+    console.log('识别结果实时返回', text)
   }
 
   function pushPcmData({ array }: any) {
@@ -234,6 +246,10 @@ export default function useRecorder(options: AnyObject) {
     RecorderCoreClass.pushAudioData(buffer)
   }
   return {
+    /** 是否按下录音按钮 */
+    iseRecorderTouchStart,
+    /** 是否是取消操作 */
+    isRecorderClose,
     /** 语音识别的class */
     RecorderCoreClass,
     /** 输入框内容 */
@@ -244,6 +260,8 @@ export default function useRecorder(options: AnyObject) {
     showRecordingButton,
     /** 录音识别结果 */
     textRes,
+    /** 是否正在录音 */
+    isRunning,
     /** 录音权限函数 */
     recReq,
     /** 开始录音函数 */
@@ -264,8 +282,6 @@ export default function useRecorder(options: AnyObject) {
     handleRecorderClose,
     /** 右侧录音按钮发送录音 */
     handleRecorderConfirm,
-    /** 录音滑动发送录音 */
-    handleConfirm,
     /** pcm */
     pushPcmData,
   }

@@ -49,10 +49,10 @@ function handleRecorderIconClick() {
 
 // 用户手指按下录音按钮
 function handleTouchStart(e: TouchEvent) {
+  emit('recorderTouchStart')
   recording.value = true
   cancelRecording.value = false
   touchStartY.value = e.touches[0].clientY
-  emit('recorderTouchStart')
 }
 
 // 手指移动过程中判断是否上滑取消

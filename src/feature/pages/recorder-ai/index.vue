@@ -63,6 +63,7 @@ const {
   chatSSEClientRef,
   loading,
   content,
+  isStreaming,
   modelName,
   replyForm,
   popupVisible,
@@ -204,6 +205,23 @@ onShow(() => {
     />
 
     <view :style="aiPageContent">
+      <view
+        class="absolute top-0 left-0 w-full h-full z-0 flex justify-center "
+        :style="{ 'padding-top': pageHeight }"
+      >
+        <image
+          v-if="isStreaming"
+          src="/static/images/aiPageBg.gif"
+          mode="aspectFit"
+          class="aiPageBg-img "
+        />
+        <image
+          v-else
+          src="/static/images/aiPageBg-quiet.png"
+          mode="aspectFit"
+          class="aiPageBg-img "
+        />
+      </view>
       <scroll-view scroll-y class="pr-20rpx pl-20rpx h-full">
         <view v-if="content.length === 0" class="h-full flex justify-end flex-col items-center pb-200rpx">
           <icon-font name="doubao" :size="160" />
@@ -310,6 +328,9 @@ onShow(() => {
 <style lang="scss">
 .message-bubble {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.aiPageBg-img {
+  //  缩小百分之80
 }
 </style>
 

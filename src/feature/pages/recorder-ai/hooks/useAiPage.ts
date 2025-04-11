@@ -6,13 +6,25 @@ export default function useAiPage(height: string) {
     modelName,
     loading,
     content,
+    isStreaming,
     startChat,
     stopChat,
     onStart,
     onError,
     onSuccess,
     onFinish,
-  } = useAi(aiModelList[0])
+  } = useAi(aiModelList[1])
+  const replyForm = ref({ content: '', role: 'user' })
+
+  // watch(() => replyForm.value.content, (val) => {
+  //   if (val && val.trim() !== '') {
+  //     bgUrl.value = `/static/images/aiPageBg.gif?t=${Date.now()}`
+  //   }
+  //   else {
+  //     bgUrl.value = `/static/images/aiPageBg-quiet.png`
+  //   }
+  //   console.log('bgUrl', bgUrl.value)
+  // }, { immediate: true })
   /**
    * ai 页面内容样式
    * ${getStatusBarHeight() + NAV_BAR_HEIGHT + 1}px 顶部导航栏高度 + 1px 底部安全区域高度
@@ -20,11 +32,7 @@ export default function useAiPage(height: string) {
    */
   const aiPageContent = computed(() => {
     return {
-      height: `calc(100vh - ${height} -  120rpx)`,
-      backgroundImage: `url(/static/images/aiPageBg.gif)`,
-      backgroundPosition: 'center -50rpx',
-      backgroundRepeat: 'no-repeat',
-      backgroundSize: '80%', // 缩小背景图
+      height: `calc(100vh - ${height} - 120rpx)`,
     }
   })
   const popupVisible = ref(false)
@@ -36,7 +44,6 @@ export default function useAiPage(height: string) {
     return { ...item, messages: [] }
   })
   const aiCurrentIndex = ref(0)
-  const replyForm = ref({ content: '', role: 'user' })
   const popupRef = ref<any>(null)
 
   function handleToggle() {
@@ -112,6 +119,7 @@ export default function useAiPage(height: string) {
     loading,
     /** ai返回的结果 */
     content,
+    isStreaming,
     handleToggle,
     handleChangeAiModel,
     startChat,

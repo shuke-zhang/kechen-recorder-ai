@@ -31,6 +31,12 @@ export function useAi(options: AiOptionsModel) {
    */
   const content = ref<AiMessage[]>([])
   /**
+   * @description 聊天内容开始到结束
+   * 开始 true
+   * 结束 false
+   */
+  const isStreaming = ref(false)
+  /**
    * 发送消息
    */
   /**
@@ -120,7 +126,7 @@ export function useAi(options: AiOptionsModel) {
    */
   function onFinish() {
     loading.value = false
-
+    isStreaming.value = false
     const lastIndex = content.value.length - 1
     if (content.value[lastIndex]?.streaming) {
       // 移除流式标记并格式化内容
@@ -134,6 +140,7 @@ export function useAi(options: AiOptionsModel) {
   }
 
   function hotUpdate(acceptMsg: string) {
+    isStreaming.value = true
     // 寻找最后一个消息的位置
     const lastIndex = content.value.length - 1
 
@@ -163,6 +170,7 @@ export function useAi(options: AiOptionsModel) {
     chatSSEClientRef,
     modelName,
     content,
+    isStreaming,
     message,
     startChat,
     stopChat,

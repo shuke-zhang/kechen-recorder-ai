@@ -55,18 +55,18 @@ export default function useAiPage(height: string) {
    * 发送消息
    */
   function handleSendMsg() {
-    if (!replyForm.value.content) {
+    const last = content.value[content.value.length - 1]
+
+    if (!replyForm.value.content && !last?.isRecordingPlaceholder) {
       return showToast('请输入内容')
     }
 
+    if (!replyForm.value.content.trim() && !last?.isRecordingPlaceholder) {
+      return showToastError('请输入问题')
+    }
     if (loading.value) {
       return showToast('请等待上个回答完成')
     }
-
-    if (!replyForm.value.content.trim()) {
-      return showToastError('请输入问题')
-    }
-    const last = content.value[content.value.length - 1]
     if (last?.isRecordingPlaceholder) {
       last.content = replyForm.value.content
       delete last.isRecordingPlaceholder
@@ -79,12 +79,7 @@ export default function useAiPage(height: string) {
       })
       content.value.push(sendText)
     }
-    // const sendText = setAiContent({
-    //   type: 'send',
-    //   msg: replyForm.value.content,
-    //   modeName: modelName.value || '',
-    // })
-    // content.value?.push(sendText)
+    replyForm.value.content = ''
     // 添加AI的临时占位消息
     content.value.push({
       role: 'assistant',

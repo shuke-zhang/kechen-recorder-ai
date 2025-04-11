@@ -213,9 +213,6 @@ onShow(() => {
             我可以帮你搜索、答疑、写作、请在下方输入你的内容~
           </view>
         </view>
-        <view>
-          {{ isRunning }}-{{ animatedDots }}
-        </view>
 
         <view v-for="(msg, index) in content" :key="index">
           <!-- 用户消息 -->
@@ -277,6 +274,7 @@ onShow(() => {
       is-offset
       class="flex-1"
       btn-text="发送"
+      :is-disabled-recorder="loading"
       @recorder-close="handleRecorderClose"
       @show-recorder="handleShowRecorder"
       @recorder-touch-start="handleTouchStart"

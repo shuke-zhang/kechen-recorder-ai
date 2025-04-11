@@ -333,6 +333,7 @@ export default {
       is-offset
       class="flex-1"
       btn-text="发送"
+      :is-disabled-recorder="loading"
       @recorder-close="handleRecorderClose"
       @show-recorder="handleShowRecorder"
       @recorder-touch-start="handleRecorderTouchStart"

@@ -14,6 +14,7 @@ const props = defineProps({
     type: String,
     default: '发送',
   },
+  isDisabledRecorder: Boolean,
   isDisabled: Boolean,
 })
 
@@ -49,6 +50,9 @@ function handleRecorderIconClick() {
 
 // 用户手指按下录音按钮
 function handleTouchStart(e: TouchEvent) {
+  if (props.isDisabledRecorder) {
+    return
+  }
   emit('recorderTouchStart')
   recording.value = true
   cancelRecording.value = false
@@ -57,12 +61,18 @@ function handleTouchStart(e: TouchEvent) {
 
 // 手指移动过程中判断是否上滑取消
 function handleTouchMove(e: TouchEvent) {
+  if (props.isDisabledRecorder) {
+    return
+  }
   const deltaY = touchStartY.value - e.touches[0].clientY
   cancelRecording.value = deltaY > 80
 }
 
 // 手指松开，发送或取消
 function handleTouchEnd() {
+  if (props.isDisabledRecorder) {
+    return
+  }
   emit('recorderTouchEnd')
 
   if (cancelRecording.value) {
@@ -134,6 +144,8 @@ onHide(() => {
     <template v-else>
       <button
         class="press-record-btn"
+        type="primary"
+        :disabled="isDisabledRecorder"
         @touchstart.prevent="handleTouchStart"
         @touchmove.prevent="handleTouchMove"
         @touchend.prevent="handleTouchEnd"
@@ -207,19 +219,15 @@ onHide(() => {
   .press-record-btn {
     flex: 1;
     height: 80rpx;
-    background-color: #07c160;
     color: #fff;
     font-size: 28rpx;
     border-radius: 40rpx;
-    text-align: center;
     display: flex;
     align-items: center;
     justify-content: center;
-
-    &.cancel,
-    &.cancel-recording {
-      background-color: #999 !important;
-    }
+  }
+  .press-record-btn:disabled {
+    opacity: 0.5;
   }
 }
 </style>

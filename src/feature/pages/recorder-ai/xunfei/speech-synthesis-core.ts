@@ -13,6 +13,10 @@ export default class SpeechSynthesisCore extends EventEmitter {
   private socketTask: WebSocket | null = null
   private socketUrl = ''
   private audio: any = null // 用于控制播放的音频对象
+  /**
+   * @description 音频实例
+   */
+  private audioInstance: UniNamespace.InnerAudioContext | null = null
   public isPlaying = false
 
   constructor(options: XunFeiSpeechSynthesisOptions) {
@@ -22,7 +26,7 @@ export default class SpeechSynthesisCore extends EventEmitter {
     this.APIKey = options.APIKey
     this.url = options.url
     this.host = options.host
-    this.initSocket()
+    this.audioInstance = uni.createInnerAudioContext()
   }
 
   // 用于转化单次文本为语音
@@ -31,11 +35,38 @@ export default class SpeechSynthesisCore extends EventEmitter {
   }
 
   public convertTextToSpeech(text: string) {
-    if (!this.socketTask || !this.socketUrl) {
-      this.initSocket() // 如果没有WebSocket连接，重新初始化连接
-      return
-    }
+    // 每次调用时都初始化 socket
+    this.initSocket(() => {
+      this.sendMessage(text) // WebSocket 连接成功后再发送消息
+    })
+  }
 
+  private initSocket(callback: () => void) {
+    try {
+      this.socketUrl = this.getWebSocketUrl() as string
+      if (!this.socketUrl)
+        return
+
+      // 重新初始化 WebSocket
+      this.socketTask = new WebSocket(this.socketUrl, false)
+      this.socketTask.reset()
+      this.socketTask.initSocket()
+
+      this.socketTask.on('open', () => {
+        this.emit('log', '✅ WebSocket已连接')
+        callback() // 连接成功后执行回调，发送消息
+      })
+
+      this.socketTask.on('message', (message) => {
+        this.onSocketMessage(message)
+      })
+    }
+    catch (error) {
+      this.emit('log', `❌ 初始化Socket失败: ${error}`)
+    }
+  }
+
+  private sendMessage(text: string) {
     const params = {
       common: { app_id: this.APPID },
       business: {
@@ -53,17 +84,14 @@ export default class SpeechSynthesisCore extends EventEmitter {
         text: this.textToBase64(text),
       },
     }
-    console.log(this.socketTask.isConnect, 'socket是否连接')
 
-    // 重新发送消息前确保 WebSocket 状态正常
-    if (this.socketTask && !this.socketTask.isConnect) {
-      console.error('WebSocket 未连接，重新初始化')
-      this.initSocket()
-    }
-    else {
-      console.log('socket未关闭')
+    console.log(this.socketTask?.isConnect, 'socket是否连接')
+    if (this.socketTask && this.socketTask.isConnect) {
       this.socketTask.sendMessage(params)
       console.log('发送消息：', params)
+    }
+    else {
+      console.error('WebSocket 未连接，无法发送消息')
     }
   }
 
@@ -101,32 +129,13 @@ export default class SpeechSynthesisCore extends EventEmitter {
     }
   }
 
-  private initSocket() {
-    try {
-      this.socketUrl = this.getWebSocketUrl() as string
-      if (!this.socketUrl)
-        return
-
-      this.socketTask = new WebSocket(this.socketUrl, false)
-      this.socketTask.reset()
-      this.socketTask.initSocket()
-
-      // WebSocket事件监听
-      this.socketTask.on('open', () => {
-        this.emit('log', '✅ WebSocket已连接')
-      })
-      this.socketTask.on('message', (message) => {
-        this.onSocketMessage(message)
-      })
-    }
-    catch (error) {
-      this.emit('log', `❌ 初始化Socket失败: ${error}`)
-    }
-  }
-
   private onSocketMessage(data: string) {
     const message = JSON.parse(data)
     console.log('接收消息', message)
+    if (!this.audioInstance) {
+      this.emit('log', 'audioInstance尚未初始化')
+      return
+    }
 
     if (message.data?.status !== undefined) {
       if (message.code !== 0) {
@@ -141,27 +150,14 @@ export default class SpeechSynthesisCore extends EventEmitter {
         const fullAudio = this.concatUint8Arrays(this.audioChunks)
         const base64 = uni.arrayBufferToBase64(fullAudio.buffer as ArrayBuffer)
 
-        // 如果已有音频实例，销毁它
-        if (this.audio) {
-          try {
-            this.audio.pause() // 暂停当前音频
-            this.audio.destroy() // 销毁当前音频实例
-          }
-          catch (e) {
-            console.error('销毁音频实例时出错：', e)
-          }
-        }
-
-        // 创建新的音频实例
-        this.audio = uni.createInnerAudioContext()
-        this.audio.src = `data:audio/mp3;base64,${base64}`
-        this.audio.play()
+        this.audioInstance.src = `data:audio/mp3;base64,${base64}`
+        this.audioInstance.play()
 
         this.isPlaying = true
         this.audioChunks = [] // 清空缓存
 
         // 设置事件处理
-        this.audio.onEnded(() => {
+        this.audioInstance.onEnded(() => {
           this.isPlaying = false
           this.emit('log', '✅ 播放完成')
 
@@ -174,7 +170,7 @@ export default class SpeechSynthesisCore extends EventEmitter {
           this.stop() // 调用stop停止播放
         })
 
-        this.audio.onError((err: Error) => {
+        this.audioInstance.onError((err: Error) => {
           console.error('播放出错：', err)
           this.emit('log', '❌ 音频播放失败')
         })

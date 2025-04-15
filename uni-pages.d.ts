@@ -15,6 +15,7 @@ interface NavigateToOptions {
        "/feature/pages/recorder-ai/index" |
        "/feature/pages/recorder-ai/recorder-ai" |
        "/feature/pages/recorder-ai/recorder-input" |
+       "/feature/pages/recorder-ai/speech-synthesis" |
        "/feature/pages/sub-test/index" |
        "/feature/pages/test/index" |
        "/feature/pages/yaml/index" |

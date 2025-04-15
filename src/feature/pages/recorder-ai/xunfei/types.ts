@@ -22,11 +22,19 @@ export interface XunFeiRecorderOptions {
    * @description WebSocket 接口地址，默认使用科大讯飞提供的识别地址
    * @example "wss://iat-api.xfyun.cn/v2/iat"
    */
-  url?: string
+  url: string
 
   /**
    * @description WebSocket 连接的 Host 地址，与 url 配套使用
    * @example "iat-api.xfyun.cn"
    */
-  host?: string
+  host: string
+}
+
+/**
+ * @description 科大讯飞语音合成配置项
+ * https://console.xfyun.cn/services/tts
+ */
+export interface XunFeiSpeechSynthesisOptions extends XunFeiRecorderOptions {
+
 }

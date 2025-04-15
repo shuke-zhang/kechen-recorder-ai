@@ -38,6 +38,8 @@ import useRecorder from './hooks/useRecorder'
 import useAiPage from './hooks/useAiPage'
 // eslint-disable-next-line import/first
 import { NAV_BAR_HEIGHT, getStatusBarHeight } from '@/components/nav-bar/nav-bar'
+// eslint-disable-next-line import/order, import/first
+import SpeechSynthesisCore from './xunfei/speech-synthesis-core'
 
 // eslint-disable-next-line import/first, import/no-duplicates
 import '../../../../uni_modules/Recorder-UniCore/app-uni-support.js'
@@ -99,6 +101,14 @@ const {
   vueInstance,
 })
 
+const SpeechSynthesis = new SpeechSynthesisCore({
+  APPID: 'f9b52f87',
+  APISecret: 'ZDVkYzU5YmFhZmNlODVkM2RlNDMyNDhl',
+  APIKey: '287ae449056d33e0f4995f480737564a',
+  url: 'wss://tts-api.xfyun.cn/v2/tts',
+  host: 'tts-api.xfyun.cn',
+})
+
 const animatedDots = ref('')
 let dotTimer: NodeJS.Timeout | null = null
 // 监听语音识别开始和结束
@@ -117,8 +127,10 @@ watch(() => isRunning.value, (val) => {
   }
 })
 
-watch(() => textRes.value, (newVal) => {
+watch(() => textRes.value, async (newVal) => {
+  await nextTick() // 确保视图更新完成
   replyForm.value.content = newVal as string
+  SpeechSynthesis.convertTextToSpeech(newVal as string)
 })
 function handleTouchStart() {
   if (loading.value) {
@@ -163,6 +175,9 @@ function handleTouchEnd() {
   }).finally(() => {
     iseRecorderTouchStart.value = false
   })
+}
+function handleRecorder(text: string) {
+  SpeechSynthesis.convertTextToSpeech(text)
 }
 
 /**
@@ -269,7 +284,7 @@ onShow(() => {
                     <view class="border-rd-16rpx size-60rpx bg-#e8ecf5 flex-center" @click="handleCopy(msg.content)">
                       <icon-font name="copy" :color="COLOR_PRIMARY" :size="28" />
                     </view>
-                    <view class="border-rd-16rpx size-60rpx  bg-#e8ecf5 flex-center  ml-20rpx">
+                    <view class="border-rd-16rpx size-60rpx  bg-#e8ecf5 flex-center  ml-20rpx" @click="handleRecorder(msg.content)">
                       <icon-font name="sound" :color="COLOR_PRIMARY" :size="28" />
                     </view>
                   </view>

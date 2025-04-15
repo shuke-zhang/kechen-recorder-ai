@@ -111,6 +111,13 @@
           "type": "page"
         },
         {
+          "path": "recorder-ai/speech-synthesis",
+          "type": "page",
+          "style": {
+            "navigationBarTitleText": "语音合成"
+          }
+        },
+        {
           "path": "sub-test/index",
           "type": "page",
           "style": {

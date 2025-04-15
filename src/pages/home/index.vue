@@ -25,6 +25,10 @@ function handleRecorderBtn() {
   router.push('/feature/pages/recorder-ai/index')
 }
 
+function handleSpeechBtn() {
+  router.push('/feature/pages/recorder-ai/speech-synthesis')
+}
+
 function handleRecorderBtnces() {
   router.push('/feature/pages/recorder-ai/recorder-ai/recorder-ai')
 }
@@ -32,7 +36,7 @@ function handleRecorderBtnces() {
 
 <template>
   <view class="container">
-    首页
+    <!-- 首页
     <icon-font name="questions" class="test-class" />
     <icon-font name="questions" class="ml-80rpx sssss" />
     <button @click="handleListDataPreview">
@@ -45,15 +49,19 @@ function handleRecorderBtnces() {
 
     <button class="mt-40rpx" @click="handleRecorderCoreClass">
       跳转recorder-core-class
-    </button>
+    </button> -->
 
     <button class="mt-40rpx" @click="handleRecorderBtn">
-      跳转recorder-ai-index
+      AI对话跳转
     </button>
 
-    <button class="mt-40rpx" @click="handleRecorderBtnces">
-      跳转说话按钮cews
+    <button class="mt-40rpx" @click="handleSpeechBtn">
+      语音合成跳转
     </button>
+
+    <!-- <button class="mt-40rpx" @click="handleRecorderBtnces">
+      跳转说话按钮cews
+    </button> -->
   </view>
 </template>
 

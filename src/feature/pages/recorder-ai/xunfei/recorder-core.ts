@@ -7,8 +7,8 @@ export default class RecorderCoreManager extends EventEmitter {
   private APPID = ''
   private APISecret = ''
   private APIKey = ''
-  private url: string | undefined = ''
-  private host: string | undefined = ''
+  private url = ''
+  private host = ''
   private onTextChange?: (text: string) => void
 
   private socketTask: WebSocket | null = null
@@ -234,8 +234,22 @@ export default class RecorderCoreManager extends EventEmitter {
   /** 生成鉴权后的 WS URL */
   private getWebSocketUrl(): string | Error {
     const date = (new Date() as any).toGMTString()
-    if (!this.url || !this.host || !this.APIKey || !this.APISecret) {
-      return new Error('WebSocket 参数不完整')
+
+    const missingKeys: string[] = []
+
+    if (!this.url)
+      missingKeys.push('url')
+    if (!this.host)
+      missingKeys.push('host')
+    if (!this.APIKey)
+      missingKeys.push('APIKey')
+    if (!this.APISecret)
+      missingKeys.push('APISecret')
+    if (!this.APPID)
+      missingKeys.push('APPID')
+
+    if (missingKeys.length > 0) {
+      return new Error(`以下字段缺失：${missingKeys.join(', ')}`)
     }
 
     const originStr = `host: ${this.host}\ndate: ${date}\nGET /v2/iat HTTP/1.1`

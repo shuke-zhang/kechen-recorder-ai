@@ -9,24 +9,31 @@ export default class SpeechSynthesisCore extends EventEmitter {
   private APIKey = ''
   private url = ''
   private host = ''
-  private audioChunks: Uint8Array[] = []
   private socketTask: WebSocket | null = null
   private socketUrl = ''
   private audio: any = null // 用于控制播放的音频对象
+  private streamPlay: (pcm: ArrayBuffer, sampleRate: number) => void = () => {} // 用于接收音频数据的回调函数
+  private destroyStreamPlay: () => void = () => {} // 用于销毁音频数据的回调函数
+  private initStreamPlay: () => void = () => {} // 初始化播放器
   /**
    * @description 音频实例
    */
-  private audioInstance: UniNamespace.InnerAudioContext | null = null
   public isPlaying = false
 
-  constructor(options: XunFeiSpeechSynthesisOptions) {
+  constructor(options: XunFeiSpeechSynthesisOptions, fetchOptions: {
+    streamPlay: (pcm: ArrayBuffer, sampleRate: number) => void
+    destroyStreamPlay: () => void
+    initStreamPlay: () => void
+  }) {
     super()
     this.APPID = options.APPID
     this.APISecret = options.APISecret
     this.APIKey = options.APIKey
     this.url = options.url
     this.host = options.host
-    this.audioInstance = uni.createInnerAudioContext()
+    this.streamPlay = fetchOptions.streamPlay
+    this.destroyStreamPlay = fetchOptions.destroyStreamPlay
+    this.initStreamPlay = fetchOptions.initStreamPlay
   }
 
   // 用于转化单次文本为语音
@@ -54,11 +61,20 @@ export default class SpeechSynthesisCore extends EventEmitter {
 
       this.socketTask.on('open', () => {
         this.emit('log', '✅ WebSocket已连接')
+        this.initStreamPlay()
         callback() // 连接成功后执行回调，发送消息
       })
-
       this.socketTask.on('message', (message) => {
         this.onSocketMessage(message)
+      })
+      this.socketTask.on('close', () => {
+        this.emit('log', '🔌 WebSocket 已关闭')
+        this.destroyStreamPlay()
+      })
+
+      this.socketTask.on('error', (err) => {
+        console.error('❌ WebSocket 错误:', err)
+        this.destroyStreamPlay()
       })
     }
     catch (error) {
@@ -70,10 +86,10 @@ export default class SpeechSynthesisCore extends EventEmitter {
     const params = {
       common: { app_id: this.APPID },
       business: {
-        aue: 'lame',
+        aue: 'raw',
         sfl: 1,
         auf: 'audio/L16;rate=16000',
-        vcn: 'x4_lingxiaoying_em_v2',
+        vcn: 'aisjinger',
         speed: 50,
         volume: 50,
         pitch: 50,
@@ -109,9 +125,8 @@ export default class SpeechSynthesisCore extends EventEmitter {
     if (this.audio) {
       this.audio.stop()
       this.isPlaying = false
-      this.audioChunks = [] // 清空缓冲数据
       this.emit('log', '✅ 停止播放并清除缓存')
-
+      this.destroyStreamPlay()
       // 停止 WebSocket
       if (this.socketTask && this.socketTask.isConnect) {
         this.socketTask.closeSocket()
@@ -132,61 +147,7 @@ export default class SpeechSynthesisCore extends EventEmitter {
   private onSocketMessage(data: string) {
     const message = JSON.parse(data)
     console.log('接收消息', message)
-    if (!this.audioInstance) {
-      this.emit('log', 'audioInstance尚未初始化')
-      return
-    }
-
-    if (message.data?.status !== undefined) {
-      if (message.code !== 0) {
-        this.emit('log', `❌ 合成失败: ${message.message}`)
-        return
-      }
-
-      const audioChunk = Base64.toUint8Array(message.data.audio)
-      this.audioChunks.push(audioChunk)
-
-      if (message.data.status === 2) {
-        const fullAudio = this.concatUint8Arrays(this.audioChunks)
-        const base64 = uni.arrayBufferToBase64(fullAudio.buffer as ArrayBuffer)
-
-        this.audioInstance.src = `data:audio/mp3;base64,${base64}`
-        this.audioInstance.play()
-
-        this.isPlaying = true
-        this.audioChunks = [] // 清空缓存
-
-        // 设置事件处理
-        this.audioInstance.onEnded(() => {
-          this.isPlaying = false
-          this.emit('log', '✅ 播放完成')
-
-          // 播放完成后关闭WebSocket并停止播放
-          if (this.socketTask && this.socketTask.isConnect) {
-            this.socketTask.closeSocket()
-            this.emit('log', '✅ WebSocket已关闭')
-          }
-
-          this.stop() // 调用stop停止播放
-        })
-
-        this.audioInstance.onError((err: Error) => {
-          console.error('播放出错：', err)
-          this.emit('log', '❌ 音频播放失败')
-        })
-      }
-    }
-  }
-
-  private concatUint8Arrays(chunks: Uint8Array[]): Uint8Array {
-    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0)
-    const result = new Uint8Array(totalLength)
-    let offset = 0
-    for (const chunk of chunks) {
-      result.set(chunk, offset)
-      offset += chunk.length
-    }
-    return result
+    this.streamPlay(message.data.audio, 16000)
   }
 
   private textToBase64(text: string): string {

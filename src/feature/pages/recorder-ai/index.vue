@@ -6,6 +6,9 @@
  <!-- #ifdef APP -->
 <script module="recorderCore" lang="renderjs">
 import Recorder from 'recorder-core'
+import 'recorder-core/src/extensions/buffer_stream.player.js'
+// eslint-disable-next-line import/order
+import useSpeechSynthesis from './hooks/useSpeechSynthesis'
 import RecordApp from 'recorder-core/src/app-support/app'
 import '../../../../uni_modules/Recorder-UniCore/app-uni-support.js'
 import 'recorder-core/src/engine/pcm'
@@ -26,6 +29,9 @@ export default {
 <!-- #endif -->
 
 <script setup lang='ts'>
+// eslint-disable-next-line import/first, import/order
+import { NAV_BAR_HEIGHT, getStatusBarHeight } from '@/components/nav-bar/nav-bar'
+
 // eslint-disable-next-line import/first, import/no-named-default, import/no-duplicates
 import { default as RecorderInstance } from 'recorder-core'
 // eslint-disable-next-line import/first, import/no-named-default, import/no-duplicates
@@ -37,8 +43,9 @@ import useRecorder from './hooks/useRecorder'
 // eslint-disable-next-line import/first
 import useAiPage from './hooks/useAiPage'
 // eslint-disable-next-line import/first
-import { NAV_BAR_HEIGHT, getStatusBarHeight } from '@/components/nav-bar/nav-bar'
-// eslint-disable-next-line import/order, import/first
+import useSpeechSynthesis from './hooks/useSpeechSynthesis'
+
+// eslint-disable-next-line import/first
 import SpeechSynthesisCore from './xunfei/speech-synthesis-core'
 
 // eslint-disable-next-line import/first, import/no-duplicates
@@ -101,12 +108,25 @@ const {
   vueInstance,
 })
 
+const {
+  streamPlay,
+  destroyStreamPlay,
+  initStreamPlay,
+} = useSpeechSynthesis({
+  RecordApp: RecordAppInstance,
+  vueInstance,
+})
+
 const SpeechSynthesis = new SpeechSynthesisCore({
   APPID: 'f9b52f87',
   APISecret: 'ZDVkYzU5YmFhZmNlODVkM2RlNDMyNDhl',
   APIKey: '287ae449056d33e0f4995f480737564a',
   url: 'wss://tts-api.xfyun.cn/v2/tts',
   host: 'tts-api.xfyun.cn',
+}, {
+  initStreamPlay,
+  streamPlay,
+  destroyStreamPlay,
 })
 
 const animatedDots = ref('')
@@ -130,7 +150,7 @@ watch(() => isRunning.value, (val) => {
 watch(() => textRes.value, async (newVal) => {
   await nextTick() // 确保视图更新完成
   replyForm.value.content = newVal as string
-  SpeechSynthesis.convertTextToSpeech(newVal as string)
+  // SpeechSynthesis.convertTextToSpeech(newVal as string)
 })
 function handleTouchStart() {
   if (loading.value) {

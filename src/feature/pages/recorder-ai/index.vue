@@ -1,12 +1,14 @@
-<!-- eslint-disable import/first -->
-<!-- eslint-disable import/first -->
+<!-- eslint-disable ts/ban-ts-comment -->
+<!-- eslint-disable ts/ban-ts-comment -->
+<!-- eslint-disable ts/ban-ts-comment -->
 <!-- eslint-disable import/no-duplicates -->
 <!-- eslint-disable import/no-duplicates -->
-
  <!-- #ifdef APP -->
 <script module="recorderCore" lang="renderjs">
+// @ts-ignore
 import Recorder from 'recorder-core'
 import 'recorder-core/src/extensions/buffer_stream.player.js'
+// @ts-ignore
 // eslint-disable-next-line import/order
 import useSpeechSynthesis from './hooks/useSpeechSynthesis'
 import RecordApp from 'recorder-core/src/app-support/app'
@@ -42,7 +44,9 @@ import RecorderInput from './recorder-input.vue'
 import useRecorder from './hooks/useRecorder'
 // eslint-disable-next-line import/first
 import useAiPage from './hooks/useAiPage'
-// eslint-disable-next-line import/first
+// eslint-disable-next-line ts/ban-ts-comment
+// @ts-expect-error
+// eslint-disable-next-line import/first, import/no-duplicates, ts/no-redeclare
 import useSpeechSynthesis from './hooks/useSpeechSynthesis'
 
 // eslint-disable-next-line import/first
@@ -363,9 +367,6 @@ onShow(() => {
 <style lang="scss">
 .message-bubble {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-.aiPageBg-img {
-  //  缩小百分之80
 }
 </style>
 

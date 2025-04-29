@@ -12,7 +12,7 @@ export default class SpeechSynthesisCore extends EventEmitter {
   private socketTask: WebSocket | null = null
   private socketUrl = ''
   private audio: any = null // 用于控制播放的音频对象
-  private streamPlay: (pcm: ArrayBuffer, sampleRate: number) => void = () => {} // 用于接收音频数据的回调函数
+  private streamPlay: (pcm: string, sampleRate: number) => void = () => {} // 用于接收音频数据的回调函数
   private destroyStreamPlay: () => void = () => {} // 用于销毁音频数据的回调函数
   private initStreamPlay: () => void = () => {} // 初始化播放器
   /**
@@ -21,7 +21,7 @@ export default class SpeechSynthesisCore extends EventEmitter {
   public isPlaying = false
 
   constructor(options: XunFeiSpeechSynthesisOptions, fetchOptions: {
-    streamPlay: (pcm: ArrayBuffer, sampleRate: number) => void
+    streamPlay: (pcm: string, sampleRate: number) => void
     destroyStreamPlay: () => void
     initStreamPlay: () => void
   }) {

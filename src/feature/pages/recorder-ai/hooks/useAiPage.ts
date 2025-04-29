@@ -15,7 +15,7 @@ export default function useAiPage(height: string) {
     onFinish,
   } = useAi(aiModelList[1])
   const replyForm = ref({ content: '', role: 'user' })
-
+  const currentModel = computed(() => aiModelList.find(item => item.name === modelName.value))
   // watch(() => replyForm.value.content, (val) => {
   //   if (val && val.trim() !== '') {
   //     bgUrl.value = `/static/images/aiPageBg.gif?t=${Date.now()}`
@@ -116,6 +116,7 @@ export default function useAiPage(height: string) {
     aiCurrentIndex,
     chatSSEClientRef,
     modelName,
+    currentModel,
     loading,
     /** ai返回的结果 */
     content,

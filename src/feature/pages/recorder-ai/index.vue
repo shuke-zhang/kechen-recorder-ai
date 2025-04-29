@@ -78,6 +78,7 @@ const {
   content,
   isStreaming,
   modelName,
+  currentModel,
   replyForm,
   popupVisible,
   aiPageContent,
@@ -263,7 +264,13 @@ onShow(() => {
       </view>
       <scroll-view scroll-y class="pr-20rpx pl-20rpx h-full">
         <view v-if="content.length === 0" class="h-full flex justify-end flex-col items-center pb-200rpx">
-          <icon-font name="doubao" :size="160" />
+          <view>
+            <image
+              class="ai-img"
+              :src="`/static/images/${currentModel?.icon}.png`"
+              mode="aspectFill"
+            />
+          </view>
           <view class="font-size-60rpx mt-20rpx">
             我是{{ modelName }}
           </view>
@@ -367,6 +374,10 @@ onShow(() => {
 <style lang="scss">
 .message-bubble {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.ai-img {
+  width: 160rpx;
+  height: 160rpx;
 }
 </style>
 

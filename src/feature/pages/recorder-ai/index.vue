@@ -82,6 +82,7 @@ const {
   replyForm,
   popupVisible,
   aiPageContent,
+  aiScrollView,
   aiNameList,
   aiCurrentIndex,
   onStart,
@@ -241,17 +242,16 @@ function initScrollHeight() {
       }
     })
 }
-/**
- * 获取内容高度
- */
-function getContentHeight() {
+
+function initContentHeight() {
   uni.createSelectorQuery()
     .in(vueInstance)
-    .select('.official-content')
-    .boundingClientRect((_data) => {
-      const data = _data as UniNamespace.NodeInfo
+    .select('.scroll-content')
+    .boundingClientRect((data) => {
       if (data) {
-        const top = (data.height || 0) - scrollHeight.value
+        const top = ((data as UniNamespace.NodeInfo).height || 0) - scrollHeight.value
+        console.log('监听到变化', top)
+
         if (top > 0) {
           scrollTop.value = top
         }
@@ -259,12 +259,15 @@ function getContentHeight() {
     })
     .exec()
 }
-watch(() => [textRes.value, replyForm.value.content], () => {
-  getContentHeight()
-}, {
-  deep: true,
-  immediate: true,
-})
+
+watch(() => [content.value, textRes.value, replyForm.value.content], () => {
+  // 更新 scrollTop 为 scrollHeight，确保滚动到底部
+  if (scrollViewRef.value) {
+    nextTick(() => {
+      initContentHeight()
+    })
+  }
+}, { deep: true, immediate: true })
 
 onMounted(() => {
   (vueInstance as any).isMounted = true
@@ -273,6 +276,7 @@ onMounted(() => {
     console.log(res, '请求权限允许')
     isFirstVisit.value = false
   }).catch((err) => {
+    showToastError(err)
     console.log(err, '请求权限拒绝')
   })
   initScrollHeight()
@@ -282,11 +286,18 @@ onShow(() => {
     RecordAppInstance.UniPageOnShow(vueInstance)
   }
 })
+const oldScrollTop = ref(0)
+
+function handleScroll(e: any) {
+  console.log(1111, e.detail.scrollTop)
+
+  oldScrollTop.value = e.detail.scrollTop
+}
 </script>
 
 <template>
   <view>
-    <nav-bar :show-back="false">
+    <nav-bar :show-back="false" custom-click>
       <template #left>
         <icon-font name="questions" @click="handleToggle" />
       </template>
@@ -319,7 +330,7 @@ onShow(() => {
           class="aiPageBg-img "
         />
       </view>
-      <ScrollView ref="scrollViewRef" scroll-y :scroll-top="scrollTop" class="pr-20rpx pl-20rpx block h-full" :scroll-with-animation="true">
+      <scroll-view ref="scrollViewRef" scroll-y :scroll-top="scrollTop" class=" scroll-content pr-20rpx pl-20rpx  block h-full" :scroll-with-animation="true" :style="aiScrollView" @scroll="handleScroll">
         <view v-if="content.length === 0" class="h-full flex justify-end flex-col items-center pb-200rpx pt-500rpx">
           <view>
             <image
@@ -336,58 +347,56 @@ onShow(() => {
           </view>
         </view>
 
-        <view class="scroll-view-content">
-          <view v-for="(msg, index) in content" :key="index">
-            <!-- 用户消息 -->
-            <view v-if="msg.role === 'user'" class=" flex mt-16rpx mb-16rpx   flex-justify-end opacity-60">
-              <view class="message-bubble p-32rpx border-rd-16rpx   bg-#07c160 color-white max-w-80%">
-                <text>
-                  {{
-                    msg.isRecordingPlaceholder
-                      ? (textRes || '') + (isRunning && textRes ? animatedDots : '')
-                      : Array.isArray(msg.content)
-                        ? msg.content[0].text
-                        : msg.content
-                  }}
-                </text>
-                <!-- 流式加载动画 -->
-                <view v-if="msg.isRecordingPlaceholder && !textRes" class="flex-center">
-                  <uni-load-more icon-type="auto" status="loading" :show-text="false" />
-                </view>
+        <view v-for="(msg, index) in content" :key="index" class="py-16rpx">
+          <!-- 用户消息 -->
+          <view v-if="msg.role === 'user'" class=" flex  flex-justify-end opacity-60">
+            <view class="message-bubble p-32rpx border-rd-16rpx   bg-#07c160 color-white max-w-80%">
+              <text>
+                {{
+                  msg.isRecordingPlaceholder
+                    ? (textRes || '') + (isRunning && textRes ? animatedDots : '')
+                    : Array.isArray(msg.content)
+                      ? msg.content[0].text
+                      : msg.content
+                }}
+              </text>
+              <!-- 流式加载动画 -->
+              <view v-if="msg.isRecordingPlaceholder && !textRes" class="flex-center">
+                <uni-load-more icon-type="auto" status="loading" :show-text="false" />
               </view>
             </view>
+          </view>
 
-            <!-- AI消息（含加载状态） -->
-            <view v-else class="flex justify-start opacity-60">
-              <Icon-font name="zhipu" class="mt-20rpx mr-10rpx" />
-              <view class="flex mt-16rpx mb-16rpx flex-justify-start bg-#ffffff color-#333333 max-w-80% border-rd-16rpx">
-                <view
-                  class="message-bubble  p-32rpx border-rd-16rpx w-100%"
-                  :class="[msg.streaming && !(msg.content && msg.content.length) ? 'flex-center w-120rpx h-120rpx ' : '']"
-                >
-                  <view v-if="msg.content">
-                    <UaMarkdown :source="msg.content" :show-line="false" />
-                    <view class="h-2rpx  bg-black-3 my-10rpx" />
+          <!-- AI消息（含加载状态） -->
+          <view v-else class="flex justify-start opacity-60">
+            <Icon-font name="zhipu" class="mt-20rpx mr-10rpx" />
+            <view class="flex mt-16rpx mb-16rpx flex-justify-start bg-#ffffff color-#333333 max-w-80% border-rd-16rpx">
+              <view
+                class="message-bubble  p-32rpx border-rd-16rpx w-100%"
+                :class="[msg.streaming && !(msg.content && msg.content.length) ? 'flex-center w-120rpx h-120rpx ' : '']"
+              >
+                <view v-if="msg.content">
+                  <UaMarkdown :source="msg.content" :show-line="false" />
+                  <view class="h-2rpx  bg-black-3 my-10rpx" />
 
-                    <view class="flex items-center justify-end ">
-                      <view class="border-rd-16rpx size-60rpx bg-#e8ecf5 flex-center" @click="handleCopy(msg.content)">
-                        <icon-font name="copy" :color="COLOR_PRIMARY" :size="28" />
-                      </view>
-                      <view class="border-rd-16rpx size-60rpx  bg-#e8ecf5 flex-center  ml-20rpx" @click="handleRecorder(msg.content)">
-                        <icon-font name="sound" :color="COLOR_PRIMARY" :size="28" />
-                      </view>
+                  <view class="flex items-center justify-end ">
+                    <view class="border-rd-16rpx size-60rpx bg-#e8ecf5 flex-center" @click="handleCopy(msg.content)">
+                      <icon-font name="copy" :color="COLOR_PRIMARY" :size="28" />
+                    </view>
+                    <view class="border-rd-16rpx size-60rpx  bg-#e8ecf5 flex-center  ml-20rpx" @click="handleRecorder(msg.content)">
+                      <icon-font name="sound" :color="COLOR_PRIMARY" :size="28" />
                     </view>
                   </view>
-                  <!-- 流式加载动画 -->
-                  <view v-if=" msg.streaming && !(msg.content && msg.content.length)" class="flex-center">
-                    <uni-load-more icon-type="auto" status="loading" :show-text="false" />
-                  </view>
+                </view>
+                <!-- 流式加载动画 -->
+                <view v-if=" msg.streaming && !(msg.content && msg.content.length)" class="flex-center">
+                  <uni-load-more icon-type="auto" status="loading" :show-text="false" />
                 </view>
               </view>
             </view>
           </view>
         </view>
-      </ScrollView>
+      </scroll-view>
     </view>
 
     <RecorderInput

@@ -125,7 +125,10 @@ onShow(() => {
   })
 })
 onHide(() => {
+  // 排除h5
+  // #ifdef H5
   uni.offKeyboardHeightChange()
+  // #endif
 })
 </script>
 

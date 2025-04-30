@@ -35,6 +35,11 @@ export default function useAiPage(height: string) {
       'min-height': `calc(100vh - ${height} - 120rpx)`,
     }
   })
+  const aiScrollView = computed(() => {
+    return {
+      height: `calc(100vh - ${height} - 120rpx - 40rpx)`,
+    }
+  })
   const popupVisible = ref(false)
 
   /** 模型名字列表 */
@@ -113,6 +118,7 @@ export default function useAiPage(height: string) {
     aiModelInstanceList,
     popupVisible,
     aiPageContent,
+    aiScrollView,
     aiCurrentIndex,
     chatSSEClientRef,
     modelName,

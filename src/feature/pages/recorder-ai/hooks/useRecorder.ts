@@ -262,6 +262,8 @@ export default function useRecorder(options: AnyObject) {
     textRes,
     /** 是否正在录音 */
     isRunning,
+    /** 是否第一次访问 */
+    isFirstVisit,
     /** 录音权限函数 */
     recReq,
     /** 开始录音函数 */

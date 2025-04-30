@@ -101,7 +101,9 @@ const {
   iseRecorderTouchStart,
   isRecorderClose,
   isRunning,
+  isFirstVisit,
   showRecordingButton,
+  recReq,
   handleRecorderClose,
   handleShowRecorder,
   handleRecorderTouchStart,
@@ -161,6 +163,8 @@ function handleTouchStart() {
   if (loading.value) {
     return showToast('请等待上个回答完成')
   }
+  console.log('手指按下操作')
+
   textRes.value = ''
   handleRecorderTouchStart()
   // 开始录音，插入一个临时消息（占位）
@@ -175,12 +179,16 @@ function handleTouchStart() {
 }
 
 function handleTouchEnd() {
+  console.log('手指抬起操作1000000')
+
   handleRecorderTouchEnd().then(() => {
     if (isRecorderClose.value) {
       // 用户上滑取消
       removeLastUserMessage('user')
     }
     else {
+      console.log('手指抬起操作')
+
       // 用户正常抬起
       if (textRes.value && textRes.value.trim() !== '') {
         console.log(textRes.value, 'watch-监听结果')
@@ -219,6 +227,12 @@ function removeLastUserMessage(type: string) {
 onMounted(() => {
   (vueInstance as any).isMounted = true
   RecordAppInstance.UniPageOnShow(vueInstance)
+  recReq().then((res) => {
+    console.log(res, '请求权限允许')
+    isFirstVisit.value = false
+  }).catch((err) => {
+    console.log(err, '请求权限拒绝')
+  })
 })
 onShow(() => {
   if ((vueInstance as any)?.isMounted) {

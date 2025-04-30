@@ -14,7 +14,13 @@ const props = defineProps({
     type: String,
     default: '发送',
   },
+  /**
+   * 是否禁用录音按钮
+   */
   isDisabledRecorder: Boolean,
+  /**
+   * 是否禁用输入框
+   */
   isDisabled: Boolean,
 })
 
@@ -25,18 +31,32 @@ const emit = defineEmits<{
   'confirm': []
   'recorderConfirm': []
   'recorderClose': []
+  /** 录音按钮按下 */
   'recorderTouchStart': []
   'showRecorder': []
+  /** 录音按钮抬起 */
   'recorderTouchEnd': []
 }>()
 
 const inputValue = useVModel(props, 'modelValue', emit)
 const isFocus = useVModel(props, 'focus', emit)
-
 const showRecordingButton = useVModel(props, 'showRecordingButton', emit)
+
+/**
+ * 是否正在录音
+ */
 const recording = ref(false)
+/**
+ * 是否取消录音
+ */
 const cancelRecording = ref(false)
+/**
+ * 输入框底部的偏移量（键盘高度）
+ */
 const inputBottom = ref('0px')
+/**
+ * 手指按下时的 Y 坐标
+ */
 const touchStartY = ref(0)
 
 function handleRecorderIconClick() {
@@ -112,8 +132,8 @@ onHide(() => {
 <template>
   <view class="comment-input-container" :style="{ bottom: inputBottom }">
     <!-- 正常模式 -->
-    <button class="recorder-btn bg-black-3" @click="handleRecorderIconClick">
-      <icon-font :name="showRecordingButton ? 'keyboard' : 'recorder'" :color="COLOR_WHITE" size="48" />
+    <button class="recorder-btn border-color-primary" @click="handleRecorderIconClick">
+      <icon-font :name="showRecordingButton ? 'keyboard' : 'recorder'" size="42" />
     </button>
 
     <template v-if="!showRecordingButton">
@@ -195,6 +215,7 @@ onHide(() => {
     width: 80rpx;
     height: 80rpx;
     border-radius: 50%;
+    border: 2rpx solid;
     font-size: 30rpx;
     display: flex;
     align-items: center;

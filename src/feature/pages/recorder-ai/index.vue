@@ -136,8 +136,12 @@ const SpeechSynthesis = new SpeechSynthesisCore({
   destroyStreamPlay,
 })
 
+const scrollViewRef = ref(null)
+const scrollTop = ref(0)
+const scrollHeight = ref(0)
 const animatedDots = ref('')
 let dotTimer: NodeJS.Timeout | null = null
+
 // 监听语音识别开始和结束
 watch(() => isRunning.value, (val) => {
   if (val) {
@@ -224,6 +228,44 @@ function removeLastUserMessage(type: string) {
   }
 }
 
+/**
+ * 获取高度
+ */
+function initScrollHeight() {
+  uni.createSelectorQuery()
+    .in(vueInstance)
+    .select('.scroll-view')
+    .boundingClientRect((data) => {
+      if (data) {
+        scrollHeight.value = (data as UniNamespace.NodeInfo).height || 0
+      }
+    })
+}
+/**
+ * 获取内容高度
+ */
+function getContentHeight() {
+  uni.createSelectorQuery()
+    .in(vueInstance)
+    .select('.official-content')
+    .boundingClientRect((_data) => {
+      const data = _data as UniNamespace.NodeInfo
+      if (data) {
+        const top = (data.height || 0) - scrollHeight.value
+        if (top > 0) {
+          scrollTop.value = top
+        }
+      }
+    })
+    .exec()
+}
+watch(() => [textRes.value, replyForm.value.content], () => {
+  getContentHeight()
+}, {
+  deep: true,
+  immediate: true,
+})
+
 onMounted(() => {
   (vueInstance as any).isMounted = true
   RecordAppInstance.UniPageOnShow(vueInstance)
@@ -233,6 +275,7 @@ onMounted(() => {
   }).catch((err) => {
     console.log(err, '请求权限拒绝')
   })
+  initScrollHeight()
 })
 onShow(() => {
   if ((vueInstance as any)?.isMounted) {
@@ -276,8 +319,8 @@ onShow(() => {
           class="aiPageBg-img "
         />
       </view>
-      <scroll-view scroll-y class="pr-20rpx pl-20rpx h-full">
-        <view v-if="content.length === 0" class="h-full flex justify-end flex-col items-center pb-200rpx">
+      <ScrollView ref="scrollViewRef" scroll-y :scroll-top="scrollTop" class="pr-20rpx pl-20rpx block h-full" :scroll-with-animation="true">
+        <view v-if="content.length === 0" class="h-full flex justify-end flex-col items-center pb-200rpx pt-500rpx">
           <view>
             <image
               class="ai-img"
@@ -293,56 +336,58 @@ onShow(() => {
           </view>
         </view>
 
-        <view v-for="(msg, index) in content" :key="index">
-          <!-- 用户消息 -->
-          <view v-if="msg.role === 'user'" class=" flex mt-16rpx mb-16rpx   flex-justify-end opacity-60">
-            <view class="message-bubble p-32rpx border-rd-16rpx   bg-#07c160 color-white max-w-80%">
-              <text>
-                {{
-                  msg.isRecordingPlaceholder
-                    ? (textRes || '') + (isRunning && textRes ? animatedDots : '')
-                    : Array.isArray(msg.content)
-                      ? msg.content[0].text
-                      : msg.content
-                }}
-              </text>
-              <!-- 流式加载动画 -->
-              <view v-if="msg.isRecordingPlaceholder && !textRes" class="flex-center">
-                <uni-load-more icon-type="auto" status="loading" :show-text="false" />
+        <view class="scroll-view-content">
+          <view v-for="(msg, index) in content" :key="index">
+            <!-- 用户消息 -->
+            <view v-if="msg.role === 'user'" class=" flex mt-16rpx mb-16rpx   flex-justify-end opacity-60">
+              <view class="message-bubble p-32rpx border-rd-16rpx   bg-#07c160 color-white max-w-80%">
+                <text>
+                  {{
+                    msg.isRecordingPlaceholder
+                      ? (textRes || '') + (isRunning && textRes ? animatedDots : '')
+                      : Array.isArray(msg.content)
+                        ? msg.content[0].text
+                        : msg.content
+                  }}
+                </text>
+                <!-- 流式加载动画 -->
+                <view v-if="msg.isRecordingPlaceholder && !textRes" class="flex-center">
+                  <uni-load-more icon-type="auto" status="loading" :show-text="false" />
+                </view>
               </view>
             </view>
-          </view>
 
-          <!-- AI消息（含加载状态） -->
-          <view v-else class="flex justify-start opacity-60">
-            <Icon-font name="zhipu" class="mt-20rpx mr-10rpx" />
-            <view class="flex mt-16rpx mb-16rpx flex-justify-start bg-#ffffff color-#333333 max-w-80% border-rd-16rpx">
-              <view
-                class="message-bubble  p-32rpx border-rd-16rpx w-100%"
-                :class="[msg.streaming && !(msg.content && msg.content.length) ? 'flex-center w-120rpx h-120rpx ' : '']"
-              >
-                <view v-if="msg.content">
-                  <UaMarkdown :source="msg.content" :show-line="false" />
-                  <view class="h-2rpx  bg-black-3 my-10rpx" />
+            <!-- AI消息（含加载状态） -->
+            <view v-else class="flex justify-start opacity-60">
+              <Icon-font name="zhipu" class="mt-20rpx mr-10rpx" />
+              <view class="flex mt-16rpx mb-16rpx flex-justify-start bg-#ffffff color-#333333 max-w-80% border-rd-16rpx">
+                <view
+                  class="message-bubble  p-32rpx border-rd-16rpx w-100%"
+                  :class="[msg.streaming && !(msg.content && msg.content.length) ? 'flex-center w-120rpx h-120rpx ' : '']"
+                >
+                  <view v-if="msg.content">
+                    <UaMarkdown :source="msg.content" :show-line="false" />
+                    <view class="h-2rpx  bg-black-3 my-10rpx" />
 
-                  <view class="flex items-center justify-end ">
-                    <view class="border-rd-16rpx size-60rpx bg-#e8ecf5 flex-center" @click="handleCopy(msg.content)">
-                      <icon-font name="copy" :color="COLOR_PRIMARY" :size="28" />
-                    </view>
-                    <view class="border-rd-16rpx size-60rpx  bg-#e8ecf5 flex-center  ml-20rpx" @click="handleRecorder(msg.content)">
-                      <icon-font name="sound" :color="COLOR_PRIMARY" :size="28" />
+                    <view class="flex items-center justify-end ">
+                      <view class="border-rd-16rpx size-60rpx bg-#e8ecf5 flex-center" @click="handleCopy(msg.content)">
+                        <icon-font name="copy" :color="COLOR_PRIMARY" :size="28" />
+                      </view>
+                      <view class="border-rd-16rpx size-60rpx  bg-#e8ecf5 flex-center  ml-20rpx" @click="handleRecorder(msg.content)">
+                        <icon-font name="sound" :color="COLOR_PRIMARY" :size="28" />
+                      </view>
                     </view>
                   </view>
-                </view>
-                <!-- 流式加载动画 -->
-                <view v-if=" msg.streaming && !(msg.content && msg.content.length)" class="flex-center">
-                  <uni-load-more icon-type="auto" status="loading" :show-text="false" />
+                  <!-- 流式加载动画 -->
+                  <view v-if=" msg.streaming && !(msg.content && msg.content.length)" class="flex-center">
+                    <uni-load-more icon-type="auto" status="loading" :show-text="false" />
+                  </view>
                 </view>
               </view>
             </view>
           </view>
         </view>
-      </scroll-view>
+      </ScrollView>
     </view>
 
     <RecorderInput

@@ -190,6 +190,7 @@ onHide(() => {
   bottom: 0;
   padding-bottom: env(safe-area-inset-bottom);
   background-color: #f4f4f4;
+  // background-color: red;
   height: 120rpx;
   padding: 20rpx;
   box-sizing: border-box;

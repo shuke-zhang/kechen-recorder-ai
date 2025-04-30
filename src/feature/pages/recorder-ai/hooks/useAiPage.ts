@@ -32,7 +32,7 @@ export default function useAiPage(height: string) {
    */
   const aiPageContent = computed(() => {
     return {
-      height: `calc(100vh - ${height} - 120rpx)`,
+      'min-height': `calc(100vh - ${height} - 120rpx)`,
     }
   })
   const popupVisible = ref(false)

@@ -4,14 +4,13 @@ export default function useSpeechSynthesis(options: AnyObject) {
     RecordApp,
     vueInstance,
   } = options || {}
-  console.log('vueInstance2222222222222222222', vueInstance)
-  const yyy = getCurrentInstance()?.proxy as any
-  console.log('yyy3333333333333333333', yyy)
+  const isAudioPlaying = ref(false)
+
   /**
    * @description 播放流式语音
    */
   function streamPlay(pcm: string, sampleRate: number) {
-    console.log(sampleRate, 'sampleRatesampleRatesampleRate')
+    isAudioPlaying.value = true
     if (sampleRate !== 16000) {
       console.warn('未适配非16000采样率的pcm播放：initStreamPlay中手写的16000采样率，使用其他采样率需要修改初始化代码')
     }
@@ -26,7 +25,6 @@ export default function useSpeechSynthesis(options: AnyObject) {
             var sp=window.wsStreamPlay;
             if(!sp || !sp.__isStart) return;
             //if(播放新的) sp.clearInput(); //清除已输入但还未播放的数据，一般用于非实时模式打断老的播放
-            console.log('播放咯')
             sp.input(pcm16k);
         })`
     // #ifdef H5
@@ -53,8 +51,9 @@ export default function useSpeechSynthesis(options: AnyObject) {
     if (vueInstance.spInit_time && Date.now() - vueInstance.spInit_time < 2000) {
       return console.log('初始化中')
     };
+
     const stime = vueInstance.spInit_time = Date.now()
-    const funcCode = `(function(True,False){ //这里需要独立执行
+    const funcCode = `(function(True,False,onStreamPlayEnd){ //这里需要独立执行
     if(window.wsStreamPlay) return True();
     var Tag="wsStreamPlay";
     if(!Recorder.BufferStreamPlayer){
@@ -69,7 +68,9 @@ export default function useSpeechSynthesis(options: AnyObject) {
         window["console"].error(Tag+"第"+inputIndex+"次的音频片段input输入出错: "+errMsg);
       }
       ,onPlayEnd:function(){
+
         // 没有可播放的数据了，缓冲中 或者 已播放完成
+            onStreamPlayEnd()
       }
     });
     sp.start(function(){
@@ -87,7 +88,6 @@ export default function useSpeechSynthesis(options: AnyObject) {
         return // 可能调用了destroy
       vueInstance.spIsInit = true
       vueInstance.spInit_time = 0
-      vueInstance.log('streamPlay已打开', 2)
     }
     const initErr = (err: any) => {
       if (stime !== vueInstance.spInit_time)
@@ -95,25 +95,41 @@ export default function useSpeechSynthesis(options: AnyObject) {
       vueInstance.spInit_time = 0
       vueInstance.log(`streamPlay初始化错误：${err}`, 1)
     }
+
+    const onStreamPlayEnd = () => {
+      isAudioPlaying.value = true
+    }
     // #ifdef H5
-    eval(funcCode)(initOk, initErr)
+    eval(funcCode)(initOk, initErr, onStreamPlayEnd)
     // #endif
-    const cb = RecordApp.UniMainCallBack((data: any) => {
-      if (data.ok)
+    const cb = RecordApp.UniMainCallBack_Register('useSpeechSynthesis', (data: any) => {
+      if (data.onStreamPlayEnd) {
+        isAudioPlaying.value = false
+      }
+      else if (data.ok) {
         initOk()
-      else initErr(data.errMsg)
+      }
+      else {
+        initErr(data.errMsg)
+      }
     })
+
     RecordApp.UniWebViewEval(getPage(), `${funcCode}(function(){
       RecordApp.UniWebViewSendToMain({action:"${cb}",ok:1});
     },function(err){
       RecordApp.UniWebViewSendToMain({action:"${cb}",errMsg:err||'-'});
-    })`)
+    },
+    function(err){
+      RecordApp.UniWebViewSendToMain({action:"${cb}",onStreamPlayEnd:1});
+    }
+      )`)
   }
 
   /**
    * @description 销毁播放器
    */
   function destroyStreamPlay() {
+    isAudioPlaying.value = false
     // #ifdef MP-WEIXIN
     // 微信环境，单独销毁播放器
     if (vueInstance.spWxCtx) {
@@ -126,7 +142,7 @@ export default function useSpeechSynthesis(options: AnyObject) {
     vueInstance.spIsInit = false
     vueInstance.spInit_time = 0
     const funcCode = `if(window.wsStreamPlay){ wsStreamPlay.stop(); wsStreamPlay=null; }`
-    // #ifdef H5 || APP-PLUS
+    // #ifdef H5
     eval(funcCode)
     // #endif
     RecordApp.UniWebViewEval(getPage(), funcCode)
@@ -246,6 +262,8 @@ export default function useSpeechSynthesis(options: AnyObject) {
   }
 
   return {
+    /** 是否正在播放 */
+    isAudioPlaying,
     // 播放实时的语音流
     streamPlay,
     // 销毁播放器

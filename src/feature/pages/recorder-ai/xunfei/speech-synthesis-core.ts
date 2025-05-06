@@ -11,14 +11,18 @@ export default class SpeechSynthesisCore extends EventEmitter {
   private host = ''
   private socketTask: WebSocket | null = null
   private socketUrl = ''
-  private audio: any = null // 用于控制播放的音频对象
-  private streamPlay: (pcm: string, sampleRate: number) => void = () => {} // 用于接收音频数据的回调函数
-  private destroyStreamPlay: () => void = () => {} // 用于销毁音频数据的回调函数
-  private initStreamPlay: () => void = () => {} // 初始化播放器
   /**
-   * @description 音频实例
+   * @description: 用于接收音频数据的回调函数
    */
-  public isPlaying = false
+  private streamPlay: (pcm: string, sampleRate: number) => void = () => {} // 用于接收音频数据的回调函数
+  /**
+   * @description: 销毁音频数据的回调函数
+   */
+  private destroyStreamPlay: () => void = () => {} // 用于销毁音频数据的回调函数
+  /**
+   * @description: 初始化音频数据的回调函数
+   */
+  private initStreamPlay: () => void = () => {} // 初始化播放器
 
   constructor(options: XunFeiSpeechSynthesisOptions, fetchOptions: {
     streamPlay: (pcm: string, sampleRate: number) => void
@@ -41,10 +45,14 @@ export default class SpeechSynthesisCore extends EventEmitter {
     this.convertTextToSpeech(text)
   }
 
+  /**
+   * @description: 转化文本为语音
+   */
   public convertTextToSpeech(text: string) {
     // 每次调用时都初始化 socket
     this.initSocket(() => {
       this.sendMessage(text) // WebSocket 连接成功后再发送消息
+      this.emit('play', `语音合成开始: ${text}`)
     })
   }
 
@@ -100,54 +108,31 @@ export default class SpeechSynthesisCore extends EventEmitter {
         text: this.textToBase64(text),
       },
     }
-
-    console.log(this.socketTask?.isConnect, 'socket是否连接')
     if (this.socketTask && this.socketTask.isConnect) {
       this.socketTask.sendMessage(params)
-      console.log('发送消息：', params)
     }
     else {
       console.error('WebSocket 未连接，无法发送消息')
     }
   }
 
-  // 暂停播放
-  public pause() {
-    if (this.audio && this.isPlaying) {
-      this.audio.pause()
-      this.isPlaying = false
-      this.emit('log', '✅ 暂停播放')
-    }
+  private onSocketMessage(data: string) {
+    const message = JSON.parse(data)
+    console.log('接收消息', message)
+    // 处理音频数据 - 播放
+    this.streamPlay(message.data.audio, 16000)
   }
 
   // 停止播放并清除缓存
   public stop() {
-    if (this.audio) {
-      this.audio.stop()
-      this.isPlaying = false
-      this.emit('log', '✅ 停止播放并清除缓存')
-      this.destroyStreamPlay()
-      // 停止 WebSocket
-      if (this.socketTask && this.socketTask.isConnect) {
-        this.socketTask.closeSocket()
-        this.emit('log', '✅ WebSocket已关闭')
-      }
+    this.destroyStreamPlay()
+    this.emit('log', '✅ 停止播放并清除缓存')
+    // 停止 WebSocket
+    if (this.socketTask && this.socketTask.isConnect) {
+      this.socketTask.closeSocket()
+      this.emit('log', '✅ WebSocket已关闭')
     }
-  }
-
-  // 继续播放
-  public resume() {
-    if (this.audio && !this.isPlaying) {
-      this.audio.play()
-      this.isPlaying = true
-      this.emit('log', '✅ 继续播放')
-    }
-  }
-
-  private onSocketMessage(data: string) {
-    const message = JSON.parse(data)
-    console.log('接收消息', message)
-    this.streamPlay(message.data.audio, 16000)
+    this.emit('stop', '停止播放并清除缓存')
   }
 
   private textToBase64(text: string): string {

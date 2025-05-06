@@ -7,6 +7,7 @@ export {}
 
 declare module 'vue' {
   export interface GlobalComponents {
+    AudioWave: typeof import('./../components/audio-wave/audio-wave.vue')['default']
     BottomButtonGroup: typeof import('./../components/bottom-button-group/bottom-button-group.vue')['default']
     ButtonGroupHolder: typeof import('./../components/button-group-holder/button-group-holder.vue')['default']
     ChatAppAndWeb: typeof import('./../components/gao-ChatSSEClient/children/ChatAppAndWeb.vue')['default']

@@ -18,6 +18,11 @@ import 'recorder-core/src/extensions/waveview'
 // @ts-expect-error: Ignoring duplicate default export error
 export default {
 
+  data() {
+    return {
+    }
+  },
+
   mounted() {
     // App的renderjs必须调用的函数，传入当前模块this
     RecordApp.UniRenderjsRegister(this)
@@ -117,6 +122,7 @@ const {
 })
 
 const {
+  isAudioPlaying,
   streamPlay,
   destroyStreamPlay,
   initStreamPlay,
@@ -125,6 +131,9 @@ const {
   vueInstance,
 })
 
+/**
+ * 初始化语音合成
+ */
 const SpeechSynthesis = new SpeechSynthesisCore({
   APPID: 'f9b52f87',
   APISecret: 'ZDVkYzU5YmFhZmNlODVkM2RlNDMyNDhl',
@@ -162,8 +171,8 @@ watch(() => isRunning.value, (val) => {
 watch(() => textRes.value, async (newVal) => {
   await nextTick() // 确保视图更新完成
   replyForm.value.content = newVal as string
-  // SpeechSynthesis.convertTextToSpeech(newVal as string)
 })
+
 function handleTouchStart() {
   if (loading.value) {
     return showToast('请等待上个回答完成')
@@ -214,8 +223,17 @@ function handleTouchEnd() {
     iseRecorderTouchStart.value = false
   })
 }
+
+/**
+ * ai消息点击语音
+ */
 function handleRecorder(text: string) {
-  SpeechSynthesis.convertTextToSpeech(text)
+  if (isAudioPlaying.value) {
+    SpeechSynthesis.stop()
+  }
+  else {
+    SpeechSynthesis.convertTextToSpeech(text)
+  }
 }
 
 /**
@@ -384,7 +402,8 @@ function handleScroll(e: any) {
                       <icon-font name="copy" :color="COLOR_PRIMARY" :size="28" />
                     </view>
                     <view class="border-rd-16rpx size-60rpx  bg-#e8ecf5 flex-center  ml-20rpx" @click="handleRecorder(msg.content)">
-                      <icon-font name="sound" :color="COLOR_PRIMARY" :size="28" />
+                      <audio-wave v-if="isAudioPlaying" />
+                      <icon-font v-else name="sound" :color="COLOR_PRIMARY" :size="28" />
                     </view>
                   </view>
                 </view>

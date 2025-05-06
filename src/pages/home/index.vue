@@ -32,6 +32,14 @@ function handleSpeechBtn() {
 function handleRecorderBtnces() {
   router.push('/feature/pages/recorder-ai/recorder-ai/recorder-ai')
 }
+
+const ssss = debounce(() => {
+  console.log('点击了')
+}, 500)
+
+function handleTest() {
+  ssss()
+}
 </script>
 
 <template>
@@ -57,6 +65,10 @@ function handleRecorderBtnces() {
 
     <button class="mt-40rpx" @click="handleSpeechBtn">
       语音合成跳转
+    </button>
+
+    <button class="mt-40rpx" @click="handleTest">
+      测试
     </button>
 
     <!-- <button class="mt-40rpx" @click="handleRecorderBtnces">

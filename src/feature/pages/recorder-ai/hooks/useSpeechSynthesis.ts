@@ -262,7 +262,7 @@ export default function useSpeechSynthesis(options: AnyObject) {
   }
 
   return {
-    /** 是否正在播放 */
+    /** 音频是否正在播放 */
     isAudioPlaying,
     // 播放实时的语音流
     streamPlay,

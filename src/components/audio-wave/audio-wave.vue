@@ -1,13 +1,24 @@
 <script setup lang="ts">
+const props = defineProps({
+  color: {
+    type: String,
+    default: '#333',
+  },
+})
 const playing = ref(false)
 function togglePlay() {
   playing.value = !playing.value
 }
+const style = computed(() => {
+  return {
+    backgroundColor: props.color,
+  }
+})
 </script>
 
 <template>
   <div class="audio-wave playing" @click="togglePlay">
-    <div v-for="i in 4" :key="i" class="bar" />
+    <div v-for="i in 4" :key="i" class="bar" :style="style" />
   </div>
 </template>
 

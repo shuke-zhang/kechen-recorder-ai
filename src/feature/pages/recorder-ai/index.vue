@@ -81,7 +81,6 @@ const {
   chatSSEClientRef,
   loading,
   content,
-  isStreaming,
   modelName,
   currentModel,
   replyForm,
@@ -151,7 +150,7 @@ const scrollTop = ref(0)
 const scrollHeight = ref(0)
 const animatedDots = ref('')
 let dotTimer: NodeJS.Timeout | null = null
-
+const currentIndex = ref<number | null>(null)
 // 监听语音识别开始和结束
 watch(() => isRunning.value, (val) => {
   if (val) {
@@ -227,9 +226,17 @@ function handleTouchEnd() {
 /**
  * ai消息点击语音
  */
-function handleRecorder(text: string) {
+function handleRecorder(text: string, index: number) {
+  if (currentIndex.value !== index) {
+    SpeechSynthesis.stop()
+    currentIndex.value = index
+    SpeechSynthesis.convertTextToSpeech(text)
+    return
+  }
+  currentIndex.value = index
   if (isAudioPlaying.value) {
     SpeechSynthesis.stop()
+    currentIndex.value = null
   }
   else {
     SpeechSynthesis.convertTextToSpeech(text)
@@ -336,16 +343,9 @@ function handleScroll(e: any) {
         :style="{ 'padding-top': pageHeight }"
       >
         <image
-          v-if="isStreaming"
-          src="/static/images/aiPageBg.gif"
+          :src="isAudioPlaying ? '/static/images/aiPageBg.gif' : '/static/images/aiPageBg-quiet.png'"
           mode="aspectFit"
-          class="aiPageBg-img "
-        />
-        <image
-          v-else
-          src="/static/images/aiPageBg-quiet.png"
-          mode="aspectFit"
-          class="aiPageBg-img "
+          class="aiPageBg-img"
         />
       </view>
       <scroll-view ref="scrollViewRef" scroll-y :scroll-top="scrollTop" class=" scroll-content pr-20rpx pl-20rpx  block h-full" :scroll-with-animation="true" :style="aiScrollView" @scroll="handleScroll">
@@ -401,8 +401,8 @@ function handleScroll(e: any) {
                     <view class="border-rd-16rpx size-60rpx bg-#e8ecf5 flex-center" @click="handleCopy(msg.content)">
                       <icon-font name="copy" :color="COLOR_PRIMARY" :size="28" />
                     </view>
-                    <view class="border-rd-16rpx size-60rpx  bg-#e8ecf5 flex-center  ml-20rpx" @click="handleRecorder(msg.content)">
-                      <audio-wave v-if="isAudioPlaying" />
+                    <view class="border-rd-16rpx size-60rpx  bg-#e8ecf5 flex-center  ml-20rpx" @click="handleRecorder(msg.content, index)">
+                      <audio-wave v-if="isAudioPlaying && currentIndex === index" :color="COLOR_PRIMARY" />
                       <icon-font v-else name="sound" :color="COLOR_PRIMARY" :size="28" />
                     </view>
                   </view>

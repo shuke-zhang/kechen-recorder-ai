@@ -49,10 +49,10 @@ export default class SpeechSynthesisCore extends EventEmitter {
    * @description: 转化文本为语音
    */
   public convertTextToSpeech(text: string) {
-    // 每次调用时都初始化 socket
     this.initSocket(() => {
       this.sendMessage(text) // WebSocket 连接成功后再发送消息
       this.emit('play', `语音合成开始: ${text}`)
+      console.log('语音合成开始:', text)
     })
   }
 

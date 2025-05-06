@@ -67,7 +67,7 @@ function handleTest() {
       语音合成跳转
     </button>
 
-    <button class="mt-40rpx" @click="handleTest">
+    <button class="mt-40rpx" @click="ssss">
       测试
     </button>
 

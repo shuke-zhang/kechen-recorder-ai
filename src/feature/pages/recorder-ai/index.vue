@@ -226,7 +226,7 @@ function handleTouchEnd() {
 /**
  * ai消息点击语音
  */
-function handleRecorder(text: string, index: number) {
+const handleRecorder = debounce((text: string, index: number) => {
   if (currentIndex.value !== index) {
     SpeechSynthesis.stop()
     currentIndex.value = index
@@ -241,7 +241,7 @@ function handleRecorder(text: string, index: number) {
   else {
     SpeechSynthesis.convertTextToSpeech(text)
   }
-}
+}, 500)
 
 /**
  * 根据角色类型删除最后一条消息

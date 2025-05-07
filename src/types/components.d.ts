@@ -29,6 +29,7 @@ declare module 'vue' {
     Progress: typeof import('./../components/progress/progress.vue')['default']
     Radio: typeof import('./../components/radio/radio.vue')['default']
     SearchBar: typeof import('./../components/search-bar/search-bar.vue')['default']
+    StreamPlayer: typeof import('./../components/StreamPlayer/StreamPlayer.vue')['default']
     TabBar: typeof import('./../components/tab-bar/tab-bar.vue')['default']
     Text: typeof import('./../components/gao-ChatSSEClient/children/text.vue')['default']
     UaMarkdown: typeof import('./../components/ua-markdown/ua-markdown.vue')['default']

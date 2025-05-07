@@ -5,11 +5,11 @@ export default function useSpeechSynthesis(options: AnyObject) {
     vueInstance,
   } = options || {}
   const isAudioPlaying = ref(false)
-
+  const pcmByArrayBuffer = ref<ArrayBuffer[]>([])
   /**
    * @description 播放流式语音
    */
-  function streamPlay(pcm: string, sampleRate: number) {
+  function streamPlay(pcm: string, sampleRate: number, isFinish?: boolean) {
     isAudioPlaying.value = true
     if (sampleRate !== 16000) {
       console.warn('未适配非16000采样率的pcm播放：initStreamPlay中手写的16000采样率，使用其他采样率需要修改初始化代码')
@@ -32,8 +32,19 @@ export default function useSpeechSynthesis(options: AnyObject) {
     // #endif
 
     const buffer = base64ToArrayBuffer(pcm)
+    pcmByArrayBuffer.value.push(buffer)
 
     RecordApp.UniWebViewEval(getPage(), `${funcCode}(new Int16Array(BigBytes))`, buffer)
+
+    if (isFinish) {
+      console.log('音频接收完成了！！！！！！！！！！！！')
+      // #ifdef APP || MP-WEIXIN
+      RecordApp.UniSaveLocalFile('recorder.mp3', pcmByArrayBuffer, (savePath: string) => {
+        console.log(savePath, 'savePath@@@@@@@@@@@@@@@@@@@@@@@@@@') // app保存的文件夹为`plus.io.PUBLIC_DOWNLOADS`，小程序为 `wx.env.USER_DATA_PATH` 路径
+        // uni.uploadFile({filePath:savePath, ...}) //参考demo中的test_upload_saveFile.vue
+      }, (errMsg: Error) => { console.error(errMsg) })
+      // #endif
+    }
   }
 
   /**

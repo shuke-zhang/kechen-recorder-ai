@@ -14,7 +14,7 @@ export default class SpeechSynthesisCore extends EventEmitter {
   /**
    * @description: 用于接收音频数据的回调函数
    */
-  private streamPlay: (pcm: string, sampleRate: number) => void = () => {} // 用于接收音频数据的回调函数
+  private streamPlay: (pcm: string, sampleRate: number, isFinish?: boolean) => void = () => {} // 用于接收音频数据的回调函数
   /**
    * @description: 销毁音频数据的回调函数
    */
@@ -97,7 +97,7 @@ export default class SpeechSynthesisCore extends EventEmitter {
         aue: 'raw',
         sfl: 1,
         auf: 'audio/L16;rate=16000',
-        vcn: 'aisjinger',
+        vcn: 'x4_lingxiaowan_en', // aisjinger
         speed: 50,
         volume: 50,
         pitch: 50,
@@ -120,7 +120,14 @@ export default class SpeechSynthesisCore extends EventEmitter {
     const message = JSON.parse(data)
     console.log('接收消息', message)
     // 处理音频数据 - 播放
-    this.streamPlay(message.data.audio, 16000)
+    if (message.data.audio) {
+      // this.streamPlay(message.data.audio, 16000, message.data.status === 2)
+      // const buffer = this.base64ToArrayBuffer(message.data.audio)
+      this.emit('audio', message.data.audio)
+    }
+    if (message.data.status === 2) { // 文本合成完成
+      this.getPcmUrl() // 停止播放并清除缓存
+    }
   }
 
   // 停止播放并清除缓存
@@ -159,6 +166,26 @@ export default class SpeechSynthesisCore extends EventEmitter {
     const base64Text = uni.arrayBufferToBase64(utf8.buffer as ArrayBuffer)
     console.log(base64Text, 'Base64编码的文本')
     return base64Text
+  }
+
+  private getPcmUrl() {
+
+  }
+
+  private base64ToArrayBuffer(base64Data: string) {
+    // 1. 解码Base64为二进制字符串
+    const binaryString = atob(base64Data)
+
+    // 2. 创建一个新的Uint8Array来保存解码后的数据
+    const arrayBuffer = new ArrayBuffer(binaryString.length)
+    const uint8Array = new Uint8Array(arrayBuffer)
+
+    // 3. 将二进制字符串中的每个字符转换为Uint8Array的相应值
+    for (let i = 0; i < binaryString.length; i++) {
+      uint8Array[i] = binaryString.charCodeAt(i)
+    }
+
+    return arrayBuffer
   }
 
   private getWebSocketUrl(): string | Error {

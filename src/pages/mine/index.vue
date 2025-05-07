@@ -1,61 +1,151 @@
-<route  lang="json" type="mine">
+<route lang="json">
   {
-    "style": { "navigationBarTitleText": "柯臣" }
-
+    "style": {
+      "navigationBarTitleText": "组合式API桥接方案"
+    }
   }
-</route>
+  </route>
 
+    <!-- #ifdef APP -->
+<script module="myRenderModule" lang="renderjs">
+// eslint-disable-next-line ts/ban-ts-comment
+// @ts-nocheck
+export default {
+  mounted() {
+    setTimeout(() => {
+      // ✅ 正确做法：通过 eventBus 桥接 renderjs -> 逻辑层
+      this.$ownerInstance.callMethod('emit', {
+        type: 'renderjs-message',
+        data: {
+          msg: '来自 RenderJS 的桥接消息 ✅',
+        },
+      })
+    }, 300)
+  },
+}
+</script>
+  <!-- #endif -->
+
+  <!-- 组合式API业务逻辑 -->
 <script setup lang="ts">
-const scrollViewRef = ref()
-const scrollTop = ref(0)
-function handleTest() {
-  console.log('点击了')
-  nextTick(() => {
-    scrollTop.value = scrollTop.value === 0 ? 1000 : 0 // 切换滚动位置
+// 状态和数据
+const msgFromRender = ref('')
+const msgRender = ref('')
+// 处理renderjs发来的消息
+function handleRenderMessage(data: any) {
+  console.log('[组合式API] 处理renderjs数据:', data)
+  msgRender.value = data
+}
+
+// 向视图层发送数据
+function sendToRenderLayer() {
+  console.log('[组合式API] 发送数据到视图层:', `从组合式API发送的数据: ${new Date().toLocaleTimeString()}`)
+}
+
+// 监听和清理事件
+onMounted(() => {
+  (uni as any).$eventBus.on('renderjs-message', (data: any) => {
+    console.log('[逻辑层收到 renderjs 桥接数据]:', data)
+    msgRender.value = data.msg
   })
+})
+
+onUnmounted(() => {
+  // 清理事件监听
+  (uni as any).$eventBus.off('renderjs-message', handleRenderMessage)
+})
+
+// 为了兼容性，也暴露方法(可能不起作用)
+function onMessage(data: any) {
+  console.log('[组合式API] 直接调用的onMessage:', data)
+  msgFromRender.value = `${data.data} (通过直接暴露的方法)`
 }
-function handleScroll(e) {
-  console.log('scroll', e)
-  const scrollView = e.target as HTMLElement
-  console.log('scrollTop:', scrollView.scrollTop)
+
+function onRenderMessage(data: any) {
+  console.log('逻辑层接收renderjs发送的数据', data)
+  msgRender.value = `${data.data} (通过直接暴露的方法)`
 }
+
+defineExpose({
+  onMessage,
+  onRenderMessage,
+})
 </script>
 
 <template>
-  <view class=" ">
-    <scroll-view ref="scrollViewRef" :scroll-top="scrollTop" scroll-y class="h-600rpx" @scroll="handleScroll">
-      今天的天气真是让人心情大好。清晨，阳光透过窗帘洒进屋内，空气清新，温暖的阳光透过树叶的缝隙，投射在地上，形成了一道道斑驳的光影。天上的云朵洁白而轻盈，仿佛是天空中洒落的一片片棉花糖。这样的天气，让人感到无比舒适。
+  <view class="container">
+    <view class="header">
+      <text class="title">
+        组合式API桥接方案
+      </text>
+    </view>
 
-      早晨的温度适中，不冷也不热，给人一种温暖而又不失清新的感觉。空气中弥漫着草木的香气，每一次深呼吸都让人觉得自己像是置身于大自然的怀抱中，身心愉悦。风轻轻地吹过，带着丝丝凉意，仿佛是大自然的轻抚，让人感到放松和宁静。
+    <view class="content">
+      <text class="label">
+        来自RenderJS的数据： {{ msgRender || '===' }}
+      </text>
+      <view class="result">
+        {{ msgFromRender || '等待数据...' }}
+      </view>
 
-      随着时间的推移，天气逐渐变得更加明媚。中午时分，太阳高高挂在天空，金灿灿的阳光洒满大地。空气中的温度也有所上升，温暖的阳光让人感到舒适。走在大街上，大家都穿着轻便的衣物，脸上洋溢着轻松和愉快。人们或三五成群地在公园里散步，或在街边的小咖啡馆里喝着饮品，享受着阳光的沐浴。
+      <button class="btn" @click="sendToRenderLayer">
+        发送数据到视图层2
+      </button>
+    </view>
 
-      尽管气温有所上升，但空气并不干燥，反而带有一丝清爽的湿润感。微风拂过，树叶轻轻摇曳，发出沙沙的声音，仿佛在诉说着这个季节的故事。街上的花坛里，各种鲜花竞相开放，五颜六色的花朵在阳光的照射下愈发显得生动和鲜艳，吸引着人们驻足欣赏。春天的气息在空气中弥漫开来，一切都显得那么生机勃勃。
-
-      然而，到了傍晚，天气开始有所变化。太阳慢慢下沉，天空由湛蓝转为深邃的橙红色，渐渐地，云朵也变得更加丰富多彩，仿佛是一幅美丽的画卷。温度逐渐降低，空气开始变得凉爽，微风也带着一丝寒意。此时，街上的人们纷纷换上了外套，享受着一天中最宜人的时光。黄昏时分，天边的云彩被夕阳染成了金黄色，整个世界似乎被柔和的光线笼罩，静谧而美丽。
-
-      随着夜幕的降临，温度进一步下降，空气变得凉爽。街灯亮起，城市的景象渐渐变得柔和。天上的星星开始一颗颗地闪现，仿佛是夜空中散落的宝石。夜晚的天气宁静而清新，给人一种安宁的感觉。在这样温暖而清爽的夜晚，人们的心情似乎也变得更加轻松与愉快。
-
-      总的来说，今天的天气真是让人心旷神怡。白天温暖而清新，阳光明媚，微风拂面；晚上凉爽而宁静，给人一种放松和舒适的感觉。这样的天气，不仅让大自然显得更加美丽，也让人们的心情变得更加愉悦。希望明天的天气也能如此温暖而宜人，带给我们更多的快乐和舒适。今天的天气真是让人心情大好。清晨，阳光透过窗帘洒进屋内，空气清新，温暖的阳光透过树叶的缝隙，投射在地上，形成了一道道斑驳的光影。天上的云朵洁白而轻盈，仿佛是天空中洒落的一片片棉花糖。这样的天气，让人感到无比舒适。
-
-      早晨的温度适中，不冷也不热，给人一种温暖而又不失清新的感觉。空气中弥漫着草木的香气，每一次深呼吸都让人觉得自己像是置身于大自然的怀抱中，身心愉悦。风轻轻地吹过，带着丝丝凉意，仿佛是大自然的轻抚，让人感到放松和宁静。
-
-      随着时间的推移，天气逐渐变得更加明媚。中午时分，太阳高高挂在天空，金灿灿的阳光洒满大地。空气中的温度也有所上升，温暖的阳光让人感到舒适。走在大街上，大家都穿着轻便的衣物，脸上洋溢着轻松和愉快。人们或三五成群地在公园里散步，或在街边的小咖啡馆里喝着饮品，享受着阳光的沐浴。
-
-      尽管气温有所上升，但空气并不干燥，反而带有一丝清爽的湿润感。微风拂过，树叶轻轻摇曳，发出沙沙的声音，仿佛在诉说着这个季节的故事。街上的花坛里，各种鲜花竞相开放，五颜六色的花朵在阳光的照射下愈发显得生动和鲜艳，吸引着人们驻足欣赏。春天的气息在空气中弥漫开来，一切都显得那么生机勃勃。
-
-      然而，到了傍晚，天气开始有所变化。太阳慢慢下沉，天空由湛蓝转为深邃的橙红色，渐渐地，云朵也变得更加丰富多彩，仿佛是一幅美丽的画卷。温度逐渐降低，空气开始变得凉爽，微风也带着一丝寒意。此时，街上的人们纷纷换上了外套，享受着一天中最宜人的时光。黄昏时分，天边的云彩被夕阳染成了金黄色，整个世界似乎被柔和的光线笼罩，静谧而美丽。
-
-      随着夜幕的降临，温度进一步下降，空气变得凉爽。街灯亮起，城市的景象渐渐变得柔和。天上的星星开始一颗颗地闪现，仿佛是夜空中散落的宝石。夜晚的天气宁静而清新，给人一种安宁的感觉。在这样温暖而清爽的夜晚，人们的心情似乎也变得更加轻松与愉快。
-
-      总的来说，今天的天气真是让人心旷神怡。白天温暖而清新，阳光明媚，微风拂面；晚上凉爽而宁静，给人一种放松和舒适的感觉。这样的天气，不仅让大自然显得更加美丽，也让人们的心情变得更加愉悦。希望明天的天气也能如此温暖而宜人，带给我们更多的快乐和舒适。
-    </scroll-view>
-
-    <button @click="handleTest">
-      点击啊
-    </button>
+    <!-- RenderJS 宿主元素 -->
+    <view
+      type="renderjs"
+      module="myRenderModule"
+      :prop="msgFromRender"
+    />
   </view>
 </template>
 
-<style  lang="scss">
+  <style>
+  .container {
+  padding: 40rpx;
+}
+
+.header {
+  margin-bottom: 40rpx;
+  text-align: center;
+}
+
+.title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.label {
+  font-size: 32rpx;
+  color: #409eff;
+  margin-bottom: 20rpx;
+}
+
+.result {
+  font-size: 40rpx;
+  color: #67c23a;
+  padding: 20rpx;
+  border: 1px solid #ebeef5;
+  border-radius: 8rpx;
+  width: 100%;
+  text-align: center;
+  margin-bottom: 40rpx;
+  min-height: 60rpx;
+}
+
+.btn {
+  background-color: #409eff;
+  color: white;
+  margin-top: 20rpx;
+  padding: 20rpx 40rpx;
+}
 </style>

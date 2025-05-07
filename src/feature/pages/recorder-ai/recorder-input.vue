@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import { ref } from 'vue'
-import { COLOR_BLACK_1 } from '@/utils/const'
 
 const props = defineProps({
   modelValue: String,

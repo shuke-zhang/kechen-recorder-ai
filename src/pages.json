@@ -66,9 +66,9 @@
     },
     {
       "path": "pages/mine/index",
-      "type": "mine",
+      "type": "page",
       "style": {
-        "navigationBarTitleText": "柯臣"
+        "navigationBarTitleText": "组合式API桥接方案"
       }
     },
     {
@@ -103,19 +103,12 @@
           }
         },
         {
-          "path": "recorder-ai/recorder-ai",
-          "type": "page"
-        },
-        {
           "path": "recorder-ai/recorder-input",
           "type": "page"
         },
         {
-          "path": "recorder-ai/speech-synthesis",
-          "type": "page",
-          "style": {
-            "navigationBarTitleText": "语音合成"
-          }
+          "path": "recorder-ai/test",
+          "type": "page"
         },
         {
           "path": "sub-test/index",

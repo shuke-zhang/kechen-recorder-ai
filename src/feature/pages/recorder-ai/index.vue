@@ -4,6 +4,7 @@
 <!-- eslint-disable import/no-duplicates -->
 <!-- eslint-disable import/no-duplicates -->
  <!-- #ifdef APP -->
+
 <script module="recorderCore" lang="renderjs">
 // @ts-ignore
 import Recorder from 'recorder-core'
@@ -126,6 +127,10 @@ import 'recorder-core/src/engine/pcm'
 // eslint-disable-next-line import/first, import/no-duplicates
 import 'recorder-core/src/extensions/waveview'
 // #endif
+
+// eslint-disable-next-line ts/ban-ts-comment
+// @ts-ignore 主要是为 了解决逻辑层调用renderjs方法时，this指向问题，否则会报错 :change:prop="recorderCore.playTTS"
+declare const recorderCore: any
 
 const vueInstance = getCurrentInstance()?.proxy as any // 必须定义到最外面，getCurrentInstance得到的就是当前实例this
 const pageHeight = computed(() => {

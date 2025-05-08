@@ -234,25 +234,27 @@ function handleTouchEnd() {
  * @warning 由于语音点击之后播放音频会有延迟， 所以在这儿直接设置状态
  */
 const handleRecorder = debounce((text: string, index: number) => {
-  // 如果当前播放的不是当前消息，停止播放且播放新点击的消息
-  if (currentIndex.value !== null && currentIndex.value !== index) {
-    SpeechSynthesis.stop()
-    streamPlayerRef.value?.onStreamStop()
-    currentIndex.value = index
-    SpeechSynthesis.convertTextToSpeech(text)
-    isStreamPlaying.value = true
-    return
-  }
-  currentIndex.value = index
-  if (isStreamPlaying.value) {
+  // 当前已经在播放此条消息
+  if (currentIndex.value === index && isStreamPlaying.value) {
+    console.log('🟡 再次点击同一条，执行停止')
     streamPlayerRef.value?.onStreamStop()
     SpeechSynthesis.stop()
     currentIndex.value = null
+    return
   }
-  else {
-    SpeechSynthesis.convertTextToSpeech(text)
-    isStreamPlaying.value = true
+
+  // 切换了消息
+  if (isStreamPlaying.value) {
+    console.log('🟥 切换消息播放，先停止')
+    SpeechSynthesis.stop()
+    streamPlayerRef.value?.onStreamStop()
   }
+
+  // ✅ 开始新的播放
+  console.log('🟢 开始播放新消息')
+  currentIndex.value = index
+  SpeechSynthesis.convertTextToSpeech(text)
+  isStreamPlaying.value = true
 }, 500)
 
 /**

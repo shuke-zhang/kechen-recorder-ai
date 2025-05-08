@@ -74,7 +74,7 @@ export default {
     player.onEnd(() => {
       console.log('播放结束啦~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
       // @ts-ignore
-      this.$ownerInstance?.callMethod('onStreamStop', 1)
+      this.$ownerInstance?.callMethod('onStreamPlayEnd', 1)
 
     })
 

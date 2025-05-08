@@ -52,6 +52,7 @@ export default class StreamAudioPlayer {
   appendChunk(pcmData: ArrayBuffer) {
     this.decodeQueue.push(pcmData)
     this.isPendingEnd = true // ✅ 有新数据，说明还没结束
+    this.isForceStop = false
     if (!this.isDecoding) {
       this._processDecodeQueue()
     }

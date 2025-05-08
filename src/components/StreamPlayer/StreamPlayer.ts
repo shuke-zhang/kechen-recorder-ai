@@ -12,7 +12,7 @@ export default class StreamAudioPlayer {
   private isPlaying = false
   private isPendingEnd = false // ✅ 是否正在等待播放全部结束
   private currentSource: AudioBufferSourceNode | null = null
-
+  private isForceStop = false
   private _onStart: (() => void) | null = null
   private _onEnd: (() => void) | null = null
 
@@ -81,8 +81,9 @@ export default class StreamAudioPlayer {
       this.isPlaying = false
 
       // ✅ 所有播放完成，才触发 onEnd
-      if (this.isPendingEnd) {
+      if (this.isPendingEnd && !this.isForceStop) {
         this._onEnd?.()
+        this.isForceStop = false
         this.isPendingEnd = false
       }
 
@@ -115,6 +116,13 @@ export default class StreamAudioPlayer {
     this.audioContext?.close()
     this.audioContext = null
     this.isPendingEnd = false
+  }
+
+  public stop() {
+    this.isForceStop = true
+    this.audioQueue = []
+    this.decodeQueue = []
+    this.currentSource?.stop()
   }
 
   /** PCM 解码 */

@@ -69,7 +69,7 @@ export default class SpeechSynthesisCore extends EventEmitter {
 
       this.socketTask.on('open', () => {
         this.emit('log', '✅ WebSocket已连接')
-        this.initStreamPlay()
+        // this.initStreamPlay() // 使用自己的播放器
         callback() // 连接成功后执行回调，发送消息
       })
       this.socketTask.on('message', (message) => {
@@ -118,21 +118,17 @@ export default class SpeechSynthesisCore extends EventEmitter {
 
   private onSocketMessage(data: string) {
     const message = JSON.parse(data)
-    console.log('接收消息', message)
     // 处理音频数据 - 播放
     if (message.data.audio) {
       // this.streamPlay(message.data.audio, 16000, message.data.status === 2)
       // const buffer = this.base64ToArrayBuffer(message.data.audio)
       this.emit('audio', message.data.audio)
     }
-    if (message.data.status === 2) { // 文本合成完成
-      this.getPcmUrl() // 停止播放并清除缓存
-    }
   }
 
   // 停止播放并清除缓存
   public stop() {
-    this.destroyStreamPlay()
+    // this.destroyStreamPlay()
     this.emit('log', '✅ 停止播放并清除缓存')
     // 停止 WebSocket
     if (this.socketTask && this.socketTask.isConnect) {
@@ -164,12 +160,7 @@ export default class SpeechSynthesisCore extends EventEmitter {
 
     const utf8 = codeUnits.subarray(0, length)
     const base64Text = uni.arrayBufferToBase64(utf8.buffer as ArrayBuffer)
-    console.log(base64Text, 'Base64编码的文本')
     return base64Text
-  }
-
-  private getPcmUrl() {
-
   }
 
   private base64ToArrayBuffer(base64Data: string) {

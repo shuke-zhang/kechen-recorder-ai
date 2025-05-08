@@ -18,81 +18,29 @@ import '../../../../uni_modules/Recorder-UniCore/app-uni-support.js'
 import 'recorder-core/src/engine/pcm'
 import 'recorder-core/src/extensions/waveview'
 // @ts-ignore
-// eslint-disable-next-line import/order
-import StreamAudioPlayer from './StreamPlayer'
-// @ts-ignore
-let player = null
 // @ts-expect-error: Ignoring duplicate default export error
 
 export default {
   data() {
     return {
-      isStreamPlaying: false, // 播放状态
     }
   },
 
   mounted() {
     // App的renderjs必须调用的函数，传入当前模块this
     RecordApp.UniRenderjsRegister(this)
-    player = new StreamAudioPlayer()
-    // 注册回调：播放开始
-    player.onStart(() => {
-      // @ts-ignore
-      this.isStreamPlaying = true
-      console.log(this, '播放开始啦~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-      // @ts-ignore
-      this.$ownerInstance.callMethod('onStreamPlayStart', {
-        data: '这是传递的信息',
-      })
-    })
-    // 注册回调：播放结束
-    // @ts-ignore
-    player.onEnd(() => {
-    // @ts-ignore
-      this.isStreamPlaying = true
-      console.log(this, '播放结束啦!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-      // @ts-ignore
-      this.$ownerInstance.callMethod('onStreamPlayEnd', {
-        data: '这是传递的信息',
-      })
-    })
   },
   methods: {
     // 这里定义的方法，在逻辑层中可通过 RecordApp.UniWebViewVueCall(this,'this.xxxFunc()') 直接调用
     // 调用逻辑层的方法，请直接用 this.$ownerInstance.callMethod("xxxFunc",{args}) 调用，二进制数据需转成base64来传递
-    // @ts-ignore
-    getIsStreamPlaying() {
-    // @ts-ignore
-      return this.isStreamPlaying
-    },
-    // @ts-ignore
-    playTTS(base64) {
-      if (!base64)
-        return
-      const bytes = this.base64ToArrayBuffer(base64)
-      // @ts-ignore
-      player.appendChunk(bytes)
-    },
-
-    // @ts-ignore
-    base64ToArrayBuffer(base64Data) {
-    // 1. 解码Base64为二进制字符串
-      const binaryString = atob(base64Data)
-      // 2. 创建一个新的Uint8Array来保存解码后的数据
-      const arrayBuffer = new ArrayBuffer(binaryString.length)
-      const uint8Array = new Uint8Array(arrayBuffer)
-      // 3. 将二进制字符串中的每个字符转换为Uint8Array的相应值
-      for (let i = 0; i < binaryString.length; i++) {
-        uint8Array[i] = binaryString.charCodeAt(i)
-      }
-      return arrayBuffer
-    },
   },
 }
 </script>
 <!-- #endif -->
 
 <script setup lang='ts'>
+// eslint-disable-next-line import/first, import/order
+import type StreamPlayer from '@/components/StreamPlayer/StreamPlayer.vue'
 // eslint-disable-next-line import/first, import/order
 import { NAV_BAR_HEIGHT, getStatusBarHeight } from '@/components/nav-bar/nav-bar'
 // eslint-disable-next-line import/first, import/no-named-default, import/no-duplicates
@@ -127,11 +75,6 @@ import 'recorder-core/src/engine/pcm'
 // eslint-disable-next-line import/first, import/no-duplicates
 import 'recorder-core/src/extensions/waveview'
 // #endif
-
-// eslint-disable-next-line ts/ban-ts-comment
-// @ts-ignore 主要是为 了解决逻辑层调用renderjs方法时，this指向问题，否则会报错 :change:prop="recorderCore.playTTS"
-declare const recorderCore: any
-
 const vueInstance = getCurrentInstance()?.proxy as any // 必须定义到最外面，getCurrentInstance得到的就是当前实例this
 const pageHeight = computed(() => {
   return `${getStatusBarHeight() + NAV_BAR_HEIGHT + 1}px`
@@ -140,7 +83,10 @@ const pageHeight = computed(() => {
  * 音频是否正在播放
  */
 const isStreamPlaying = ref(false)
-
+/**
+ * 音频播放组件实例
+ */
+const streamPlayerRef = ref<InstanceType<typeof StreamPlayer>>()
 const {
   chatSSEClientRef,
   loading,
@@ -243,7 +189,6 @@ function handleTouchStart() {
   if (loading.value) {
     return showToast('请等待上个回答完成')
   }
-  console.log('手指按下操作')
 
   textRes.value = ''
   handleRecorderTouchStart()
@@ -259,20 +204,14 @@ function handleTouchStart() {
 }
 
 function handleTouchEnd() {
-  console.log('手指抬起操作1000000')
-
   handleRecorderTouchEnd().then(() => {
     if (isRecorderClose.value) {
       // 用户上滑取消
       removeLastUserMessage('user')
     }
     else {
-      console.log('手指抬起操作')
-
       // 用户正常抬起
       if (textRes.value && textRes.value.trim() !== '') {
-        console.log(textRes.value, 'watch-监听结果')
-
         // 有识别结果才发送
         const lastIndex = content.value.length - 1
         if (content.value[lastIndex]?.role === 'user') {
@@ -292,23 +231,42 @@ function handleTouchEnd() {
 
 /**
  * ai消息点击语音
+ * @warning 由于语音点击之后播放音频会有延迟， 所以在这儿直接设置状态
  */
 const handleRecorder = debounce((text: string, index: number) => {
-  if (currentIndex.value !== index) {
+  // 如果当前播放的不是当前消息，停止播放且播放新点击的消息
+  if (currentIndex.value !== null && currentIndex.value !== index) {
     SpeechSynthesis.stop()
+    streamPlayerRef.value?.onStreamStop()
     currentIndex.value = index
     SpeechSynthesis.convertTextToSpeech(text)
+    isStreamPlaying.value = true
     return
   }
   currentIndex.value = index
   if (isStreamPlaying.value) {
+    streamPlayerRef.value?.onStreamStop()
     SpeechSynthesis.stop()
     currentIndex.value = null
   }
   else {
     SpeechSynthesis.convertTextToSpeech(text)
+    isStreamPlaying.value = true
   }
 }, 500)
+
+/**
+ * 语音播放结束
+ */
+function onStreamPlayEnd() {
+  isStreamPlaying.value = false
+}
+/**
+ * 语音播放停止
+ */
+function onStreamStop() {
+  isStreamPlaying.value = false
+}
 
 /**
  * 根据角色类型删除最后一条消息
@@ -342,7 +300,6 @@ function initContentHeight() {
     .boundingClientRect((data) => {
       if (data) {
         const top = ((data as UniNamespace.NodeInfo).height || 0) - scrollHeight.value
-        console.log('监听到变化', top)
 
         if (top > 0) {
           scrollTop.value = top
@@ -360,16 +317,6 @@ watch(() => [content.value, textRes.value, replyForm.value.content], () => {
     })
   }
 }, { deep: true, immediate: true })
-
-function onStreamPlayStart() {
-  isStreamPlaying.value = true
-  console.log('🎧 播放开始')
-}
-/** renderjs 通知：播放结束 */
-function onStreamPlayEnd(_isStreamPlaying: boolean) {
-  isStreamPlaying.value = false
-  console.log('✅ 播放结束^^^^^^^^^^^^^^^^^^^^^^^^^^')
-}
 
 onMounted(() => {
   (vueInstance as any).isMounted = true
@@ -392,14 +339,8 @@ onShow(() => {
 const oldScrollTop = ref(0)
 
 function handleScroll(e: any) {
-  console.log(1111, e.detail.scrollTop)
-
   oldScrollTop.value = e.detail.scrollTop
 }
-defineExpose({
-  onStreamPlayStart,
-  onStreamPlayEnd,
-})
 </script>
 
 <template>
@@ -419,11 +360,19 @@ defineExpose({
       @on-finish="onFinish"
     />
     <!-- @ts-ignore -->
-    <view
+    <!-- <view
       :prop="currBuffer"
       :change:prop="recorderCore.playTTS"
       type="renderjs"
       module="recorderCore"
+    /> -->
+
+    <StreamPlayer
+      ref="streamPlayerRef"
+      :stream="currBuffer"
+      :curr-buffer="currBuffer"
+      @on-stream-play-end="onStreamPlayEnd"
+      @on-stream-stop="onStreamStop"
     />
 
     <view :style="aiPageContent">

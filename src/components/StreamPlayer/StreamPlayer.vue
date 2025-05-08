@@ -1,19 +1,46 @@
-<!-- eslint-disable ts/ban-ts-comment -->
 // @ts-nocheck
-<script>
+<script lang="ts">
 export default {
+  props: {
+    currBuffer: { // 接收视图层即renderjs中传递过来的数据
+      type: [ArrayBuffer, String],
+      default: null,
+    },
+    /**
+     * 是否正在播放 可双向绑定 实时显示音频是否正在播放的状态，也可以通过自定义事件自定义isPlaying的状态
+     * true-正在播放 false-未播放/播放完成
+     */
+    modelValueIsPlaying: { // 接收视图层即renderjs中传递过来的数据
+      type: Boolean,
+      default: false,
+    },
+  },
+  emits: ['onStreamPlayEnd', 'onStreamPlayStart', 'onStreamStop', 'update:modelValueIsPlaying'],
   data() {
     return {
-      currBuffer: '', // 接收视图层即renderjs中传递过来的数据
-      isStreamPlaying: false, // 播放状态
+      stopSignal: false,
     }
   },
   methods: {
     // 接收renderjs发回的数据
-    handleRenderMessage(buffer) {
-      console.log('receiveRenderData-->', buffer)
-      this.currBuffer = buffer
+    onStreamPlayStart(buffer: ArrayBuffer) {
+      this.$emit('onStreamPlayStart', buffer)
+      this.$emit('update:modelValueIsPlaying', true)
     },
+    // 接收renderjs发回的数据
+    onStreamPlayEnd(buffer: ArrayBuffer) {
+      this.$emit('onStreamPlayEnd', buffer)
+      this.$emit('update:modelValueIsPlaying', false)
+    },
+    /**
+     * 停止播放操作，此操作会将modelValueIsPlaying设置为false
+     */
+    onStreamStop() {
+      this.$emit('update:modelValueIsPlaying', false)
+      this.$emit('onStreamStop')
+      this.stopSignal = !this.stopSignal
+    },
+
   },
 }
 </script>
@@ -32,17 +59,18 @@ export default {
     // App的renderjs必须调用的函数，传入当前模块this
     player = new StreamAudioPlayer()
     player.onStart(() => {
-      console.log(this, '播放开始啦~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+      console.log('播放开始啦~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+      this.$ownerInstance?.callMethod('onStreamPlayStart', 1)
     })
     player.onEnd(() => {
-      console.log(this, '播放结束啦**************************************************************************************************************************************')
+      console.log('播放结束啦~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
       // @ts-ignore
-      this.$ownerInstance?.callMethod('onStreamPlayEnd', 1)
+      this.$ownerInstance?.callMethod('onStreamStop', 1)
+
     })
+
   },
   methods: {
-    // 这里定义的方法，在逻辑层中可通过 RecordApp.UniWebViewVueCall(this,'this.xxxFunc()') 直接调用
-    // 调用逻辑层的方法，请直接用 this.$ownerInstance.callMethod("xxxFunc",{args}) 调用，二进制数据需转成base64来传递
     // @ts-ignore
     playTTS(base64) {
       if (!base64)
@@ -51,6 +79,9 @@ export default {
       const bytes = this.base64ToArrayBuffer(base64)
       // @ts-ignore
       player.appendChunk(bytes)
+    },
+    stopTTS() {
+      player?.stop()
     },
     // @ts-ignore
     base64ToArrayBuffer(base64Data) {
@@ -73,6 +104,8 @@ export default {
   <view
     :prop="currBuffer"
     :change:prop="recorderCore.playTTS"
+    :stop-signal="stopSignal"
+    :change:stop-signal="recorderCore.stopTTS"
     type="renderjs"
     module="recorderCore"
   />

@@ -1,6 +1,15 @@
 // @ts-nocheck
 <script lang="ts">
+declare module '@vue/runtime-core' {
+  interface ComponentCustomProperties {
+    recorderCore: {
+      playTTS: (base64: string) => void
+      stopTTS: () => void
+    }
+  }
+}
 export default {
+
   props: {
     currBuffer: { // 接收视图层即renderjs中传递过来的数据
       type: [ArrayBuffer, String],

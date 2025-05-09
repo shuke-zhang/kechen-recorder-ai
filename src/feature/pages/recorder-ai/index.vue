@@ -136,11 +136,11 @@ const {
 
 const {
   scrollTop,
-  hasUserScrolledUp,
   handleScroll,
-  scrollToBottom,
   resetAndScrollToBottom,
   initHeights,
+  scrollToBottom,
+  scrolltolower,
 } = useAutoScroll({
   contentList: content,
   vueInstance,
@@ -189,6 +189,9 @@ function handleTouchStart() {
   sendText.isRecordingPlaceholder = true // ✅ 标记占位消息
 
   content.value?.push(sendText)
+  nextTick(() => {
+    resetAndScrollToBottom()
+  })
 }
 
 function handleTouchEnd() {
@@ -271,13 +274,6 @@ function removeLastUserMessage(type: string) {
   }
 }
 
-watch(() => content.value[content.value.length - 1]?.streaming, (streaming) => {
-  if (streaming) {
-    nextTick(() => {
-      scrollToBottom()
-    })
-  }
-})
 // 添加一个监听最后一条消息内容的变化（对于流式输出非常有用）
 watch(
   () => content.value[content.value.length - 1]?.content,
@@ -294,9 +290,7 @@ watch(
   content.value,
   () => {
     nextTick(() => {
-      if (!hasUserScrolledUp.value) {
-        scrollToBottom()
-      }
+      scrollToBottom()
     })
   },
   { deep: true },
@@ -335,16 +329,6 @@ onMounted(() => {
   })
 
   initHeights()
-
-  uni.onWindowResize(() => {
-    nextTick(() => {
-      initHeights().then(() => {
-        if (!hasUserScrolledUp.value) {
-          scrollToBottom()
-        }
-      })
-    })
-  })
 })
 
 onShow(() => {
@@ -358,11 +342,12 @@ onShow(() => {
   <view>
     <nav-bar :show-back="false" custom-click>
       <template #left>
-        <icon-font name="questions" @click="handleToggle" />
+        <icon-font v-if="false" name="questions" @click="handleToggle" />
       </template>
       ai对话
     </nav-bar>
 
+    <!-- 流式流式ai消息 -->
     <GaoChatSSEClient
       ref="chatSSEClientRef"
       @on-open="onStart"
@@ -371,6 +356,7 @@ onShow(() => {
       @on-finish="onFinish"
     />
 
+    <!-- 音频播放组件 -->
     <StreamPlayer
       ref="streamPlayerRef"
       :stream="currBuffer"
@@ -399,6 +385,7 @@ onShow(() => {
         :scroll-with-animation="true"
         :style="aiScrollView"
         @scroll="handleScroll"
+        @scrolltolower="scrolltolower"
       >
         <view class="scroll-content">
           <view v-if="content.length === 0" class="h-full flex justify-end flex-col items-center pb-200rpx pt-500rpx">
@@ -471,6 +458,7 @@ onShow(() => {
       </scroll-view>
     </view>
 
+    <!-- 统一输入框 -->
     <RecorderInput
       v-model:model-value="replyForm.content"
       v-model:focus="isFocus"

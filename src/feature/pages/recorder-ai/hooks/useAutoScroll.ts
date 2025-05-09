@@ -52,6 +52,7 @@ export default function useAutoScroll(options: AutoScrollOptions) {
   const scrollTop = ref(0)
   // 滚动区域高度
   const scrollViewHeight = ref(0)
+  const isAutoScrolling = ref(false)
   // 内容高度
   const contentHeight = ref(0)
   // 上一次滚动位置，用于检测用户是否手动滚动
@@ -109,35 +110,38 @@ export default function useAutoScroll(options: AutoScrollOptions) {
 
   /**
    * 滚动到底部
-   * @param force 是否强制滚动，忽略用户滚动状态
+   *
    */
-  const scrollToBottom = (force = false) => {
-    if (hasUserScrolledUp.value && !force)
-      return
-
+  const scrollToBottom = () => {
+    if (hasUserScrolledUp.value) {
+      return console.log('用户主动向上滚动，不自动滚动到底部')
+    }
     nextTick(() => {
-      getScrollViewHeight().then((scrollViewHeight) => {
-        getContentHeight().then((contentHeight) => {
-          const scrollTops = contentHeight - scrollViewHeight + extraPadding
-          scrollTop.value = scrollTops
-        })
+      isAutoScrolling.value = true
+      getContentHeight().then((contentHeight) => {
+        const scrollTops = contentHeight + extraPadding
+        scrollTop.value = scrollTops || 0
+        setTimeout(() => {
+          isAutoScrolling.value = false
+        }, 50)
       })
     })
   }
 
   /**
-   * 处理滚动事件
+   * 处理滚动事件 似乎并不生效等待后续优化吧
    * @param e 滚动事件
    */
   const handleScroll = (e: any) => {
-    const currentScrollTop = e.detail.scrollTop
-
+    const currentScrollTop = e.detail.scrollTop || 0
+    // 保存当前滚动位置
+    oldScrollTop.value = e.detail.scrollTop || 0
+    if (isAutoScrolling.value) {
+      // 🚫 自动滚动触发的 scroll，不处理
+      return
+    }
     // 检测用户是否主动向上滚动
-    if (
-      !isUserScrolling.value
-      && oldScrollTop.value > currentScrollTop
-      && contentHeight.value > scrollViewHeight.value
-    ) {
+    if (!isUserScrolling.value && oldScrollTop.value > currentScrollTop) {
       isUserScrolling.value = true
       hasUserScrolledUp.value = true
 
@@ -151,32 +155,24 @@ export default function useAutoScroll(options: AutoScrollOptions) {
         isUserScrolling.value = false
       }, 3000)
     }
+  }
 
-    // 如果用户滚动到接近底部，重置用户滚动状态
-    const isNearBottom = contentHeight.value - scrollViewHeight.value - currentScrollTop < 50
-    if (isNearBottom) {
-      hasUserScrolledUp.value = false
-    }
-
-    // 保存当前滚动位置
-    oldScrollTop.value = currentScrollTop
+  function scrolltolower() {
+    hasUserScrolledUp.value = false
   }
 
   /**
    * 重置用户滚动状态并强制滚动到底部
+   * @warning 此方法会直接强制滚动，优先级高于用户滚动状态的检测
    */
   const resetAndScrollToBottom = () => {
-    nextTick(() => {
-
-    })
-
     hasUserScrolledUp.value = false
     isUserScrolling.value = false
     if (userScrollTimer) {
       clearTimeout(userScrollTimer)
       userScrollTimer = null
     }
-    scrollToBottom(true)
+    scrollToBottom()
   }
 
   /**
@@ -221,5 +217,6 @@ export default function useAutoScroll(options: AutoScrollOptions) {
     initHeights,
     getScrollViewHeight,
     getContentHeight,
+    scrolltolower,
   }
 }

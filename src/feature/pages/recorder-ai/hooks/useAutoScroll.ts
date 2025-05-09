@@ -21,7 +21,7 @@ interface AutoScrollOptions {
   /**
    * 监听的其他反应式状态，当这些状态变化时将重新计算滚动位置
    */
-  watchValues?: Ref<any>[]
+  watchValues?: any[]
   /**
    * 滚动时添加的额外边距
    */
@@ -111,35 +111,18 @@ export default function useAutoScroll(options: AutoScrollOptions) {
    * 滚动到底部
    * @param force 是否强制滚动，忽略用户滚动状态
    */
-  const scrollToBottom = async (force = false) => {
-    // 如果用户向上滚动过且不是强制滚动，则不执行自动滚动
-    if (hasUserScrolledUp.value && !force) {
+  const scrollToBottom = (force = false) => {
+    if (hasUserScrolledUp.value && !force)
       return
-    }
 
-    await nextTick()
-
-    try {
-      // 获取最新的视图高度和内容高度
-      const viewHeight = await getScrollViewHeight()
-      const cHeight = await getContentHeight()
-
-      // 如果内容高度大于视图高度，滚动到底部
-      if (cHeight > viewHeight) {
-        // 设置滚动位置，添加额外边距确保滚到底部
-        scrollTop.value = cHeight - viewHeight + extraPadding
-
-        // 为确保滚动生效，可以在下一个渲染周期再次尝试
-        setTimeout(() => {
-          if (!hasUserScrolledUp.value || force) {
-            scrollTop.value = cHeight
-          }
-        }, 50)
-      }
-    }
-    catch (error) {
-      console.error('滚动计算出错:', error)
-    }
+    nextTick(() => {
+      getScrollViewHeight().then((scrollViewHeight) => {
+        getContentHeight().then((contentHeight) => {
+          const scrollTops = contentHeight - scrollViewHeight + extraPadding
+          scrollTop.value = scrollTops
+        })
+      })
+    })
   }
 
   /**
@@ -183,6 +166,10 @@ export default function useAutoScroll(options: AutoScrollOptions) {
    * 重置用户滚动状态并强制滚动到底部
    */
   const resetAndScrollToBottom = () => {
+    nextTick(() => {
+
+    })
+
     hasUserScrolledUp.value = false
     isUserScrolling.value = false
     if (userScrollTimer) {

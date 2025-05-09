@@ -1,10 +1,6 @@
 <!-- eslint-disable ts/ban-ts-comment -->
-<!-- eslint-disable ts/ban-ts-comment -->
-<!-- eslint-disable ts/ban-ts-comment -->
 <!-- eslint-disable import/no-duplicates -->
-<!-- eslint-disable import/no-duplicates -->
- <!-- #ifdef APP -->
-
+ <!-- #ifdef APP-PLUS -->
 <script module="recorderCore" lang="renderjs">
 // @ts-ignore
 import Recorder from 'recorder-core'
@@ -18,7 +14,6 @@ import '../../../../uni_modules/Recorder-UniCore/app-uni-support.js'
 import 'recorder-core/src/engine/pcm'
 import 'recorder-core/src/extensions/waveview'
 // @ts-ignore
-// @ts-expect-error: Ignoring duplicate default export error
 
 export default {
   data() {
@@ -57,10 +52,10 @@ import useAiPage from './hooks/useAiPage'
 // @ts-expect-error
 // eslint-disable-next-line import/first, import/no-duplicates, ts/no-redeclare
 import useSpeechSynthesis from './hooks/useSpeechSynthesis'
-
+// eslint-disable-next-line import/first
+import useAutoScroll from './hooks/useAutoScroll'
 // eslint-disable-next-line import/first
 import SpeechSynthesisCore from './xunfei/speech-synthesis-core'
-
 // eslint-disable-next-line import/first, import/no-duplicates
 import '../../../../uni_modules/Recorder-UniCore/app-uni-support.js'
 /** 需要编译成微信小程序时，引入微信小程序支持文件 */
@@ -139,6 +134,21 @@ const {
   vueInstance,
 })
 
+const {
+  scrollTop,
+  hasUserScrolledUp,
+  handleScroll,
+  scrollToBottom,
+  resetAndScrollToBottom,
+  initHeights,
+} = useAutoScroll({
+  contentList: content,
+  vueInstance,
+  scrollViewSelector: '.scroll-view',
+  scrollContentSelector: '.scroll-content',
+  immediate: true,
+})
+
 /**
  * 初始化语音合成
  */
@@ -158,32 +168,10 @@ SpeechSynthesis.on('audio', (res: ArrayBuffer) => {
 })
 
 const scrollViewRef = ref(null)
-const scrollTop = ref(0)
-const scrollHeight = ref(0)
 const animatedDots = ref('')
 let dotTimer: NodeJS.Timeout | null = null
 const currentIndex = ref<number | null>(null)
 const currBuffer = ref()
-// 监听语音识别开始和结束
-watch(() => isRunning.value, (val: boolean) => {
-  if (val) {
-    animatedDots.value = '.'
-    dotTimer = setInterval(() => {
-      animatedDots.value = animatedDots.value.length >= 3 ? '.' : `${animatedDots.value}.`
-    }, 500)
-  }
-  else {
-    if (dotTimer)
-      clearInterval(dotTimer)
-    dotTimer = null
-    animatedDots.value = ''
-  }
-})
-
-watch(() => textRes.value, async (newVal) => {
-  await nextTick() // 确保视图更新完成
-  replyForm.value.content = newVal as string
-})
 
 function handleTouchStart() {
   if (loading.value) {
@@ -204,7 +192,7 @@ function handleTouchStart() {
 }
 
 function handleTouchEnd() {
-  handleRecorderTouchEnd().then(() => {
+  handleRecorderTouchEnd().then(async () => {
     if (isRecorderClose.value) {
       // 用户上滑取消
       removeLastUserMessage('user')
@@ -218,6 +206,8 @@ function handleTouchEnd() {
           content.value[lastIndex].content = textRes.value
         }
         handleSendMsg()
+        await nextTick()
+        resetAndScrollToBottom() // 强制滚动到底部
       }
       else {
         console.log('无识别结果，删除最后一条占位消息')
@@ -281,44 +271,57 @@ function removeLastUserMessage(type: string) {
   }
 }
 
-/**
- * 获取高度
- */
-function initScrollHeight() {
-  uni.createSelectorQuery()
-    .in(vueInstance)
-    .select('.scroll-view')
-    .boundingClientRect((data) => {
-      if (data) {
-        scrollHeight.value = (data as UniNamespace.NodeInfo).height || 0
-      }
-    })
-}
-
-function initContentHeight() {
-  uni.createSelectorQuery()
-    .in(vueInstance)
-    .select('.scroll-content')
-    .boundingClientRect((data) => {
-      if (data) {
-        const top = ((data as UniNamespace.NodeInfo).height || 0) - scrollHeight.value
-
-        if (top > 0) {
-          scrollTop.value = top
-        }
-      }
-    })
-    .exec()
-}
-
-watch(() => [content.value, textRes.value, replyForm.value.content], () => {
-  // 更新 scrollTop 为 scrollHeight，确保滚动到底部
-  if (scrollViewRef.value) {
+watch(() => content.value[content.value.length - 1]?.streaming, (streaming) => {
+  if (streaming) {
     nextTick(() => {
-      initContentHeight()
+      scrollToBottom()
     })
   }
-}, { deep: true, immediate: true })
+})
+// 添加一个监听最后一条消息内容的变化（对于流式输出非常有用）
+watch(
+  () => content.value[content.value.length - 1]?.content,
+  () => {
+    if (content.value.length > 0) {
+      nextTick(() => {
+        scrollToBottom()
+      })
+    }
+  },
+)
+
+watch(
+  content.value,
+  () => {
+    nextTick(() => {
+      if (!hasUserScrolledUp.value) {
+        scrollToBottom()
+      }
+    })
+  },
+  { deep: true },
+)
+
+// 监听语音识别开始和结束
+watch(() => isRunning.value, (val: boolean) => {
+  if (val) {
+    animatedDots.value = '.'
+    dotTimer = setInterval(() => {
+      animatedDots.value = animatedDots.value.length >= 3 ? '.' : `${animatedDots.value}.`
+    }, 500)
+  }
+  else {
+    if (dotTimer)
+      clearInterval(dotTimer)
+    dotTimer = null
+    animatedDots.value = ''
+  }
+})
+
+watch(() => textRes.value, async (newVal) => {
+  await nextTick() // 确保视图更新完成
+  replyForm.value.content = newVal as string
+})
 
 onMounted(() => {
   (vueInstance as any).isMounted = true
@@ -330,7 +333,18 @@ onMounted(() => {
     showToastError(err)
     console.log(err, '请求权限拒绝')
   })
-  initScrollHeight()
+
+  initHeights()
+
+  uni.onWindowResize(() => {
+    nextTick(() => {
+      initHeights().then(() => {
+        if (!hasUserScrolledUp.value) {
+          scrollToBottom()
+        }
+      })
+    })
+  })
 })
 
 onShow(() => {
@@ -338,11 +352,6 @@ onShow(() => {
     RecordAppInstance.UniPageOnShow(vueInstance)
   }
 })
-const oldScrollTop = ref(0)
-
-function handleScroll(e: any) {
-  oldScrollTop.value = e.detail.scrollTop
-}
 </script>
 
 <template>
@@ -361,13 +370,6 @@ function handleScroll(e: any) {
       @on-message="onSuccess"
       @on-finish="onFinish"
     />
-    <!-- @ts-ignore -->
-    <!-- <view
-      :prop="currBuffer"
-      :change:prop="recorderCore.playTTS"
-      type="renderjs"
-      module="recorderCore"
-    /> -->
 
     <StreamPlayer
       ref="streamPlayerRef"
@@ -389,68 +391,78 @@ function handleScroll(e: any) {
         />
       </view>
 
-      <scroll-view ref="scrollViewRef" scroll-y :scroll-top="scrollTop" class=" scroll-content pr-20rpx pl-20rpx  block h-full" :scroll-with-animation="true" :style="aiScrollView" @scroll="handleScroll">
-        <view v-if="content.length === 0" class="h-full flex justify-end flex-col items-center pb-200rpx pt-500rpx">
-          <view>
-            <image
-              class="ai-img"
-              :src="`/static/images/${currentModel?.icon}.png`"
-              mode="aspectFill"
-            />
-          </view>
-          <view class="font-size-60rpx mt-20rpx">
-            我是{{ modelName }}
-          </view>
-          <view class="mt-20rpx w-80%">
-            我可以帮你搜索、答疑、写作、请在下方输入你的内容~
-          </view>
-        </view>
-
-        <view v-for="(msg, index) in content" :key="index" class="py-16rpx">
-          <!-- 用户消息 -->
-          <view v-if="msg.role === 'user'" class=" flex  flex-justify-end opacity-60">
-            <view class="message-bubble p-32rpx border-rd-16rpx   bg-#07c160 color-white max-w-80%">
-              <text>
-                {{
-                  msg.isRecordingPlaceholder
-                    ? (textRes || '') + (isRunning && textRes ? animatedDots : '')
-                    : Array.isArray(msg.content)
-                      ? msg.content[0].text
-                      : msg.content
-                }}
-              </text>
-              <!-- 流式加载动画 -->
-              <view v-if="msg.isRecordingPlaceholder && !textRes" class="flex-center">
-                <uni-load-more icon-type="auto" status="loading" :show-text="false" />
-              </view>
+      <scroll-view
+        ref="scrollViewRef"
+        scroll-y
+        :scroll-top="scrollTop"
+        class=" scroll-view pr-20rpx pl-20rpx  block h-full"
+        :scroll-with-animation="true"
+        :style="aiScrollView"
+        @scroll="handleScroll"
+      >
+        <view class="scroll-content">
+          <view v-if="content.length === 0" class="h-full flex justify-end flex-col items-center pb-200rpx pt-500rpx">
+            <view>
+              <image
+                class="ai-img"
+                :src="`/static/images/${currentModel?.icon}.png`"
+                mode="aspectFill"
+              />
+            </view>
+            <view class="font-size-60rpx mt-20rpx">
+              我是{{ modelName }}
+            </view>
+            <view class="mt-20rpx w-80%">
+              我可以帮你搜索、答疑、写作、请在下方输入你的内容~
             </view>
           </view>
 
-          <!-- AI消息（含加载状态） -->
-          <view v-else class="flex justify-start opacity-60">
-            <Icon-font name="zhipu" class="mt-20rpx mr-10rpx" />
-            <view class="flex mt-16rpx mb-16rpx flex-justify-start bg-#ffffff color-#333333 max-w-80% border-rd-16rpx">
-              <view
-                class="message-bubble  p-32rpx border-rd-16rpx w-100%"
-                :class="[msg.streaming && !(msg.content && msg.content.length) ? 'flex-center w-120rpx h-120rpx ' : '']"
-              >
-                <view v-if="msg.content">
-                  <UaMarkdown :source="msg.content" :show-line="false" />
-                  <view class="h-2rpx  bg-black-3 my-10rpx" />
+          <view v-for="(msg, index) in content" :key="index" class="py-16rpx">
+            <!-- 用户消息 -->
+            <view v-if="msg.role === 'user'" class=" flex  flex-justify-end opacity-60">
+              <view class="message-bubble p-32rpx border-rd-16rpx   bg-#07c160 color-white max-w-80%">
+                <text>
+                  {{
+                    msg.isRecordingPlaceholder
+                      ? (textRes || '') + (isRunning && textRes ? animatedDots : '')
+                      : Array.isArray(msg.content)
+                        ? msg.content[0].text
+                        : msg.content
+                  }}
+                </text>
+                <!-- 流式加载动画 -->
+                <view v-if="msg.isRecordingPlaceholder && !textRes" class="flex-center">
+                  <uni-load-more icon-type="auto" status="loading" :show-text="false" />
+                </view>
+              </view>
+            </view>
 
-                  <view class="flex items-center justify-end ">
-                    <view class="border-rd-16rpx size-60rpx bg-#e8ecf5 flex-center" @click="handleCopy(msg.content)">
-                      <icon-font name="copy" :color="COLOR_PRIMARY" :size="28" />
-                    </view>
-                    <view class="border-rd-16rpx size-60rpx  bg-#e8ecf5 flex-center  ml-20rpx" @click="handleRecorder(msg.content, index)">
-                      <audio-wave v-if="isStreamPlaying && currentIndex === index" :color="COLOR_PRIMARY" />
-                      <icon-font v-else name="sound" :color="COLOR_PRIMARY" :size="28" />
+            <!-- AI消息（含加载状态） -->
+            <view v-else class="flex justify-start opacity-60">
+              <Icon-font name="zhipu" class="mt-20rpx mr-10rpx" />
+              <view class="flex mt-16rpx mb-16rpx flex-justify-start bg-#ffffff color-#333333 max-w-80% border-rd-16rpx">
+                <view
+                  class="message-bubble  p-32rpx border-rd-16rpx w-100%"
+                  :class="[msg.streaming && !(msg.content && msg.content.length) ? 'flex-center w-120rpx h-120rpx ' : '']"
+                >
+                  <view v-if="msg.content">
+                    <UaMarkdown :source="msg.content" :show-line="false" />
+                    <view class="h-2rpx  bg-black-3 my-10rpx" />
+
+                    <view class="flex items-center justify-end ">
+                      <view class="border-rd-16rpx size-60rpx bg-#e8ecf5 flex-center" @click="handleCopy(msg.content)">
+                        <icon-font name="copy" :color="COLOR_PRIMARY" :size="28" />
+                      </view>
+                      <view class="border-rd-16rpx size-60rpx  bg-#e8ecf5 flex-center  ml-20rpx" @click="handleRecorder(msg.content, index)">
+                        <audio-wave v-if="isStreamPlaying && currentIndex === index" :color="COLOR_PRIMARY" />
+                        <icon-font v-else name="sound" :color="COLOR_PRIMARY" :size="28" />
+                      </view>
                     </view>
                   </view>
-                </view>
-                <!-- 流式加载动画 -->
-                <view v-if=" msg.streaming && !(msg.content && msg.content.length)" class="flex-center">
-                  <uni-load-more icon-type="auto" status="loading" :show-text="false" />
+                  <!-- 流式加载动画 -->
+                  <view v-if=" msg.streaming && !(msg.content && msg.content.length)" class="flex-center">
+                    <uni-load-more icon-type="auto" status="loading" :show-text="false" />
+                  </view>
                 </view>
               </view>
             </view>

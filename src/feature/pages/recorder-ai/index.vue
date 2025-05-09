@@ -171,6 +171,7 @@ const animatedDots = ref('')
 let dotTimer: NodeJS.Timeout | null = null
 const currentIndex = ref<number | null>(null)
 const currBuffer = ref()
+const isAudioPlaying = ref(false)
 /**
  * 是否自动播放
  */
@@ -272,16 +273,25 @@ const handleRecorder = debounce((text: string, index: number) => {
 }, 500)
 
 /**
+ * 语音播放真正的开始
+ */
+function onStreamPlayStart() {
+  isAudioPlaying.value = true
+}
+
+/**
  * 语音播放结束
  */
 function onStreamPlayEnd() {
   isStreamPlaying.value = false
+  isAudioPlaying.value = false
 }
 /**
  * 语音播放停止
  */
 function onStreamStop() {
   isStreamPlaying.value = false
+  isAudioPlaying.value = false
 }
 
 /**
@@ -392,6 +402,7 @@ onShow(() => {
       ref="streamPlayerRef"
       :stream="currBuffer"
       :curr-buffer="currBuffer"
+      @on-stream-play-start="onStreamPlayStart"
       @on-stream-play-end="onStreamPlayEnd"
       @on-stream-stop="onStreamStop"
     />
@@ -402,7 +413,7 @@ onShow(() => {
         :style="{ 'padding-top': pageHeight }"
       >
         <image
-          :src="isStreamPlaying ? '/static/images/aiPageBg.gif' : '/static/images/aiPageBg-quiet.png'"
+          :src="(isStreamPlaying && isAudioPlaying) ? '/static/images/aiPageBg.gif' : '/static/images/aiPageBg-quiet.png'"
           mode="aspectFit"
           class="aiPageBg-img"
         />

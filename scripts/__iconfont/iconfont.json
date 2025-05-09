@@ -6,6 +6,13 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "7592564",
+      "name": "24gl-volumeDisable",
+      "font_class": "mute",
+      "unicode": "ea0c",
+      "unicode_decimal": 59916
+    },
+    {
       "icon_id": "35102432",
       "name": "复制06",
       "font_class": "copy",

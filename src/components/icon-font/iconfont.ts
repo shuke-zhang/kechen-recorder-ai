@@ -15,6 +15,7 @@ export type IconFontType = 'account-code' |
 'keyboard' |
 'left' |
 'loop' |
+'mute' |
 'play' |
 'plus' |
 'questions' |

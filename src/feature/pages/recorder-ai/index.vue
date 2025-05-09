@@ -98,7 +98,6 @@ const {
   onError,
   onSuccess,
   onFinish,
-  handleToggle,
   handleChangeAiModel,
   handleSendMsg,
   handleCopy,
@@ -172,6 +171,28 @@ const animatedDots = ref('')
 let dotTimer: NodeJS.Timeout | null = null
 const currentIndex = ref<number | null>(null)
 const currBuffer = ref()
+/**
+ * 是否自动播放
+ */
+const isAutoPlayAiMessage = ref(true)
+/**
+ * ai内容自动播放音频
+ */
+function autoPlayAiMessage(text: string, index: number) {
+  if (!isAutoPlayAiMessage.value)
+    return
+  if (!text || text.trim() === '')
+    return
+  if (isStreamPlaying.value) {
+    SpeechSynthesis.stop()
+    streamPlayerRef.value?.onStreamStop()
+  }
+  // 设置当前播放的消息索引
+  currentIndex.value = index
+  // 开始语音合成并播放
+  SpeechSynthesis.convertTextToSpeech(text)
+  isStreamPlaying.value = true
+}
 
 function handleTouchStart() {
   if (loading.value) {
@@ -282,6 +303,13 @@ watch(
       nextTick(() => {
         scrollToBottom()
       })
+      // 检查最后一条消息是否是AI的回复
+      const lastMessage = content.value[content.value.length - 1]
+      console.log('内容变化ai回复', lastMessage)
+      if (lastMessage?.role === 'assistant' && lastMessage?.streaming) {
+        // 自动播放
+        autoPlayAiMessage(lastMessage.content || '', content.value.length - 1)
+      }
     }
   },
 )
@@ -340,10 +368,13 @@ onShow(() => {
 
 <template>
   <view>
-    <nav-bar :show-back="false" custom-click>
-      <template #left>
-        <icon-font v-if="false" name="questions" @click="handleToggle" />
+    <nav-bar>
+      <template #right>
+        <!-- <icon-font v-if="false" name="questions" @click="handleToggle" /> -->
+        <icon-font :name="isAutoPlayAiMessage ? 'sound' : 'mute'" :color="isAutoPlayAiMessage ? COLOR_PRIMARY : ''" size="40" @click="isAutoPlayAiMessage = !isAutoPlayAiMessage" />
       </template>
+      <!-- <template #right>=
+      </template> -->
       ai对话
     </nav-bar>
 
@@ -367,7 +398,7 @@ onShow(() => {
 
     <view :style="aiPageContent">
       <view
-        class="absolute top-0 left-0 w-full h-full z-0 flex justify-center "
+        class="absolute top-0 left-0 w-full h-full z-0 flex justify-center pointer-events-none"
         :style="{ 'padding-top': pageHeight }"
       >
         <image

@@ -1,8 +1,9 @@
 {
   "name": "kechen",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
+    "bumpp": "bumpp --patch",
     "dev:app": "uni -p app",
     "dev:app-android": "uni -p app-android",
     "dev:app-ios": "uni -p app-ios",
@@ -65,6 +66,7 @@
     "@types/crypto-js": "^4.2.2",
     "@types/js-base64": "^3.3.1",
     "@vue/tsconfig": "^0.5.1",
+    "bumpp": "^10.1.0",
     "crypto-js": "^4.2.0",
     "dayjs": "^1.11.13",
     "fast-xml-parser": "^5.0.9",

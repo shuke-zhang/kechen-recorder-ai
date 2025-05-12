@@ -14,7 +14,6 @@ interface NavigateToOptions {
        "/feature/pages/list-data-preview/index" |
        "/feature/pages/recorder-ai/index" |
        "/feature/pages/recorder-ai/recorder-input" |
-       "/feature/pages/recorder-ai/test" |
        "/feature/pages/sub-test/index" |
        "/feature/pages/test/index" |
        "/feature/pages/yaml/index" |

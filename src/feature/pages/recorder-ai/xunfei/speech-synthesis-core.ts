@@ -11,33 +11,14 @@ export default class SpeechSynthesisCore extends EventEmitter {
   private host = ''
   private socketTask: WebSocket | null = null
   private socketUrl = ''
-  /**
-   * @description: 用于接收音频数据的回调函数
-   */
-  private streamPlay: (pcm: string, sampleRate: number, isFinish?: boolean) => void = () => {} // 用于接收音频数据的回调函数
-  /**
-   * @description: 销毁音频数据的回调函数
-   */
-  private destroyStreamPlay: () => void = () => {} // 用于销毁音频数据的回调函数
-  /**
-   * @description: 初始化音频数据的回调函数
-   */
-  private initStreamPlay: () => void = () => {} // 初始化播放器
 
-  constructor(options: XunFeiSpeechSynthesisOptions, fetchOptions: {
-    streamPlay: (pcm: string, sampleRate: number) => void
-    destroyStreamPlay: () => void
-    initStreamPlay: () => void
-  }) {
+  constructor(options: XunFeiSpeechSynthesisOptions) {
     super()
     this.APPID = options.APPID
     this.APISecret = options.APISecret
     this.APIKey = options.APIKey
     this.url = options.url
     this.host = options.host
-    this.streamPlay = fetchOptions.streamPlay
-    this.destroyStreamPlay = fetchOptions.destroyStreamPlay
-    this.initStreamPlay = fetchOptions.initStreamPlay
   }
 
   // 用于转化单次文本为语音
@@ -77,12 +58,10 @@ export default class SpeechSynthesisCore extends EventEmitter {
       })
       this.socketTask.on('close', () => {
         this.emit('log', '🔌 WebSocket 已关闭')
-        this.destroyStreamPlay()
       })
 
       this.socketTask.on('error', (err) => {
         console.error('❌ WebSocket 错误:', err)
-        this.destroyStreamPlay()
       })
     }
     catch (error) {
@@ -163,7 +142,7 @@ export default class SpeechSynthesisCore extends EventEmitter {
     return base64Text
   }
 
-  private base64ToArrayBuffer(base64Data: string) {
+  public base64ToArrayBuffer(base64Data: string) {
     // 1. 解码Base64为二进制字符串
     const binaryString = atob(base64Data)
 

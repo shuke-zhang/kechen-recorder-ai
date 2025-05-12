@@ -107,10 +107,6 @@
           "type": "page"
         },
         {
-          "path": "recorder-ai/test",
-          "type": "page"
-        },
-        {
           "path": "sub-test/index",
           "type": "page",
           "style": {

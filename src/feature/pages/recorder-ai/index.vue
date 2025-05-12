@@ -6,9 +6,6 @@
 import Recorder from 'recorder-core'
 import 'recorder-core/src/extensions/buffer_stream.player.js'
 
-// @ts-ignore
-// eslint-disable-next-line import/order
-import useSpeechSynthesis from './hooks/useSpeechSynthesis'
 import RecordApp from 'recorder-core/src/app-support/app'
 import '../../../../uni_modules/Recorder-UniCore/app-uni-support.js'
 import 'recorder-core/src/engine/pcm'
@@ -48,10 +45,6 @@ import RecorderInput from './recorder-input.vue'
 import useRecorder from './hooks/useRecorder'
 // eslint-disable-next-line import/first
 import useAiPage from './hooks/useAiPage'
-// eslint-disable-next-line ts/ban-ts-comment
-// @ts-expect-error
-// eslint-disable-next-line import/first, import/no-duplicates, ts/no-redeclare
-import useSpeechSynthesis from './hooks/useSpeechSynthesis'
 // eslint-disable-next-line import/first
 import useAutoScroll from './hooks/useAutoScroll'
 // eslint-disable-next-line import/first
@@ -125,15 +118,6 @@ const {
 })
 
 const {
-  streamPlay,
-  destroyStreamPlay,
-  initStreamPlay,
-} = useSpeechSynthesis({
-  RecordApp: RecordAppInstance,
-  vueInstance,
-})
-
-const {
   scrollTop,
   handleScroll,
   resetAndScrollToBottom,
@@ -157,10 +141,6 @@ const SpeechSynthesis = new SpeechSynthesisCore({
   APIKey: '287ae449056d33e0f4995f480737564a',
   url: 'wss://tts-api.xfyun.cn/v2/tts',
   host: 'tts-api.xfyun.cn',
-}, {
-  initStreamPlay,
-  streamPlay,
-  destroyStreamPlay,
 })
 SpeechSynthesis.on('audio', (res: ArrayBuffer) => {
   currBuffer.value = res

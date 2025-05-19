@@ -5,65 +5,36 @@
 </route>
 
 <script setup lang="ts">
-import XunfeiRecorder from './xunfei/xunfei-recorder'
-import { useXunFeiWebSocket } from './xunfei-websocket'
+import { SpeechSynthesisDoubao } from '../recorder-ai/doubao/speech-synthesis-doubao'
 
-const sss = new XunfeiRecorder({
-  APPID: 'f9b52f87',
-  APISecret: 'ZDVkYzU5YmFhZmNlODVkM2RlNDMyNDhl',
-  APIKey: '287ae449056d33e0f4995f480737564a',
-  url: 'wss://iat-api.xfyun.cn/v2/iat',
-  host: 'iat-api.xfyun.cn',
-}, onTextChanged)
-const text = ref('')
-function onTextChanged(data: string) {
-  text.value = data
-}
-
-// 开始录音
-function startRecord() {
-  console.log('页面点击录音开始')
-  text.value = ''
-  sss.start()
-  sss.on('log', (msg: string) => {
-    console.log(msg)
-  })
-}
-
-// 停止录音
-function endRecord() {
-  console.log('页面点击录音结束')
-  text.value = ''
-  sss.stop()
-}
-
-const { handleSocketStart, handleSocketStop } = useXunFeiWebSocket()
+const APPID = '3810425215'
+const AccessToken = 'mHT8sdy_o3wVHNSIw9jfJqCawEu0Aq5s'
+const SecretKey = 'WcH7__6VXDbmzKbXaNkLt9PN9kFCyFy0'
+const url = 'wss://openapi.xf-yun.com/v1/private/s453a306'
+const host = 'openapi.xf-yun.com'
+const speechSynthesisDoubaoCore = new SpeechSynthesisDoubao({
+  APPID,
+  AccessToken,
+  SecretKey,
+  url,
+  host,
+})
+speechSynthesisDoubaoCore.on('log', (e) => {
+  console.log(e)
+})
+speechSynthesisDoubaoCore.on('test', (e) => {
+  console.log(e)
+})
+speechSynthesisDoubaoCore.on('audio', (e) => {
+  console.log(e)
+})
 </script>
 
 <template>
   <view class="audioPlay">
-    <button type="primary" class="mt-100rpx" @click="startRecord">
-      开始录音
+    测试页面-{{ speechSynthesisDoubaoCore }}
+    <button @click="speechSynthesisDoubaoCore.synthesizeSpeechStream">
+      点击
     </button>
-    <button type="primary" class="mt-100rpx" @click="endRecord">
-      停止录音
-    </button>
-
-    <button type="primary" class="mt-100rpx" @click="handleSocketStart">
-      socket连接测试
-    </button>
-
-    <button type="primary" class="mt-100rpx" @click="handleSocketStop">
-      socket连接关闭
-    </button>
-
-    <view class="mt-100rpx card flex flex-col">
-      <text>
-        识别结果：
-      </text>
-      <text class="text-primary">
-        {{ text }}
-      </text>
-    </view>
   </view>
 </template>

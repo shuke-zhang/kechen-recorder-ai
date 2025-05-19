@@ -17,9 +17,9 @@ function handleSpeechBtn() {
   router.push('/feature/pages/recorder-ai/speech-synthesis')
 }
 
-const ssss = debounce(() => {
-  console.log('点击了')
-}, 500)
+function ssss() {
+  router.push('/feature/pages/test/index')
+}
 </script>
 
 <template>

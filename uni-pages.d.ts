@@ -17,9 +17,7 @@ interface NavigateToOptions {
        "/feature/pages/sub-test/index" |
        "/feature/pages/test/index" |
        "/feature/pages/yaml/index" |
-       "/feature/pages/sub-test/component/dialog" |
-       "/feature/pages/test/recorder-core/index-copy" |
-       "/feature/pages/test/recorder-core/index";
+       "/feature/pages/sub-test/component/dialog";
 }
 interface RedirectToOptions extends NavigateToOptions {}
 

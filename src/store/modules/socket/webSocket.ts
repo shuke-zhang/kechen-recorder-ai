@@ -7,6 +7,7 @@ export class WebSocket extends EventEmitter<{
   log: (msg: string) => void
 }> {
   url: string
+  header: object
   isCreate: boolean
   isConnect: boolean
   isInitiative: boolean
@@ -16,9 +17,11 @@ export class WebSocket extends EventEmitter<{
   /** 当关闭后是否自动重连 */
   autoReconnect = true // ✅ 是否启用自动重连（默认开启）
 
-  constructor(url = 'ws://192.168.3.117:8899/demo', autoReconnect = true) {
+  constructor(url = 'ws://192.168.3.117:8899/demo', header = {}, autoReconnect = true) {
     super()
     this.url = url
+    this.header = header
+
     this.autoReconnect = autoReconnect
     this.isCreate = false
     this.isConnect = false
@@ -32,13 +35,12 @@ export class WebSocket extends EventEmitter<{
     this.isInitiative = false
     this.socketInstance = null
     this.emit('log', '🛜 初始化websocket')
-    console.log('初始化websocket-内部')
 
     this.socketInstance = uni.connectSocket({
       url: this.url,
+      header: this.header,
       success: () => {
         this.isCreate = true
-        console.log('uni.connectSocket初始化成功')
         this.emit('connect')
         // #ifdef APP
         this.createSocket() // ✅ 成功之后再注册监听器

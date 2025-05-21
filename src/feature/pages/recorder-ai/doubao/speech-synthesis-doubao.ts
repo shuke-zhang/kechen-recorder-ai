@@ -1,8 +1,10 @@
 import { DoubaoResponse } from './doubao-response'
 import { Header } from './header '
 import { Optional } from './optional '
-import { type DoubaoSpeechSynthesisOptions, MessageTypeModel } from './types'
-import { WebSocket } from '@/store/modules/socket/webSocket'
+import { SimpleTextDecoder } from './simple-text-decoder'
+import { SimpleTextEncoder } from './simple-text-encoder'
+import type { DoubaoSpeechSynthesisOptions } from './types'
+import { WebSocket } from '@/store/modules/socket/webSocket-plus'
 
 const APPID = '3810425215'
 const AccessToken = 'mHT8sdy_o3wVHNSIw9jfJqCawEu0Aq5s'
@@ -19,7 +21,7 @@ export class SpeechSynthesisDoubao extends EventEmitter {
   private speaker = 'zh_female_shuangkuaisisi_moon_bigtts'
   private socketInstance: WebSocket | null = null
   private socketUrl = ''
-
+  private hasReceivedFirstMessage = false
   /** socket 是否正在初始化中 */
   public isSocketRunning = false
 
@@ -51,10 +53,8 @@ export class SpeechSynthesisDoubao extends EventEmitter {
     console.log(2222)
 
     const event = await this.recvOnce()
-    console.log(3333, event)
-
-    const res = this.parserResponse(new Uint8Array(event.data))
-    console.log(4444, res)
+    console.log(3333, event, Object.prototype.toString.call(event), event)
+    const res = this.parserResponse(event)
 
     if (res.optional.event !== 50) {
       console.log('启动连接失败505050', res.optional.event)
@@ -71,7 +71,7 @@ export class SpeechSynthesisDoubao extends EventEmitter {
     console.log(8888)
     const sessionEvent = await this.recvOnce()
     console.log(9999, sessionEvent)
-    const sessionRes = this.parserResponse(new Uint8Array(sessionEvent.data))
+    const sessionRes = this.parserResponse(new Uint8Array(sessionEvent))
     console.log(10000, sessionRes)
     if (sessionRes.optional.event !== 150) {
       this.emit('error', `启动会话失败: ${sessionRes.optional.event}`)
@@ -119,7 +119,7 @@ export class SpeechSynthesisDoubao extends EventEmitter {
       sessionId,
     }).asBytes()
 
-    const payload = new TextEncoder().encode('{}')
+    const payload = new SimpleTextEncoder().encode('{}')
 
     await this.sendEvent(header, optional, payload)
   }
@@ -135,7 +135,7 @@ export class SpeechSynthesisDoubao extends EventEmitter {
       event: 2, // EVENT_FinishConnection
     }).asBytes()
 
-    const payload = new TextEncoder().encode('{}')
+    const payload = new SimpleTextEncoder().encode('{}')
 
     await this.sendEvent(header, optional, payload)
   }
@@ -162,14 +162,19 @@ export class SpeechSynthesisDoubao extends EventEmitter {
 
     console.log(payload, 'payload-getPayloadBytes')
 
-    const bytes = new TextEncoder().encode(JSON.stringify(payload))
+    const bytes = new SimpleTextEncoder().encode(JSON.stringify(payload))
 
     return bytes
   }
 
-  private onSocketMessage(text: string) {
-    console.log('收到消息:', text)
-    this.emit('audio', text)
+  private onSocketMessage(text: Uint8Array) {
+    // console.log('收到消息:', text)
+    if (!this.hasReceivedFirstMessage) {
+      console.log('👋 跳过 recvOnce 的第一条消息')
+      return
+    }
+    const base64 = this.uint8ArrayToBase64(text)
+    this.emit('audio', base64)
   }
 
   private initSocket() {
@@ -199,10 +204,11 @@ export class SpeechSynthesisDoubao extends EventEmitter {
     })
   }
 
-  private recvOnce(): Promise<MessageEvent> {
+  private recvOnce(): Promise<Uint8Array > {
     return new Promise((resolve) => {
-      const handler = (event: MessageEvent) => {
+      const handler = (event: Uint8Array) => {
         this.socketInstance?.off('message', handler)
+        this.hasReceivedFirstMessage = true
         resolve(event)
       }
       this.socketInstance?.on('message', handler)
@@ -214,8 +220,6 @@ export class SpeechSynthesisDoubao extends EventEmitter {
    */
   private async startConnection() {
     // 构造请求头部对象，指定消息类型为 FULL_CLIENT_REQUEST，请求中带事件标识
-    console.log(MessageTypeModel['0b0001'], '测试')
-
     const header = new Header({
       message_type: 0b0001,
       message_type_specific_flags: 0b0100,
@@ -223,7 +227,7 @@ export class SpeechSynthesisDoubao extends EventEmitter {
     // 构造可选字段对象，设置事件为“启动连接”，即 EVENT_Start_Connection
     const optional = new Optional({ event: 1 }).asBytes()
 
-    const payload = new TextEncoder().encode('{}')
+    const payload = new SimpleTextEncoder().encode('{}')
     return await this.sendEvent(header, optional, payload)
   }
 
@@ -243,6 +247,8 @@ export class SpeechSynthesisDoubao extends EventEmitter {
     }).asBytes()
 
     const payload = this.getPayloadBytes('1234', 100, '', speaker)
+    console.log('获取到了payload')
+
     await this.sendEvent(header, optional, payload)
   }
 
@@ -274,6 +280,10 @@ export class SpeechSynthesisDoubao extends EventEmitter {
     if (typeof res === 'string') {
       throw new TypeError(res)
     }
+    console.log('📌 typeof res:', typeof res)
+    console.log('📌 res instanceof Uint8Array:', res instanceof Uint8Array)
+    console.log('📌 Object.prototype.toString.call(res):', Object.prototype.toString.call(res))
+
     const response = new DoubaoResponse(new Header(), new Optional())
     const header = response.header
     const num = 0b00001111
@@ -285,7 +295,7 @@ export class SpeechSynthesisDoubao extends EventEmitter {
     header.serial_method = res[2] >> 4
     header.compression_type = res[2] & 0x0F
     header.reserved_data = res[3]
-
+    console.log('📦 header:', header)
     let offset = 4
     const optional = response.optional
 
@@ -293,6 +303,7 @@ export class SpeechSynthesisDoubao extends EventEmitter {
       header.message_type === 0b1001
       || header.message_type === 0b1011
     ) {
+      console.log('🎯 进入 message_type 分支', 0b1011, 0b1001)
       if (header.message_type_specific_flags === 0b100) {
         optional.event = this.readInt32(res, offset)
         offset += 4
@@ -328,6 +339,8 @@ export class SpeechSynthesisDoubao extends EventEmitter {
       }
     }
     else if (header.message_type === 0b1111) {
+      console.log('🎯 进入 message_type 分支', 0b1111)
+
       optional.errorCode = this.readInt32(res, offset)
       offset += 4;
       [response.payload, offset] = this.readResPayload(res, offset)
@@ -344,7 +357,7 @@ export class SpeechSynthesisDoubao extends EventEmitter {
     const size = this.readInt32(buffer, offset)
     offset += 4
     const bytes = buffer.slice(offset, offset + size)
-    const content = new TextDecoder().decode(bytes)
+    const content = new SimpleTextDecoder().decode(bytes)
     offset += size
     return [content, offset]
   }
@@ -362,6 +375,14 @@ export class SpeechSynthesisDoubao extends EventEmitter {
    */
   private genSessionId() {
     return Date.now().toString(16) + Math.random().toString(16).slice(2, 10)
+  }
+
+  private uint8ArrayToBase64(u8arr: Uint8Array): string {
+    let binary = ''
+    for (let i = 0; i < u8arr.length; i++) {
+      binary += String.fromCharCode(u8arr[i])
+    }
+    return btoa(binary)
   }
 
   private getWebSocketUrl(): {
@@ -383,6 +404,7 @@ export class SpeechSynthesisDoubao extends EventEmitter {
       'X-Api-Access-Key': token,
       'X-Api-Resource-Id': resourceId,
       'X-Api-Connect-Id': connectId,
+      'content-type': 'application/json',
     }
 
     return {

@@ -1,3 +1,5 @@
+import { SimpleTextEncoder } from './simple-text-encoder'
+
 export class Optional {
   event: number
   sessionId: string | null
@@ -34,7 +36,7 @@ export class Optional {
 
     // 添加 sessionId 长度和内容
     if (this.sessionId !== null) {
-      const encoder = new TextEncoder()
+      const encoder = new SimpleTextEncoder()
       const sessionBytes = encoder.encode(this.sessionId)
       bytes.push(...this.intToBytes(sessionBytes.length, 4)) // 长度（4字节）
       bytes.push(...sessionBytes) // 内容

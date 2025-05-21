@@ -15,7 +15,7 @@ export default class StreamAudioPlayer {
   private isForceStop = false
   private _onStart: (() => void) | null = null
   private _onEnd: (() => void) | null = null
-
+  private incompleteBuffer: Uint8Array | null = null
   constructor({
     inputSampleRate = 16000,
     numChannels = 1,
@@ -50,8 +50,51 @@ export default class StreamAudioPlayer {
 
   /** 添加 PCM 数据块 */
   appendChunk(pcmData: ArrayBuffer) {
-    this.decodeQueue.push(pcmData)
-    this.isPendingEnd = true // ✅ 有新数据，说明还没结束
+    console.log('✅ 接收到新的 PCM 数据块', pcmData)
+
+    if (!(pcmData instanceof ArrayBuffer)) {
+      throw new TypeError(
+        `❌ appendChunk: 传入的不是 ArrayBuffer，而是 ${Object.prototype.toString.call(pcmData)}`,
+      )
+    }
+
+    if (pcmData.byteLength === 0) {
+      throw new Error('❌ appendChunk: 传入的 PCM 数据为空（byteLength = 0）')
+    }
+
+    const bytesPerSample = this.bitDepth / 8
+    const frameSize = bytesPerSample * this.numChannels
+
+    let u8 = new Uint8Array(pcmData)
+
+    // 拼接上次残余数据
+    if (this.incompleteBuffer) {
+      const combined = new Uint8Array(this.incompleteBuffer.length + u8.length)
+      combined.set(this.incompleteBuffer, 0)
+      combined.set(u8, this.incompleteBuffer.length)
+      u8 = combined
+      this.incompleteBuffer = null
+    }
+
+    const totalBytes = u8.length
+    const remainder = totalBytes % frameSize
+
+    // 处理剩余不能整除的部分（留到下次）
+    if (remainder !== 0) {
+      this.incompleteBuffer = u8.slice(totalBytes - remainder)
+      u8 = u8.slice(0, totalBytes - remainder)
+    }
+
+    if (u8.length === 0) {
+      console.warn('⚠️ appendChunk: 当前数据不足一帧，等待下次拼接')
+      return
+    }
+
+    const validBuffer = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength)
+
+    console.log(`✅ PCM 数据验证通过，byteLength = ${validBuffer.byteLength}，加入播放队列`)
+    this.decodeQueue.push(validBuffer)
+    this.isPendingEnd = true
     this.isForceStop = false
     if (!this.isDecoding) {
       this._processDecodeQueue()

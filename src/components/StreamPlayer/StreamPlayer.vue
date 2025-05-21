@@ -12,7 +12,7 @@ export default {
 
   props: {
     currBuffer: { // 接收视图层即renderjs中传递过来的数据
-      type: [ArrayBuffer, String],
+      type: [ArrayBuffer, Uint8Array, String],
       default: null,
     },
     /**
@@ -82,6 +82,8 @@ export default {
   methods: {
     // @ts-ignore
     playTTS(base64) {
+     console.log(Object.prototype.toString.call(base64),'playTTS的类型');
+
       if (!base64)
         return
 

@@ -1,3 +1,10 @@
+/**
+ * WebSocket 类，用于管理 WebSocket 连接和消息的发送和接收。
+ * @param url WebSocket 服务器的 URL。
+ * @param header 可选的 WebSocket 连接头信息。
+ * @param autoReconnect 可选的布尔值，指示是否启用自动重连功能。默认为 true。
+ * @param isRawResponse 可选的布尔值，指示收到的服务器消息是否直接返回，不用再解析。默认为 false。
+ */
 export class WebSocket extends EventEmitter<{
   connect: () => void
   message: (messageData: any) => void
@@ -7,6 +14,7 @@ export class WebSocket extends EventEmitter<{
   log: (msg: string) => void
 }> {
   url: string
+  header: object
   isCreate: boolean
   isConnect: boolean
   isInitiative: boolean
@@ -15,11 +23,15 @@ export class WebSocket extends EventEmitter<{
   retryTime = 5
   /** 当关闭后是否自动重连 */
   autoReconnect = true // ✅ 是否启用自动重连（默认开启）
-
-  constructor(url = 'ws://192.168.3.117:8899/demo', autoReconnect = true) {
+  /** 是否保留服务器返回的原始消息 */
+  isRawResponse = false
+  constructor(url = 'ws://192.168.3.117:8899/demo', header = {}, autoReconnect = true, isRawResponse = false) {
     super()
     this.url = url
+    this.header = header
+
     this.autoReconnect = autoReconnect
+    this.isRawResponse = isRawResponse
     this.isCreate = false
     this.isConnect = false
     this.isInitiative = false
@@ -32,13 +44,12 @@ export class WebSocket extends EventEmitter<{
     this.isInitiative = false
     this.socketInstance = null
     this.emit('log', '🛜 初始化websocket')
-    console.log('初始化websocket-内部')
 
     this.socketInstance = uni.connectSocket({
       url: this.url,
+      header: this.header,
       success: () => {
         this.isCreate = true
-        console.log('uni.connectSocket初始化成功')
         this.emit('connect')
         // #ifdef APP
         this.createSocket() // ✅ 成功之后再注册监听器
@@ -72,9 +83,31 @@ export class WebSocket extends EventEmitter<{
       })
 
       this.socketInstance.onMessage((res) => {
-        const _data = JSON.parse(res.data)
-        this.emit('log', `✉️  ${JSON.stringify(_data) || 'no message'}`)
-        this.emit('message', JSON.stringify(_data))
+        if (this.isRawResponse) {
+          if (res.data instanceof ArrayBuffer) {
+            const buffer = new Uint8Array(res.data)
+            this.emit('log', `✉️ 收到二进制消息（length=${buffer.length}）`)
+            this.emit('message', buffer)
+          }
+          else {
+            this.emit('message', res.data)
+
+            this.emit('log', '⚠️ isRawResponse 为 true，但数据不是 ArrayBuffer')
+          }
+        }
+        else {
+          try {
+            const json = JSON.parse(res.data)
+            console.log('📄 解析后的 JSON:', json)
+            this.emit('log', '✉️ 收到 JSON 消息')
+            this.emit('message', json)
+          }
+          catch (err) {
+            console.error('❌ JSON 解析失败:', err)
+            this.emit('log', '❌ JSON 解析失败')
+            this.emit('message', err)
+          }
+        }
       })
 
       this.socketInstance.onClose((e) => {
@@ -115,8 +148,8 @@ export class WebSocket extends EventEmitter<{
   /**
    * @description 发送消息
    */
-  sendMessage(value: any) {
-    const param = JSON.stringify(value)
+  sendMessage(value: any, isJson = true) {
+    const param = isJson ? JSON.stringify(value) : value
     this.emit('log', `🛜 sendMessage 触发`)
     return new Promise((resolve, reject) => {
       this.socketInstance?.send({

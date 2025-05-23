@@ -44,19 +44,22 @@ export class WebSocket extends EventEmitter<{
     this.isInitiative = false
     this.socketInstance = null
     this.emit('log', '🛜 初始化websocket')
+    console.log('内部初始化')
 
     this.socketInstance = uni.connectSocket({
       url: this.url,
       header: this.header,
       success: () => {
         this.isCreate = true
+        console.log('初始化成功uni.connectSocket')
+
         this.emit('connect')
-        // #ifdef APP
+        // #ifdef APP || H5
         this.createSocket() // ✅ 成功之后再注册监听器
         // #endif
       },
       fail: (err) => {
-        console.error(err)
+        console.error(err, '初始化失败')
         this.emit('log', '🛜 初始化失败!')
         this.isCreate = false
       },
@@ -128,6 +131,8 @@ export class WebSocket extends EventEmitter<{
 
       this.socketInstance.onError((e) => {
         this.emit('log', `🛜 WebSocket 错误：${e.errMsg}`)
+        console.log('WebSocket 错误了', e)
+
         this.isInitiative = false
         this.isConnect = false
 

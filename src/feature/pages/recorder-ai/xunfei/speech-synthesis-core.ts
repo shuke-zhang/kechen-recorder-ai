@@ -76,7 +76,7 @@ export default class SpeechSynthesisCore extends EventEmitter {
         aue: 'raw',
         sfl: 1,
         auf: 'audio/L16;rate=16000',
-        vcn: 'x4_lingxiaowan_en', // aisjinger
+        vcn: 'xiaoyan', // aisjinger
         speed: 50,
         volume: 50,
         pitch: 50,
@@ -97,6 +97,8 @@ export default class SpeechSynthesisCore extends EventEmitter {
 
   private onSocketMessage(data: string) {
     const message = JSON.parse(data)
+    console.log('message################', message)
+
     // 处理音频数据 - 播放
     if (message.data.audio) {
       // this.streamPlay(message.data.audio, 16000, message.data.status === 2)

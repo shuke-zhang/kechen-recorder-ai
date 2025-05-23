@@ -89,7 +89,7 @@ export default {
 
       const bytes = this.base64ToArrayBuffer(base64)
       // @ts-ignore
-      player.appendChunk(bytes)
+      player.appendSmartChunk(bytes)
     },
     stopTTS() {
       player?.stop()

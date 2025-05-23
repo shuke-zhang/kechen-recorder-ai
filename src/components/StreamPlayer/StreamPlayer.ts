@@ -10,12 +10,13 @@ export default class StreamAudioPlayer {
   private audioQueue: AudioBuffer[] = []
   private isDecoding = false
   private isPlaying = false
-  private isPendingEnd = false // ✅ 是否正在等待播放全部结束
+  private isPendingEnd = false
   private currentSource: AudioBufferSourceNode | null = null
   private isForceStop = false
   private _onStart: (() => void) | null = null
   private _onEnd: (() => void) | null = null
   private incompleteBuffer: Uint8Array | null = null
+
   constructor({
     inputSampleRate = 16000,
     numChannels = 1,
@@ -23,76 +24,65 @@ export default class StreamAudioPlayer {
     littleEndian = true,
     pcmType = 'float',
   } = {}) {
-    if (![16, 32].includes(bitDepth))
-      throw new Error('bitDepth 必须是 16 或 32')
-    if (inputSampleRate <= 0)
-      throw new Error('采样率必须大于 0')
-    if (!['int', 'float'].includes(pcmType))
-      throw new Error('pcmType 必须是 int 或 float')
-
     this.audioContext = new window.AudioContext()
     this.inputSampleRate = inputSampleRate
     this.numChannels = numChannels
     this.bitDepth = bitDepth
     this.littleEndian = littleEndian
-    this.pcmType = pcmType as 'int' | 'float'
+    this.pcmType = pcmType
   }
 
-  /** 注册播放开始回调 */
   onStart(callback: () => void) {
     this._onStart = callback
   }
 
-  /** 注册完整播放结束回调（所有片段播完才触发） */
   onEnd(callback: () => void) {
     this._onEnd = callback
   }
 
-  /** 添加 PCM 数据块 */
-  appendChunk(pcmData: ArrayBuffer) {
-    console.log('✅ 接收到新的 PCM 数据块', pcmData)
+  /** 自动判断格式并添加播放数据 */
+  async appendSmartChunk(data: ArrayBuffer) {
+    const format = this.detectFormat(data)
+    console.log(`🚀 检测到音频格式********************************************: ${format}`)
 
-    if (!(pcmData instanceof ArrayBuffer)) {
-      throw new TypeError(
-        `❌ appendChunk: 传入的不是 ArrayBuffer，而是 ${Object.prototype.toString.call(pcmData)}`,
-      )
+    if (format === 'mp3') {
+      await this.appendMP3Chunk(data)
     }
+    else {
+      this.appendPCMChunk(data)
+    }
+  }
 
-    if (pcmData.byteLength === 0) {
-      throw new Error('❌ appendChunk: 传入的 PCM 数据为空（byteLength = 0）')
+  /** 添加 PCM 数据（必须是完整帧） */
+  appendPCMChunk(pcmData: ArrayBuffer) {
+    const format = this.detectFormat(pcmData)
+    if (format === 'mp3') {
+      console.warn('⚠️ appendPCMChunk: 检测到数据实际为 MP3，已忽略处理，请使用 appendSmartChunk 或 appendMP3Chunk')
+      return
     }
 
     const bytesPerSample = this.bitDepth / 8
     const frameSize = bytesPerSample * this.numChannels
-
     let u8 = new Uint8Array(pcmData)
 
-    // 拼接上次残余数据
     if (this.incompleteBuffer) {
       const combined = new Uint8Array(this.incompleteBuffer.length + u8.length)
-      combined.set(this.incompleteBuffer, 0)
+      combined.set(this.incompleteBuffer)
       combined.set(u8, this.incompleteBuffer.length)
       u8 = combined
       this.incompleteBuffer = null
     }
 
-    const totalBytes = u8.length
-    const remainder = totalBytes % frameSize
-
-    // 处理剩余不能整除的部分（留到下次）
+    const remainder = u8.length % frameSize
     if (remainder !== 0) {
-      this.incompleteBuffer = u8.slice(totalBytes - remainder)
-      u8 = u8.slice(0, totalBytes - remainder)
+      this.incompleteBuffer = u8.slice(u8.length - remainder)
+      u8 = u8.slice(0, u8.length - remainder)
     }
 
-    if (u8.length === 0) {
-      console.warn('⚠️ appendChunk: 当前数据不足一帧，等待下次拼接')
+    if (u8.length === 0)
       return
-    }
 
     const validBuffer = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength)
-
-    console.log(`✅ PCM 数据验证通过，byteLength = ${validBuffer.byteLength}，加入播放队列`)
     this.decodeQueue.push(validBuffer)
     this.isPendingEnd = true
     this.isForceStop = false
@@ -101,19 +91,35 @@ export default class StreamAudioPlayer {
     }
   }
 
+  /** 添加 MP3 数据块 */
+  async appendMP3Chunk(mp3Data: ArrayBuffer) {
+    if (!this.audioContext)
+      return
+    try {
+      const buffer = await this.audioContext.decodeAudioData(mp3Data.slice(0))
+      this.audioQueue.push(buffer)
+      this.isPendingEnd = true
+      this.isForceStop = false
+      if (!this.isDecoding && !this.isPlaying) {
+        this._playNext()
+      }
+    }
+    catch (err) {
+      console.error('❌ MP3 解码失败:', err)
+    }
+  }
+
   private async _processDecodeQueue() {
     if (!this.audioContext)
       return
     this.isDecoding = true
-
     while (this.decodeQueue.length > 0) {
       const rawPCM = this.decodeQueue.shift()
       if (!rawPCM)
         continue
-      const audioBuffer = this._convertPCM(rawPCM)
-      this.audioQueue.push(audioBuffer)
+      const buffer = this._convertPCM(rawPCM)
+      this.audioQueue.push(buffer)
     }
-
     this.isDecoding = false
     if (!this.isPlaying) {
       this._playNext()
@@ -123,26 +129,22 @@ export default class StreamAudioPlayer {
   private _playNext() {
     if (!this.audioContext || this.audioQueue.length === 0) {
       this.isPlaying = false
-
-      // ✅ 所有播放完成，才触发 onEnd
       if (this.isPendingEnd && !this.isForceStop) {
         this._onEnd?.()
-        this.isForceStop = false
         this.isPendingEnd = false
+        this.isForceStop = false
       }
-
       return
     }
 
-    const nextBuffer = this.audioQueue.shift()
+    const next = this.audioQueue.shift()
     const source = this.audioContext.createBufferSource()
-    source.buffer = nextBuffer!
+    source.buffer = next!
     source.connect(this.audioContext.destination)
-
     source.start()
-    if (!this.isPlaying) {
+
+    if (!this.isPlaying)
       this._onStart?.()
-    }
     this.isPlaying = true
     this.currentSource = source
 
@@ -152,8 +154,14 @@ export default class StreamAudioPlayer {
     }
   }
 
-  /** 销毁播放器 */
-  destroy() {
+  public stop() {
+    this.isForceStop = true
+    this.audioQueue = []
+    this.decodeQueue = []
+    this.currentSource?.stop()
+  }
+
+  public destroy() {
     this.audioQueue = []
     this.decodeQueue = []
     this.currentSource?.stop()
@@ -162,19 +170,25 @@ export default class StreamAudioPlayer {
     this.isPendingEnd = false
   }
 
-  public stop() {
-    this.isForceStop = true
-    this.audioQueue = []
-    this.decodeQueue = []
-    this.currentSource?.stop()
+  private detectFormat(data: ArrayBuffer): 'mp3' | 'pcm' {
+    const u8 = new Uint8Array(data)
+
+    // 检查 ID3 标签（标准 MP3 开头）
+    const header = new TextDecoder().decode(u8.slice(0, 3))
+    if (header === 'ID3')
+      return 'mp3'
+
+    // 只在前 4 个字节范围内寻找帧同步（避免误判 PCM 中间的 0xFF）
+    for (let i = 0; i < Math.min(4, u8.length - 1); i++) {
+      if (u8[i] === 0xFF && (u8[i + 1] & 0xE0) === 0xE0)
+        return 'mp3'
+    }
+
+    return 'pcm'
   }
 
-  /** PCM 解码 */
   private _convertPCM(buffer: ArrayBuffer): AudioBuffer {
-    const ctx = this.audioContext
-    if (!ctx)
-      throw new Error('AudioContext not initialized')
-
+    const ctx = this.audioContext!
     const bytesPerSample = this.bitDepth / 8
     const sampleCount = buffer.byteLength / bytesPerSample / this.numChannels
     const audioBuffer = ctx.createBuffer(this.numChannels, sampleCount, this.inputSampleRate)
@@ -198,18 +212,16 @@ export default class StreamAudioPlayer {
       }
       this._applyFades(channel)
     }
-
     return audioBuffer
   }
 
-  /** 去直流偏移 + 淡入淡出 */
   private _applyFades(channel: Float32Array) {
-    const fadeLength = Math.min(100, channel.length)
-    for (let i = 0; i < fadeLength; i++) {
-      channel[i] *= i / fadeLength
+    const fadeLen = Math.min(100, channel.length)
+    for (let i = 0; i < fadeLen; i++) {
+      channel[i] *= i / fadeLen
     }
-    for (let i = channel.length - fadeLength; i < channel.length; i++) {
-      channel[i] *= (channel.length - i) / fadeLength
+    for (let i = channel.length - fadeLen; i < channel.length; i++) {
+      channel[i] *= (channel.length - i) / fadeLen
     }
   }
 }

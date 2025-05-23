@@ -229,6 +229,7 @@ function handleTouchEnd() {
  * @warning 由于语音点击之后播放音频会有延迟， 所以在这儿直接设置状态
  */
 const handleRecorder = debounce((text: string, index: number) => {
+  console.log('点击语音', text, index)
   // 当前已经在播放此条消息
   if (currentIndex.value === index && isStreamPlaying.value) {
     console.log('🟡 再次点击同一条，执行停止')

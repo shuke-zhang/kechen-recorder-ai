@@ -33,6 +33,7 @@ export default {
 <script setup lang='ts'>
 // eslint-disable-next-line import/first, import/order
 import type StreamPlayer from '@/components/StreamPlayer/StreamPlayer.vue'
+
 // eslint-disable-next-line import/first, import/order
 import { NAV_BAR_HEIGHT, getStatusBarHeight } from '@/components/nav-bar/nav-bar'
 // eslint-disable-next-line import/first, import/no-named-default, import/no-duplicates
@@ -49,6 +50,8 @@ import useAiPage from './hooks/useAiPage'
 import useAutoScroll from './hooks/useAutoScroll'
 // eslint-disable-next-line import/first
 import SpeechSynthesisCore from './xunfei/speech-synthesis-core'
+// eslint-disable-next-line import/first
+import { doubaoSpeechSynthesis } from '@/api/audio'
 // eslint-disable-next-line import/first, import/no-duplicates
 import '../../../../uni_modules/Recorder-UniCore/app-uni-support.js'
 /** 需要编译成微信小程序时，引入微信小程序支持文件 */
@@ -156,6 +159,10 @@ const isAudioPlaying = ref(false)
  * 是否自动播放
  */
 const isAutoPlayAiMessage = ref(true)
+const textShow = ref('原始数据')
+// 全局变量存储格式化器实例和当前处理的消息索引
+let textFormatter: ReturnType<typeof createTextFormatter> | null = null
+let lastProcessedIndex: number | null = null
 /**
  * ai内容自动播放音频
  */
@@ -170,9 +177,165 @@ function autoPlayAiMessage(text: string, index: number) {
   }
   // 设置当前播放的消息索引
   currentIndex.value = index
+
+  // 如果是新的消息，重置格式化器
+  if (!textFormatter || currentIndex.value !== lastProcessedIndex) {
+    textFormatter = createTextFormatter()
+    lastProcessedIndex = currentIndex.value
+  }
   // 开始语音合成并播放
   SpeechSynthesis.convertTextToSpeech(text)
+  // const formatter = createTextFormatter()
+
+  // // 处理文本 下面是对接后端的音频 采用接口的方式
+  // const formattedTexts = textFormatter.processText(text)
+  // // 播放处理后的文本片段
+  // formattedTexts.forEach(async (formattedText, idx) => {
+  //   try {
+  //     console.log(`格式化文本片段 ${idx + 1}:`, formattedText)
+  //     // SpeechSynthesis.convertTextToSpeech(formattedText)
+  //     const res = await doubaoSpeechSynthesis(formattedText)
+  //     console.log(res, 'res请求成功')
+
+  //     const audioData = res.data.text
+  //     console.log(audioData, 'audioData')
+  //     currBuffer.value = res.data.audio_data as any
+  //     textShow.value = audioData
+  //   }
+  //   catch (error) {
+  //     console.log(error, 'error')
+  //   }
+  // })
+
   isStreamPlaying.value = true
+}
+// 创建文本格式化器
+function createTextFormatter() {
+  let buffer = '' // 累加的文字缓冲区
+  let lastProcessedText = '' // 上次处理的完整文本，用于计算增量
+
+  const punctuationMarks = ['，', '。', '！', '；', '？'] // 目标标点符号
+
+  // 检查是否包含标点符号
+  function containsPunctuation(text: string): { hasPunctuation: boolean, index: number, punctuation: string } {
+    for (let i = 0; i < text.length; i++) {
+      if (punctuationMarks.includes(text[i])) {
+        return { hasPunctuation: true, index: i, punctuation: text[i] }
+      }
+    }
+    return { hasPunctuation: false, index: -1, punctuation: '' }
+  }
+
+  // 处理文本片段 - 传入的是完整的累积文本
+  function processText(fullText: string): string[] {
+    // 计算增量文本
+    let incrementalText = ''
+    if (fullText.length > lastProcessedText.length && fullText.startsWith(lastProcessedText)) {
+      incrementalText = fullText.substring(lastProcessedText.length)
+    }
+    else if (fullText !== lastProcessedText) {
+      // 如果不是增量更新，重置缓冲区并处理全新文本
+      buffer = ''
+      incrementalText = fullText
+    }
+    else {
+      // 文本没有变化，返回空数组
+      return []
+    }
+
+    lastProcessedText = fullText
+
+    const results: string[] = []
+    buffer += incrementalText
+
+    while (buffer.length > 0) {
+      const punctuationInfo = containsPunctuation(buffer)
+
+      if (punctuationInfo.hasPunctuation) {
+        // 找到标点符号
+        const textWithPunctuation = buffer.substring(0, punctuationInfo.index + 1)
+        const textLength = textWithPunctuation.replace(/[^\u4E00-\u9FA5\w]/g, '').length // 只计算中文和字母数字
+
+        if (punctuationInfo.punctuation === '。' || textLength >= 5) {
+          results.push(textWithPunctuation)
+          buffer = buffer.substring(punctuationInfo.index + 1)
+        }
+        else {
+          // 不满足5个字，继续寻找下一个标点符号
+          const remainingText = buffer.substring(punctuationInfo.index + 1)
+          const nextPunctuationInfo = containsPunctuation(remainingText)
+
+          if (nextPunctuationInfo.hasPunctuation) {
+            // 找到下一个标点符号
+            const fullText = buffer.substring(0, punctuationInfo.index + 1 + nextPunctuationInfo.index + 1)
+            results.push(fullText)
+            buffer = buffer.substring(punctuationInfo.index + 1 + nextPunctuationInfo.index + 1)
+          }
+          else {
+            // 没有找到下一个标点符号，保持在缓冲区等待更多文本
+            break
+          }
+        }
+      }
+      else {
+        // 没有标点符号
+        const textLength = buffer.replace(/[^\u4E00-\u9FA5\w]/g, '').length
+
+        if (textLength >= 20) {
+          // 达到20个字，直接返回前20个有效字符对应的原文
+          let charCount = 0
+          let cutIndex = 0
+
+          for (let i = 0; i < buffer.length; i++) {
+            if (/[\u4E00-\u9FA5\w]/.test(buffer[i])) {
+              charCount++
+              if (charCount === 20) {
+                cutIndex = i + 1
+                break
+              }
+            }
+          }
+
+          if (cutIndex > 0) {
+            results.push(buffer.substring(0, cutIndex))
+            buffer = buffer.substring(cutIndex)
+          }
+          else {
+            break
+          }
+        }
+        else {
+          // 既没有标点符号也不足20个字，等待更多文本
+          break
+        }
+      }
+    }
+
+    return results
+  }
+
+  // 获取剩余缓冲区内容（用于流结束时）
+  function flush(): string[] {
+    const results: string[] = []
+    if (buffer.trim()) {
+      results.push(buffer)
+      buffer = ''
+    }
+    return results
+  }
+
+  // 重置格式化器
+  function reset() {
+    buffer = ''
+    lastProcessedText = ''
+  }
+
+  return {
+    processText,
+    flush,
+    reset,
+    getBuffer: () => buffer,
+  }
 }
 
 function handleTouchStart() {
@@ -229,7 +392,8 @@ function handleTouchEnd() {
  * @warning 由于语音点击之后播放音频会有延迟， 所以在这儿直接设置状态
  */
 const handleRecorder = debounce((text: string, index: number) => {
-  console.log('点击语音', text, index)
+  console.log('点击语音按钮')
+
   // 当前已经在播放此条消息
   if (currentIndex.value === index && isStreamPlaying.value) {
     console.log('🟡 再次点击同一条，执行停止')
@@ -249,8 +413,12 @@ const handleRecorder = debounce((text: string, index: number) => {
   // ✅ 开始新的播放
   console.log('🟢 开始播放新消息')
   currentIndex.value = index
-  SpeechSynthesis.convertTextToSpeech(text)
   isStreamPlaying.value = true
+  doubaoSpeechSynthesis(text).then((res) => {
+    console.log('接口请求成功')
+    currBuffer.value = res.data.audio_data as any
+    textShow.value = res.data.text
+  })
 }, 500)
 
 /**
@@ -296,7 +464,7 @@ watch(
       })
       // 检查最后一条消息是否是AI的回复
       const lastMessage = content.value[content.value.length - 1]
-      console.log('内容变化ai回复', lastMessage)
+      // console.log('内容变化ai回复', lastMessage)
       if (lastMessage?.role === 'assistant' && lastMessage?.streaming) {
         // 自动播放
         autoPlayAiMessage(lastMessage.content || '', content.value.length - 1)
@@ -383,6 +551,7 @@ onShow(() => {
       ref="streamPlayerRef"
       :stream="currBuffer"
       :curr-buffer="currBuffer"
+      :text="textShow"
       @on-stream-play-start="onStreamPlayStart"
       @on-stream-play-end="onStreamPlayEnd"
       @on-stream-stop="onStreamStop"

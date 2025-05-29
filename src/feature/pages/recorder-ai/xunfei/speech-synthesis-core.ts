@@ -97,7 +97,6 @@ export default class SpeechSynthesisCore extends EventEmitter {
 
   private onSocketMessage(data: string) {
     const message = JSON.parse(data)
-    console.log('message################', message)
 
     // 处理音频数据 - 播放
     if (message.data.audio) {

@@ -125,6 +125,8 @@ export const request = new UniRequest<HttpRequestUserConfig>({
     }
 
     const msg = responseData.msg || getSystemErrorMessage(responseData.code)
+    console.log('接口失败', { msg, responseData })
+
     return handleError(msg, responseData.code !== 401 && !config?.showErrorMsg)
   },
 

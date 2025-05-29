@@ -10,9 +10,10 @@ export default class StreamAudioPlayer {
   private audioQueue: AudioBuffer[] = []
   private isDecoding = false
   private isPlaying = false
+  private isPlayingLocked = false
   private isPendingEnd = false
-  private currentSource: AudioBufferSourceNode | null = null
   private isForceStop = false
+  private currentSource: AudioBufferSourceNode | null = null
   private _onStart: (() => void) | null = null
   private _onEnd: (() => void) | null = null
   private incompleteBuffer: Uint8Array | null = null
@@ -29,7 +30,7 @@ export default class StreamAudioPlayer {
     this.numChannels = numChannels
     this.bitDepth = bitDepth
     this.littleEndian = littleEndian
-    this.pcmType = pcmType
+    this.pcmType = pcmType as 'int' | 'float'
   }
 
   onStart(callback: () => void) {
@@ -40,27 +41,28 @@ export default class StreamAudioPlayer {
     this._onEnd = callback
   }
 
-  /** 自动判断格式并添加播放数据 */
-  async appendSmartChunk(data: ArrayBuffer) {
-    const format = this.detectFormat(data)
-    console.log(`🚀 检测到音频格式********************************************: ${format}`)
+  // ✅ 支持两个参数：data 为 ArrayBuffer，text 仅用于日志展示
+  async appendSmartChunk(data: ArrayBuffer, text?: string) {
+    if (text) {
+      console.log('📢 播放文本：', text)
+    }
 
+    if (this.audioContext?.state === 'suspended') {
+      await this.audioContext.resume()
+    }
+
+    const format = this.detectFormat(data)
     if (format === 'mp3') {
       await this.appendMP3Chunk(data)
     }
     else {
       this.appendPCMChunk(data)
     }
+
+    this._safePlay()
   }
 
-  /** 添加 PCM 数据（必须是完整帧） */
   appendPCMChunk(pcmData: ArrayBuffer) {
-    const format = this.detectFormat(pcmData)
-    if (format === 'mp3') {
-      console.warn('⚠️ appendPCMChunk: 检测到数据实际为 MP3，已忽略处理，请使用 appendSmartChunk 或 appendMP3Chunk')
-      return
-    }
-
     const bytesPerSample = this.bitDepth / 8
     const frameSize = bytesPerSample * this.numChannels
     let u8 = new Uint8Array(pcmData)
@@ -86,12 +88,12 @@ export default class StreamAudioPlayer {
     this.decodeQueue.push(validBuffer)
     this.isPendingEnd = true
     this.isForceStop = false
+
     if (!this.isDecoding) {
       this._processDecodeQueue()
     }
   }
 
-  /** 添加 MP3 数据块 */
   async appendMP3Chunk(mp3Data: ArrayBuffer) {
     if (!this.audioContext)
       return
@@ -100,9 +102,6 @@ export default class StreamAudioPlayer {
       this.audioQueue.push(buffer)
       this.isPendingEnd = true
       this.isForceStop = false
-      if (!this.isDecoding && !this.isPlaying) {
-        this._playNext()
-      }
     }
     catch (err) {
       console.error('❌ MP3 解码失败:', err)
@@ -110,9 +109,10 @@ export default class StreamAudioPlayer {
   }
 
   private async _processDecodeQueue() {
-    if (!this.audioContext)
+    if (this.isDecoding)
       return
     this.isDecoding = true
+
     while (this.decodeQueue.length > 0) {
       const rawPCM = this.decodeQueue.shift()
       if (!rawPCM)
@@ -120,70 +120,84 @@ export default class StreamAudioPlayer {
       const buffer = this._convertPCM(rawPCM)
       this.audioQueue.push(buffer)
     }
+
     this.isDecoding = false
-    if (!this.isPlaying) {
-      this._playNext()
-    }
+    this._safePlay()
   }
 
-  private _playNext() {
-    if (!this.audioContext || this.audioQueue.length === 0) {
-      this.isPlaying = false
-      if (this.isPendingEnd && !this.isForceStop) {
-        this._onEnd?.()
-        this.isPendingEnd = false
-        this.isForceStop = false
+  private async _playLoop() {
+    this.isPlayingLocked = true
+
+    while (this.audioQueue.length > 0 && !this.isForceStop) {
+      const next = this.audioQueue.shift()
+      if (!next || !this.audioContext)
+        continue
+
+      const source = this.audioContext.createBufferSource()
+      source.buffer = next
+      source.connect(this.audioContext.destination)
+
+      const onEnded = new Promise<void>((resolve) => {
+        source.onended = () => resolve()
+      })
+
+      if (!this.isPlaying) {
+        this._onStart?.()
       }
-      return
+
+      this.isPlaying = true
+      this.currentSource = source
+      source.start()
+
+      await onEnded
+
+      this.currentSource = null
+      this.isPlaying = false
     }
 
-    const next = this.audioQueue.shift()
-    const source = this.audioContext.createBufferSource()
-    source.buffer = next!
-    source.connect(this.audioContext.destination)
-    source.start()
+    if (this.isPendingEnd && !this.isForceStop && this.decodeQueue.length === 0) {
+      this._onEnd?.()
+      this.isPendingEnd = false
+    }
 
-    if (!this.isPlaying)
-      this._onStart?.()
-    this.isPlaying = true
-    this.currentSource = source
+    this.isPlayingLocked = false
+  }
 
-    source.onended = () => {
-      this.currentSource = null
-      this._playNext()
+  private _safePlay() {
+    if (!this.isPlayingLocked && !this.isPlaying && this.audioQueue.length > 0) {
+      this._playLoop()
     }
   }
 
-  public stop() {
+  stop() {
     this.isForceStop = true
     this.audioQueue = []
     this.decodeQueue = []
-    this.currentSource?.stop()
+    if (this.currentSource) {
+      this.currentSource.stop()
+      this.currentSource = null
+    }
+    this.isPlaying = false
+    this.isPendingEnd = false
   }
 
-  public destroy() {
-    this.audioQueue = []
-    this.decodeQueue = []
-    this.currentSource?.stop()
-    this.audioContext?.close()
-    this.audioContext = null
-    this.isPendingEnd = false
+  destroy() {
+    this.stop()
+    if (this.audioContext) {
+      this.audioContext.close()
+      this.audioContext = null
+    }
   }
 
   private detectFormat(data: ArrayBuffer): 'mp3' | 'pcm' {
     const u8 = new Uint8Array(data)
-
-    // 检查 ID3 标签（标准 MP3 开头）
     const header = new TextDecoder().decode(u8.slice(0, 3))
     if (header === 'ID3')
       return 'mp3'
-
-    // 只在前 4 个字节范围内寻找帧同步（避免误判 PCM 中间的 0xFF）
     for (let i = 0; i < Math.min(4, u8.length - 1); i++) {
       if (u8[i] === 0xFF && (u8[i + 1] & 0xE0) === 0xE0)
         return 'mp3'
     }
-
     return 'pcm'
   }
 
@@ -212,6 +226,7 @@ export default class StreamAudioPlayer {
       }
       this._applyFades(channel)
     }
+
     return audioBuffer
   }
 

@@ -6,8 +6,9 @@
 
 <script setup lang="ts">
 import SpeechSynthesisCore from '../recorder-ai/xunfei/speech-synthesis-core'
+import { SpeechSynthesisDoubao } from '../recorder-ai/doubao/speech-synthesis-doubao'
+import { doubaoSpeechSynthesis } from '@/api/audio'
 import type StreamPlayer from '@/components/StreamPlayer/StreamPlayer.vue'
-import { request } from '@/utils/request'
 
 const currBuffer = ref<ArrayBuffer >()
 const streamPlayerRef = ref<InstanceType<typeof StreamPlayer> | null>(null)
@@ -19,28 +20,38 @@ const SpeechSynthesis = new SpeechSynthesisCore({
   host: 'tts-api.xfyun.cn',
 })
 
+const APPID = '3810425215'
+const AccessToken = 'mHT8sdy_o3wVHNSIw9jfJqCawEu0Aq5s'
+const SecretKey = 'WcH7__6VXDbmzKbXaNkLt9PN9kFCyFy0'
+const host = 'openapi.xf-yun.com'
+
+const SpeechSynthesisDoubaoCore = new SpeechSynthesisDoubao({
+  APPID,
+  AccessToken,
+  SecretKey,
+  host,
+})
+SpeechSynthesisDoubaoCore.on('audio', (res: ArrayBuffer) => {
+  currBuffer.value = res
+})
+
 SpeechSynthesis.on('audio', (res: ArrayBuffer) => {
   currBuffer.value = res
 })
 const text = '今天天气特别好，阳光暖洋洋的，天蓝得像洗过一样，风也不大，吹在脸上挺舒服的，整个人都觉得特别轻松愉快，特别适合出去走走。'
 
 function sendTextApi() {
-  return request.post({
-    url: '/tts/json',
-    data: {
-      text,
-    },
-    withToken: false,
-    getResponse: true,
-  },
-  ).then((res: any) => {
-    const audio_data = res.data.audio_data
-    currBuffer.value = audio_data
+  doubaoSpeechSynthesis(text).then((res) => {
+    console.log(res)
+    currBuffer.value = res.data.audio_data as any
+  }).catch((err) => {
+    console.log(err)
   })
 }
 
 function xunfeiSend() {
-  SpeechSynthesis.convertTextToSpeech(text)
+  // SpeechSynthesis.convertTextToSpeech(text)
+  SpeechSynthesisDoubaoCore.sendTextStream(text)
 }
 </script>
 

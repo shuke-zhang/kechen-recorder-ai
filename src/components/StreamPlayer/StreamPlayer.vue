@@ -3,7 +3,7 @@
 declare module '@vue/runtime-core' {
   interface ComponentCustomProperties {
     recorderCore: {
-      playTTS: (base64: string) => void
+      playTTS: (base64: string, text: string) => void
       stopTTS: () => void
     }
   }
@@ -14,6 +14,10 @@ export default {
     currBuffer: { // 接收视图层即renderjs中传递过来的数据
       type: [ArrayBuffer, Uint8Array, String],
       default: null,
+    },
+    text: {
+      type: String,
+      default: '',
     },
     /**
      * 是否正在播放 可双向绑定 实时显示音频是否正在播放的状态，也可以通过自定义事件自定义isPlaying的状态
@@ -29,6 +33,14 @@ export default {
     return {
       stopSignal: false,
     }
+  },
+  computed: {
+    currTTSData() {
+      return {
+        buffer: this.$props.currBuffer,
+        text: this.text,
+      }
+    },
   },
   methods: {
     // 接收renderjs发回的数据
@@ -81,16 +93,24 @@ export default {
   },
   methods: {
     // @ts-ignore
-    playTTS(base64) {
-     console.log(Object.prototype.toString.call(base64),'playTTS的类型');
+ playTTS(currTTSData) {
+  const buffer = currTTSData?.buffer
+  const text = currTTSData?.text || ''
 
-      if (!base64)
-        return
+  console.log(text, 'playTTS的文本')
 
-      const bytes = this.base64ToArrayBuffer(base64)
-      // @ts-ignore
-      player.appendSmartChunk(bytes)
-    },
+  if (!buffer || typeof buffer !== 'string') {
+    console.warn('❌ 无效的 base64 buffer:', buffer)
+    return
+  }
+
+  try {
+    const bytes = this.base64ToArrayBuffer(buffer)
+    player.appendSmartChunk(bytes)
+  } catch (err) {
+    console.error('❌ base64 转换失败:', err)
+  }
+},
     stopTTS() {
       player?.stop()
     },
@@ -113,7 +133,7 @@ export default {
 
 <template>
   <view
-    :prop="currBuffer"
+    :prop="currTTSData"
     :change:prop="recorderCore.playTTS"
     :stop-signal="stopSignal"
     :change:stop-signal="recorderCore.stopTTS"

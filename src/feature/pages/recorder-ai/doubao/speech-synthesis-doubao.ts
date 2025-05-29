@@ -9,13 +9,11 @@ import { WebSocket } from '@/store/modules/socket/webSocket-plus'
 const APPID = '3810425215'
 const AccessToken = 'mHT8sdy_o3wVHNSIw9jfJqCawEu0Aq5s'
 const SecretKey = 'WcH7__6VXDbmzKbXaNkLt9PN9kFCyFy0'
-const url = 'wss://openapi.xf-yun.com/v1/private/s453a306'
 const host = 'openapi.xf-yun.com'
 export class SpeechSynthesisDoubao extends EventEmitter {
   private APPID = APPID
   private AccessToken = AccessToken
   private SecretKey = SecretKey
-  private url = url
   private host = host
   /** 发音人 */
   private speaker = 'zh_female_shuangkuaisisi_moon_bigtts'
@@ -30,7 +28,6 @@ export class SpeechSynthesisDoubao extends EventEmitter {
     this.APPID = options.APPID || this.APPID
     this.AccessToken = options.AccessToken || this.AccessToken
     this.SecretKey = options.SecretKey || this.SecretKey
-    this.url = options.url || this.url
     this.host = options.host || this.host
     this.speaker = options.speaker || this.speaker
     this.initSocket()

@@ -20,13 +20,13 @@ export interface DoubaoRecorderOptions {
   /**
    * @description WebSocket 接口地址，默认使用科大讯飞提供的识别地址
    */
-  url: string
+  url?: string
 
   /**
    * @description WebSocket 连接的 Host 地址，与 url 配套使用
    * @example "iat-api.xfyun.cn"
    */
-  host: string
+  host?: string
   /**
    * @description 发音人 https://www.volcengine.com/docs/6561/1257544
    */

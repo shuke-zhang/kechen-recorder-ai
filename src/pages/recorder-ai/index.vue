@@ -218,21 +218,6 @@ async function autoPlayAiMessage(text: string, index: number) {
     })
   }
 
-  // for (let i = 0; i < tempFormattedTexts.value.length; i++) {
-  //   const formattedText = tempFormattedTexts.value[i]
-  //   try {
-  //     const res = await doubaoSpeechSynthesis(formattedText)
-  //     console.log(`第${i + 1}段请求成功`, res)
-  //     tempBuffers.value[i] = {
-  //       audio_data: res.data.audio_data,
-  //       text: formattedText,
-  //     }
-  //   }
-  //   catch (error) {
-  //     console.error(`第${i + 1}段语音合成失败`, error)
-  //   }
-  // }
-
   isStreamPlaying.value = true
 }
 /**

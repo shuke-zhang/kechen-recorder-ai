@@ -5,8 +5,8 @@
 </route>
 
 <script setup lang="ts">
-import SpeechSynthesisCore from '../recorder-ai/xunfei/speech-synthesis-core'
 import { SpeechSynthesisDoubao } from '../recorder-ai/doubao/speech-synthesis-doubao'
+import SpeechSynthesisCore from '../recorder-ai/xunfei/speech-synthesis-core'
 import { doubaoSpeechSynthesis } from '@/api/audio'
 import type StreamPlayer from '@/components/StreamPlayer/StreamPlayer.vue'
 

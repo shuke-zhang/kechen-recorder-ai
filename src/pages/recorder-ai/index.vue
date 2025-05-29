@@ -7,7 +7,8 @@ import Recorder from 'recorder-core'
 import 'recorder-core/src/extensions/buffer_stream.player.js'
 
 import RecordApp from 'recorder-core/src/app-support/app'
-import '../../../../uni_modules/Recorder-UniCore/app-uni-support.js'
+// import '../../../../uni_modules/Recorder-UniCore/app-uni-support.js'
+import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
 import 'recorder-core/src/engine/pcm'
 import 'recorder-core/src/extensions/waveview'
 // @ts-ignore
@@ -53,7 +54,7 @@ import SpeechSynthesisCore from './xunfei/speech-synthesis-core'
 // eslint-disable-next-line import/first
 import { doubaoSpeechSynthesis } from '@/api/audio'
 // eslint-disable-next-line import/first, import/no-duplicates
-import '../../../../uni_modules/Recorder-UniCore/app-uni-support.js'
+import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
 /** 需要编译成微信小程序时，引入微信小程序支持文件 */
 // #ifdef MP-WEIXIN
 // eslint-disable-next-line import/first
@@ -454,6 +455,28 @@ function removeLastUserMessage(type: string) {
   }
 }
 
+function handleClearContent() {
+  if (content.value.length === 0) {
+    return showToast('当前对话为空')
+  }
+  if (loading.value) {
+    return showToast('请等待回答完成, 再清空对话')
+  }
+
+  showModal('是否清空对话？').then(() => {
+    content.value = []
+    // 停止播放
+    if (isStreamPlaying.value) {
+      SpeechSynthesis.stop()
+      streamPlayerRef.value?.onStreamStop()
+    }
+    // 重置格式化器
+    if (textFormatter) {
+      textFormatter.reset()
+    }
+  })
+}
+
 // 添加一个监听最后一条消息内容的变化（对于流式输出非常有用）
 watch(
   () => content.value[content.value.length - 1]?.content,
@@ -527,14 +550,19 @@ onShow(() => {
 
 <template>
   <view>
-    <nav-bar>
+    <nav-bar :show-back="false">
       <template #right>
         <!-- <icon-font v-if="false" name="questions" @click="handleToggle" /> -->
         <icon-font :name="isAutoPlayAiMessage ? 'sound' : 'mute'" :color="isAutoPlayAiMessage ? COLOR_PRIMARY : ''" size="40" @click="isAutoPlayAiMessage = !isAutoPlayAiMessage" />
       </template>
+
+      <template #left>
+        <!-- <icon-font v-if="false" name="questions" @click="handleToggle" /> -->
+        <icon-font name="clear" color="#E95655" size="40" @click="handleClearContent" />
+      </template>
       <!-- <template #right>=
       </template> -->
-      ai对话
+      柯仔AI
     </nav-bar>
 
     <!-- 流式流式ai消息 -->
@@ -701,7 +729,7 @@ onShow(() => {
 }
 </style>
 
-<route lang="json">
+<route lang="json" type="home">
   {
        "style": { "navigationBarTitleText": "录音","navigationStyle": "custom" }
   }

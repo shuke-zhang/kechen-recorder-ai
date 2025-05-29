@@ -5,31 +5,6 @@
     "navigationBarBackgroundColor": "#ffffff",
     "backgroundColor": "#ffffff"
   },
-  "tabBar": {
-    "color": "#707070",
-    "selectedColor": "#49b9ad",
-    "backgroundColor": "#ffffff",
-    "borderStyle": "black",
-    "fontSize": "10px",
-    "height": "50px",
-    "iconWidth": "24px",
-    "spacing": "3px",
-    "position": "bottom",
-    "list": [
-      {
-        "pagePath": "pages/home/index",
-        "iconPath": "static/tabbar/home-off.png",
-        "selectedIconPath": "static/tabbar/home-on.png",
-        "text": "首页"
-      },
-      {
-        "pagePath": "pages/mine/index",
-        "iconPath": "static/tabbar/mine-off.png",
-        "selectedIconPath": "static/tabbar/mine-on.png",
-        "text": "个人"
-      }
-    ]
-  },
   "easycom": {
     "autoscan": true,
     "custom": {
@@ -39,10 +14,11 @@
   },
   "pages": [
     {
-      "path": "pages/home/index",
+      "path": "pages/recorder-ai/index",
       "type": "home",
       "style": {
-        "navigationBarTitleText": "柯臣"
+        "navigationBarTitleText": "录音",
+        "navigationStyle": "custom"
       }
     },
     {
@@ -65,6 +41,13 @@
       }
     },
     {
+      "path": "pages/home/index",
+      "type": "page",
+      "style": {
+        "navigationBarTitleText": "柯臣"
+      }
+    },
+    {
       "path": "pages/mine/index",
       "type": "page",
       "style": {
@@ -74,6 +57,17 @@
     {
       "path": "pages/mine/test",
       "type": "page"
+    },
+    {
+      "path": "pages/recorder-ai/recorder-input",
+      "type": "page"
+    },
+    {
+      "path": "pages/test/index",
+      "type": "page",
+      "style": {
+        "navigationBarTitleText": "测试页面"
+      }
     }
   ],
   "subPackages": [
@@ -95,29 +89,10 @@
           }
         },
         {
-          "path": "recorder-ai/index",
-          "type": "page",
-          "style": {
-            "navigationBarTitleText": "录音",
-            "navigationStyle": "custom"
-          }
-        },
-        {
-          "path": "recorder-ai/recorder-input",
-          "type": "page"
-        },
-        {
           "path": "sub-test/index",
           "type": "page",
           "style": {
             "navigationBarTitleText": "子包测试页"
-          }
-        },
-        {
-          "path": "test/index",
-          "type": "page",
-          "style": {
-            "navigationBarTitleText": "测试页面"
           }
         },
         {

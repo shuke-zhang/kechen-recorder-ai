@@ -18,8 +18,7 @@ export default defineConfig(async ({ mode, command }) => {
 
   const plugins: UserConfig['plugins'] = [
     UniPages({
-      homePage: 'pages/ai/index', // app
-      // homePage: 'pages/home/index',
+      homePage: 'pages/recorder-ai/index',
       subPackages: ['src/feature/pages'],
       exclude: [
         // '**/components/**/*.vue',

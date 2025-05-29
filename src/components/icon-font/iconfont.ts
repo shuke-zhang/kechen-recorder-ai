@@ -4,6 +4,7 @@ export type IconFontType = 'account-code' |
 'account-phone' |
 'account-user' |
 'camera' |
+'clear' |
 'close' |
 'close1' |
 'copy' |

@@ -156,6 +156,8 @@ let dotTimer: NodeJS.Timeout | null = null
 const currentIndex = ref<number | null>(null)
 const currBuffer = ref()
 const isAudioPlaying = ref(false)
+const tempBuffers = ref<{ audio_data: string, text: string }[]>([])
+const tempFormattedTexts = ref<string[]>([])
 /**
  * 是否自动播放
  */
@@ -167,7 +169,7 @@ let lastProcessedIndex: number | null = null
 /**
  * ai内容自动播放音频
  */
-function autoPlayAiMessage(text: string, index: number) {
+async function autoPlayAiMessage(text: string, index: number) {
   if (!isAutoPlayAiMessage.value)
     return
   if (!text || text.trim() === '')
@@ -185,30 +187,60 @@ function autoPlayAiMessage(text: string, index: number) {
     lastProcessedIndex = currentIndex.value
   }
   // 开始语音合成并播放
-  SpeechSynthesis.convertTextToSpeech(text)
+  // SpeechSynthesis.convertTextToSpeech(text)
   // const formatter = createTextFormatter()
+  const longText = textFormatter.processText(text)
+  // 处理文本 下面是对接后端的音频 采用接口的方式
+  if (longText.length > 0) {
+    tempFormattedTexts.value.push(longText)
+    // console.log(`longText`, longText)
+    doubaoSpeechSynthesis(longText).then((res) => {
+      tempBuffers.value.push({
+        audio_data: res.data.audio_data,
+        text: longText,
+      })
+      tempBuffers.value.sort((a, b) => {
+        const indexA = tempFormattedTexts.value.findIndex(t => t === a.text)
+        const indexB = tempFormattedTexts.value.findIndex(t => t === b.text)
+        return indexA - indexB
+      })
+      // ✅ 正确获取当前这段 longText 在排序后的 buffers 中的位置
+      const textIndex = tempFormattedTexts.value.findIndex(t => t === longText)
+      if (textIndex !== -1 && tempBuffers.value[textIndex]) {
+        const text = tempBuffers.value[textIndex].text
+        const audioBuffer = tempBuffers.value[textIndex].audio_data
+        currBuffer.value = audioBuffer
+        textShow.value = text
+        // console.log('✅ text：当前正确片段---------------', text)
+      }
 
-  // // 处理文本 下面是对接后端的音频 采用接口的方式
-  // const formattedTexts = textFormatter.processText(text)
-  // // 播放处理后的文本片段
-  // formattedTexts.forEach(async (formattedText, idx) => {
+      isAudioPlaying.value = true
+    })
+  }
+
+  // for (let i = 0; i < tempFormattedTexts.value.length; i++) {
+  //   const formattedText = tempFormattedTexts.value[i]
   //   try {
-  //     console.log(`格式化文本片段 ${idx + 1}:`, formattedText)
-  //     // SpeechSynthesis.convertTextToSpeech(formattedText)
   //     const res = await doubaoSpeechSynthesis(formattedText)
-  //     console.log(res, 'res请求成功')
-
-  //     const audioData = res.data.text
-  //     console.log(audioData, 'audioData')
-  //     currBuffer.value = res.data.audio_data as any
-  //     textShow.value = audioData
+  //     console.log(`第${i + 1}段请求成功`, res)
+  //     tempBuffers.value[i] = {
+  //       audio_data: res.data.audio_data,
+  //       text: formattedText,
+  //     }
   //   }
   //   catch (error) {
-  //     console.log(error, 'error')
+  //     console.error(`第${i + 1}段语音合成失败`, error)
   //   }
-  // })
+  // }
 
   isStreamPlaying.value = true
+}
+/**
+ * 发送消息确认按钮
+ */
+function handleConfirm() {
+  tempBuffers.value = []
+  handleSendMsg()
 }
 // 创建文本格式化器
 function createTextFormatter() {
@@ -228,7 +260,7 @@ function createTextFormatter() {
   }
 
   // 处理文本片段 - 传入的是完整的累积文本
-  function processText(fullText: string): string[] {
+  function processText(fullText: string): string {
     // 计算增量文本
     let incrementalText = ''
     if (fullText.length > lastProcessedText.length && fullText.startsWith(lastProcessedText)) {
@@ -241,12 +273,12 @@ function createTextFormatter() {
     }
     else {
       // 文本没有变化，返回空数组
-      return []
+      return ''
     }
 
     lastProcessedText = fullText
 
-    const results: string[] = []
+    let results = ''
     buffer += incrementalText
 
     while (buffer.length > 0) {
@@ -258,7 +290,7 @@ function createTextFormatter() {
         const textLength = textWithPunctuation.replace(/[^\u4E00-\u9FA5\w]/g, '').length // 只计算中文和字母数字
 
         if (punctuationInfo.punctuation === '。' || textLength >= 5) {
-          results.push(textWithPunctuation)
+          results = textWithPunctuation
           buffer = buffer.substring(punctuationInfo.index + 1)
         }
         else {
@@ -269,7 +301,7 @@ function createTextFormatter() {
           if (nextPunctuationInfo.hasPunctuation) {
             // 找到下一个标点符号
             const fullText = buffer.substring(0, punctuationInfo.index + 1 + nextPunctuationInfo.index + 1)
-            results.push(fullText)
+            results = fullText
             buffer = buffer.substring(punctuationInfo.index + 1 + nextPunctuationInfo.index + 1)
           }
           else {
@@ -298,7 +330,7 @@ function createTextFormatter() {
           }
 
           if (cutIndex > 0) {
-            results.push(buffer.substring(0, cutIndex))
+            results = buffer.substring(0, cutIndex)
             buffer = buffer.substring(cutIndex)
           }
           else {
@@ -374,7 +406,7 @@ function handleTouchEnd() {
         if (content.value[lastIndex]?.role === 'user') {
           content.value[lastIndex].content = textRes.value
         }
-        handleSendMsg()
+        handleConfirm()
         await nextTick()
         resetAndScrollToBottom() // 强制滚动到底部
       }
@@ -552,16 +584,12 @@ onShow(() => {
   <view>
     <nav-bar :show-back="false">
       <template #right>
-        <!-- <icon-font v-if="false" name="questions" @click="handleToggle" /> -->
         <icon-font :name="isAutoPlayAiMessage ? 'sound' : 'mute'" :color="isAutoPlayAiMessage ? COLOR_PRIMARY : ''" size="40" @click="isAutoPlayAiMessage = !isAutoPlayAiMessage" />
       </template>
 
       <template #left>
-        <!-- <icon-font v-if="false" name="questions" @click="handleToggle" /> -->
         <icon-font name="clear" color="#E95655" size="40" @click="handleClearContent" />
       </template>
-      <!-- <template #right>=
-      </template> -->
       柯仔AI
     </nav-bar>
 
@@ -693,7 +721,7 @@ onShow(() => {
       @recorder-touch-start="handleTouchStart"
       @recorder-touch-end="handleTouchEnd"
       @recorder-confirm="handleRecorderConfirm"
-      @confirm="handleSendMsg"
+      @confirm="handleConfirm "
     />
 
     <popup v-model="popupVisible" type="left" :is-mask-click="false">

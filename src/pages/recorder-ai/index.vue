@@ -52,6 +52,8 @@ import useAutoScroll from './hooks/useAutoScroll'
 // eslint-disable-next-line import/first
 import SpeechSynthesisCore from './xunfei/speech-synthesis-core'
 // eslint-disable-next-line import/first
+import { useMultiClickTrigger } from '@/hooks'
+// eslint-disable-next-line import/first
 import { doubaoSpeechSynthesis } from '@/api/audio'
 // eslint-disable-next-line import/first, import/no-duplicates
 import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
@@ -75,10 +77,18 @@ const pageHeight = computed(() => {
  * 音频是否正在播放
  */
 const isStreamPlaying = ref(false)
+const router = useRouter()
 /**
  * 音频播放组件实例
  */
 const streamPlayerRef = ref<InstanceType<typeof StreamPlayer>>()
+const { handleMultiClick } = useMultiClickTrigger({
+  onTrigger: () => {
+    if (__DEV__) {
+      router.push('/pages/test/index')
+    }
+  },
+})
 const {
   chatSSEClientRef,
   loading,
@@ -575,7 +585,9 @@ onShow(() => {
       <template #left>
         <icon-font name="clear" color="#E95655" size="40" @click="handleClearContent" />
       </template>
-      柯仔AI
+      <text @click="handleMultiClick">
+        柯仔AI
+      </text>
     </nav-bar>
 
     <!-- 流式流式ai消息 -->

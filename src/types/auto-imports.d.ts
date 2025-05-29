@@ -186,6 +186,7 @@ declare global {
   const useId: typeof import('vue')['useId']
   const useListData: typeof import('../hooks/useListData/index')['useListData']
   const useModel: typeof import('vue')['useModel']
+  const useMultiClickTrigger: typeof import('../hooks/useMultiClickTrigger/index')['useMultiClickTrigger']
   const usePageExpose: typeof import('../hooks/usePageExpose/index')['usePageExpose']
   const useQuery: typeof import('../hooks/useQuery/index')['useQuery']
   const useRouter: typeof import('../hooks/useRouter/index')['useRouter']

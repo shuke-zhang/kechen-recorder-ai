@@ -244,12 +244,11 @@ function handleConfirm() {
 // 创建文本格式化器
 function createTextFormatter() {
   let buffer = '' // 累加的文字缓冲区
-  let lastProcessedText = '' // 上次处理的完整文本，用于计算增量
+  let lastProcessedText = '' // 上次处理的完整文本
 
-  const punctuationMarks = ['，', '。', '！', '；', '？'] // 目标标点符号
+  const punctuationMarks = ['，', '。', '！', '；', '？']
 
-  // 检查是否包含标点符号
-  function containsPunctuation(text: string): { hasPunctuation: boolean, index: number, punctuation: string } {
+  function containsPunctuation(text: string) {
     for (let i = 0; i < text.length; i++) {
       if (punctuationMarks.includes(text[i])) {
         return { hasPunctuation: true, index: i, punctuation: text[i] }
@@ -258,92 +257,36 @@ function createTextFormatter() {
     return { hasPunctuation: false, index: -1, punctuation: '' }
   }
 
-  // 处理文本片段 - 传入的是完整的累积文本
+  // 每次输入完整文本
   function processText(fullText: string): string {
-    // 计算增量文本
     let incrementalText = ''
     if (fullText.length > lastProcessedText.length && fullText.startsWith(lastProcessedText)) {
       incrementalText = fullText.substring(lastProcessedText.length)
     }
     else if (fullText !== lastProcessedText) {
-      // 如果不是增量更新，重置缓冲区并处理全新文本
+      // 文本不是增量，重置缓冲区
       buffer = ''
       incrementalText = fullText
     }
     else {
-      // 文本没有变化，返回空数组
+      // 没有变化
       return ''
     }
 
     lastProcessedText = fullText
-
-    let results = ''
     buffer += incrementalText
 
-    while (buffer.length > 0) {
-      const punctuationInfo = containsPunctuation(buffer)
-
-      if (punctuationInfo.hasPunctuation) {
-        // 找到标点符号
-        const textWithPunctuation = buffer.substring(0, punctuationInfo.index + 1)
-        const textLength = textWithPunctuation.replace(/[^\u4E00-\u9FA5\w]/g, '').length // 只计算中文和字母数字
-
-        if (punctuationInfo.punctuation === '。' || textLength >= 5) {
-          results = textWithPunctuation
-          buffer = buffer.substring(punctuationInfo.index + 1)
-        }
-        else {
-          // 不满足5个字，继续寻找下一个标点符号
-          const remainingText = buffer.substring(punctuationInfo.index + 1)
-          const nextPunctuationInfo = containsPunctuation(remainingText)
-
-          if (nextPunctuationInfo.hasPunctuation) {
-            // 找到下一个标点符号
-            const fullText = buffer.substring(0, punctuationInfo.index + 1 + nextPunctuationInfo.index + 1)
-            results = fullText
-            buffer = buffer.substring(punctuationInfo.index + 1 + nextPunctuationInfo.index + 1)
-          }
-          else {
-            // 没有找到下一个标点符号，保持在缓冲区等待更多文本
-            break
-          }
-        }
-      }
-      else {
-        // 没有标点符号
-        const textLength = buffer.replace(/[^\u4E00-\u9FA5\w]/g, '').length
-
-        if (textLength >= 20) {
-          // 达到20个字，直接返回前20个有效字符对应的原文
-          let charCount = 0
-          let cutIndex = 0
-
-          for (let i = 0; i < buffer.length; i++) {
-            if (/[\u4E00-\u9FA5\w]/.test(buffer[i])) {
-              charCount++
-              if (charCount === 20) {
-                cutIndex = i + 1
-                break
-              }
-            }
-          }
-
-          if (cutIndex > 0) {
-            results = buffer.substring(0, cutIndex)
-            buffer = buffer.substring(cutIndex)
-          }
-          else {
-            break
-          }
-        }
-        else {
-          // 既没有标点符号也不足20个字，等待更多文本
-          break
-        }
-      }
+    // 检查是否有标点符号
+    const punctuationInfo = containsPunctuation(buffer)
+    if (punctuationInfo.hasPunctuation) {
+      // 有符号就直接截断返回
+      const textWithPunctuation = buffer.substring(0, punctuationInfo.index + 1)
+      buffer = buffer.substring(punctuationInfo.index + 1)
+      return textWithPunctuation
     }
 
-    return results
+    // 没有符号就等待下次
+    return ''
   }
 
   // 获取剩余缓冲区内容（用于流结束时）
@@ -356,7 +299,6 @@ function createTextFormatter() {
     return results
   }
 
-  // 重置格式化器
   function reset() {
     buffer = ''
     lastProcessedText = ''

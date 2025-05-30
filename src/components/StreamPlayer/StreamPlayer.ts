@@ -141,15 +141,37 @@ export default class StreamAudioPlayer {
   // 如果正在播放，直接返回
     if (this.isPlayingLocked || this.isPlaying)
       return
-    const test = this.audioBufferMap.get(0)
-    console.log('test^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^', test)
+    console.log('this.nextPlayId', this.nextPlayId)
+
+    const { text, id } = this.audioBufferMap.get(this.nextPlayId)!
+    console.log('test^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^', text, id)
 
     // 检查 Map 里是否有当前要播放的 nextPlayId
     while (this.audioBufferMap.has(this.nextPlayId)) {
-      const { buffer, text, id } = this.audioBufferMap.get(this.nextPlayId)!
+      const data = this.audioBufferMap.get(this.nextPlayId)
+      if (!data) {
+        console.error('❌ 无法获取音频数据:', this.nextPlayId)
+        this.nextPlayId++
+        continue
+      }
+      const { buffer, text, id } = data
       this.audioBufferMap.delete(this.nextPlayId)
       await this._playOneBuffer(buffer, text, id)
       this.nextPlayId++
+    }
+    // === 【新增】播放队列空时自动 stop 或 onEnd ===
+    if (
+      this.audioBufferMap.size === 0
+      && this.decodeQueue.length === 0
+      && !this.isPlaying
+      && !this.isPlayingLocked
+      && !this.isPendingEnd // 播放完最后一段才走这里
+    ) {
+    // 播放全部结束，自动调用 stop 或触发回调
+      this.stop()
+      if (typeof this._onEnd === 'function') {
+        this._onEnd()
+      }
     }
   }
 
@@ -215,7 +237,6 @@ export default class StreamAudioPlayer {
 
   stop() {
     console.log('触发stop 停止播放')
-
     this.isForceStop = true
     this.nextPlayId = 0
     this.decodeQueue = []

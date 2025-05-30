@@ -204,7 +204,10 @@ async function autoPlayAiMessage(text: string, index: number) {
   if (longText.length > 0) {
     tempFormattedTexts.value.push(longText)
     // console.log(`longText`, longText)
-    doubaoSpeechSynthesis(longText).then((res) => {
+    doubaoSpeechSynthesis({
+      text: longText,
+      id: tempFormattedTexts.value.findIndex(t => t === longText) || 0,
+    }).then((res) => {
       tempBuffers.value.push({
         audio_data: res.data.audio_data,
         text: longText,
@@ -442,7 +445,10 @@ const handleRecorder = debounce((text: string, index: number) => {
   console.log('🟢 开始播放新消息')
   currentIndex.value = index
   isStreamPlaying.value = true
-  doubaoSpeechSynthesis(text).then((res) => {
+  doubaoSpeechSynthesis({
+    text,
+    id: index,
+  }).then((res) => {
     console.log('接口请求成功')
     currBuffer.value = res.data.audio_data as any
     textShow.value = res.data.text

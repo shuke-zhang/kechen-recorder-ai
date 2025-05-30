@@ -54,10 +54,10 @@ export default class StreamAudioPlayer {
   // ✅ 支持两个参数：data 为 ArrayBuffer，text 仅用于日志展示
   async appendSmartChunk(options: { buffer: ArrayBuffer, text?: string, id?: number }) {
     if (options.text) {
-      console.log('📢 播放文本：', options.text)
+      // console.log('📢 播放文本：', options.text)
     }
     if (options.id) {
-      console.log('📢 播放id：', options.id)
+      // console.log('📢 播放id：', options.id)
     }
 
     if (this.audioContext?.state === 'suspended') {
@@ -151,12 +151,19 @@ export default class StreamAudioPlayer {
     this.isPlayingLocked = true
 
     while (this.audioQueue.length > 0 && !this.isForceStop) {
-      const next = this.audioQueue.shift()?.buffer
-      if (!next || !this.audioContext)
+      const buffer = this.audioQueue.shift()?.buffer
+      const currentText = this.audioQueue.shift()?.text
+      const currentId = this.audioQueue.shift()?.id
+      if (!buffer || !this.audioContext)
         continue
-
+      // https://developer.mozilla.org/zh-CN/docs/Web/API/BaseAudioContext/createBufferSource
+      // createBufferSource() 方法用于创建一个新的AudioBufferSourceNode接口，该接口可以通过AudioBuffer 对象来播放音频数据。AudioBuffer对象可以通过AudioContext.createBuffer 来创建或者通过 AudioContext.decodeAudioData成功解码音轨后获取。
       const source = this.audioContext.createBufferSource()
-      source.buffer = next
+      //  在 AudioBufferSourceNode 中设置缓冲区（音频数据）。
+      // console.log('📢 播放音频：', currentText, currentId)
+
+      source.buffer = buffer
+      // 将 AudioBufferSourceNode 连接到输出（destination），这样我们才能听到声音。
       source.connect(this.audioContext.destination)
 
       const onEnded = new Promise<void>((resolve) => {
@@ -169,6 +176,7 @@ export default class StreamAudioPlayer {
 
       this.isPlaying = true
       this.currentSource = source
+      // 开始播放音频。
       source.start()
 
       await onEnded
@@ -206,7 +214,7 @@ export default class StreamAudioPlayer {
   destroy() {
     this.stop()
     if (this.audioContext) {
-      this.audioContext.close()
+      this.audioContext.close() // 关闭一个音频环境，释放任何正在使用系统资源的音频。
       this.audioContext = null
     }
   }

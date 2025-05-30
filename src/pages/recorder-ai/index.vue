@@ -93,6 +93,7 @@ const {
   chatSSEClientRef,
   loading,
   content,
+  isAiMessageEnd,
   modelName,
   currentModel,
   replyForm,
@@ -221,7 +222,10 @@ async function autoPlayAiMessage(text: string, index: number) {
         id,
       }
       console.log('streamData.value ', streamData.value)
-
+      // ai返回的消息结束了
+      if (isAiMessageEnd.value) {
+        tempFormattedTexts.value = []
+      }
       isAudioPlaying.value = true
     }).catch((error) => {
       console.log(error, '错误')

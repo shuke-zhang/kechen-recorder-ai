@@ -6,6 +6,7 @@ export default function useAiPage(height: string) {
     modelName,
     loading,
     content,
+    isAiMessageEnd,
     isStreaming,
     startChat,
     stopChat,
@@ -126,6 +127,7 @@ export default function useAiPage(height: string) {
     loading,
     /** ai返回的结果 */
     content,
+    isAiMessageEnd,
     isStreaming,
     handleToggle,
     handleChangeAiModel,

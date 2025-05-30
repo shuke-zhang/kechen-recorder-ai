@@ -30,6 +30,11 @@ export function useAi(options: AiOptionsModel) {
    * @description 聊天内容s
    */
   const content = ref<AiMessage[]>([])
+
+  /**
+   * ai返回的消息是否结束了
+   */
+  const isAiMessageEnd = ref(false)
   /**
    * @description 聊天内容开始到结束
    * 开始 true
@@ -66,7 +71,7 @@ export function useAi(options: AiOptionsModel) {
     if (!content.value) {
       return showToast('请先输入聊天内容')
     }
-
+    isAiMessageEnd.value = false
     return chatSSEClientRef.value?.startChat({
       url: options.baseURL,
       headers: {
@@ -117,6 +122,12 @@ export function useAi(options: AiOptionsModel) {
     // #endif
 
     // #ifdef APP || APP-PLUS || H5
+    if (msg.includes('DONE')) {
+      console.log('结束了_______________________________________________________')
+
+      isAiMessageEnd.value = true
+      return
+    }
     const { content: appContent } = appExtractStreamContent(msg)
     hotUpdate(appContent)
     // #endif
@@ -170,6 +181,7 @@ export function useAi(options: AiOptionsModel) {
     chatSSEClientRef,
     modelName,
     content,
+    isAiMessageEnd,
     isStreaming,
     message,
     startChat,
@@ -237,6 +249,8 @@ export function appExtractStreamContent(data: any): { content: string, reasoning
   if (!data) {
     return { content: '', reasoningContent: '', id: '' }
   }
+  const ss = '1'
+  ss.includes
 
   const obj = JSON.parse(data)
   const delta = obj.choices[0].delta || {}

@@ -14,7 +14,7 @@ export default function useAiPage(height: string) {
     onSuccess,
     onFinish,
   } = useAi(aiModelList[1])
-  const replyForm = ref({ content: '', role: 'user' })
+  const replyForm = ref({ content: '你是谁', role: 'user' })
   const currentModel = computed(() => aiModelList.find(item => item.name === modelName.value))
   // watch(() => replyForm.value.content, (val) => {
   //   if (val && val.trim() !== '') {

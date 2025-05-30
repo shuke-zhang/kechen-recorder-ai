@@ -168,11 +168,15 @@ const currBuffer = ref()
 const isAudioPlaying = ref(false)
 const tempBuffers = ref<{ audio_data: string, text: string }[]>([])
 const tempFormattedTexts = ref<string[]>([])
+const streamData = ref<{
+  text: string
+  buffer: string
+  id: number
+}>()
 /**
  * 是否自动播放
  */
 const isAutoPlayAiMessage = ref(true)
-const textShow = ref('原始数据')
 // 全局变量存储格式化器实例和当前处理的消息索引
 let textFormatter: ReturnType<typeof createTextFormatter> | null = null
 let lastProcessedIndex: number | null = null
@@ -200,34 +204,27 @@ async function autoPlayAiMessage(text: string, index: number) {
   // SpeechSynthesis.convertTextToSpeech(text)
   // const formatter = createTextFormatter()
   const longText = textFormatter.processText(text)
+
   // 处理文本 下面是对接后端的音频 采用接口的方式
   if (longText.length > 0) {
     tempFormattedTexts.value.push(longText)
+
     // console.log(`longText`, longText)
     doubaoSpeechSynthesis({
       text: longText,
       id: tempFormattedTexts.value.findIndex(t => t === longText) || 0,
     }).then((res) => {
-      tempBuffers.value.push({
-        audio_data: res.data.audio_data,
-        text: longText,
-      })
-      tempBuffers.value.sort((a, b) => {
-        const indexA = tempFormattedTexts.value.findIndex(t => t === a.text)
-        const indexB = tempFormattedTexts.value.findIndex(t => t === b.text)
-        return indexA - indexB
-      })
-      // ✅ 正确获取当前这段 longText 在排序后的 buffers 中的位置
-      const textIndex = tempFormattedTexts.value.findIndex(t => t === longText)
-      if (textIndex !== -1 && tempBuffers.value[textIndex]) {
-        const text = tempBuffers.value[textIndex].text
-        const audioBuffer = tempBuffers.value[textIndex].audio_data
-        currBuffer.value = audioBuffer
-        textShow.value = text
-        // console.log('✅ text：当前正确片段---------------', text)
+      const { audio_data, text, id } = res.data
+      streamData.value = {
+        buffer: audio_data,
+        text,
+        id,
       }
+      console.log('streamData.value ', streamData.value)
 
       isAudioPlaying.value = true
+    }).catch((error) => {
+      console.log(error, '错误')
     })
   }
 
@@ -450,8 +447,12 @@ const handleRecorder = debounce((text: string, index: number) => {
     id: index,
   }).then((res) => {
     console.log('接口请求成功')
-    currBuffer.value = res.data.audio_data as any
-    textShow.value = res.data.text
+    const { audio_data, text, id } = res.data
+    streamData.value = {
+      buffer: audio_data,
+      text,
+      id,
+    }
   })
 }, 500)
 
@@ -608,9 +609,7 @@ onShow(() => {
     <!-- 音频播放组件 -->
     <StreamPlayer
       ref="streamPlayerRef"
-      :stream="currBuffer"
-      :curr-buffer="currBuffer"
-      :text="textShow"
+      :stream-data="streamData"
       @on-stream-play-start="onStreamPlayStart"
       @on-stream-play-end="onStreamPlayEnd"
       @on-stream-stop="onStreamStop"

@@ -6,8 +6,18 @@ export default class StreamAudioPlayer {
   private littleEndian: boolean
   private pcmType: 'int' | 'float'
 
-  private decodeQueue: ArrayBuffer[] = []
-  private audioQueue: AudioBuffer[] = []
+  private decodeQueue: {
+    buffer: ArrayBuffer
+    text?: string
+    id?: number
+  }[] = []
+
+  private audioQueue: {
+    buffer: AudioBuffer
+    text?: string
+    id?: number
+  }[] = []
+
   private isDecoding = false
   private isPlaying = false
   private isPlayingLocked = false
@@ -42,30 +52,33 @@ export default class StreamAudioPlayer {
   }
 
   // ✅ 支持两个参数：data 为 ArrayBuffer，text 仅用于日志展示
-  async appendSmartChunk(data: ArrayBuffer, text?: string) {
-    if (text) {
-      console.log('📢 播放文本：', text)
+  async appendSmartChunk(options: { buffer: ArrayBuffer, text?: string, id?: number }) {
+    if (options.text) {
+      console.log('📢 播放文本：', options.text)
+    }
+    if (options.id) {
+      console.log('📢 播放id：', options.id)
     }
 
     if (this.audioContext?.state === 'suspended') {
       await this.audioContext.resume()
     }
 
-    const format = this.detectFormat(data)
+    const format = this.detectFormat(options.buffer)
     if (format === 'mp3') {
-      await this.appendMP3Chunk(data)
+      await this.appendMP3Chunk(options)
     }
     else {
-      this.appendPCMChunk(data)
+      this.appendPCMChunk(options)
     }
 
     this._safePlay()
   }
 
-  appendPCMChunk(pcmData: ArrayBuffer) {
+  appendPCMChunk(options: { buffer: ArrayBuffer, text?: string, id?: number }) {
     const bytesPerSample = this.bitDepth / 8
     const frameSize = bytesPerSample * this.numChannels
-    let u8 = new Uint8Array(pcmData)
+    let u8 = new Uint8Array(options.buffer)
 
     if (this.incompleteBuffer) {
       const combined = new Uint8Array(this.incompleteBuffer.length + u8.length)
@@ -85,7 +98,12 @@ export default class StreamAudioPlayer {
       return
 
     const validBuffer = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength)
-    this.decodeQueue.push(validBuffer)
+
+    this.decodeQueue.push({
+      buffer: validBuffer,
+      text: options.text,
+      id: options.id,
+    })
     this.isPendingEnd = true
     this.isForceStop = false
 
@@ -94,12 +112,16 @@ export default class StreamAudioPlayer {
     }
   }
 
-  async appendMP3Chunk(mp3Data: ArrayBuffer) {
+  async appendMP3Chunk(options: { buffer: ArrayBuffer, text?: string, id?: number }) {
     if (!this.audioContext)
       return
     try {
-      const buffer = await this.audioContext.decodeAudioData(mp3Data.slice(0))
-      this.audioQueue.push(buffer)
+      const buffer = await this.audioContext.decodeAudioData(options.buffer.slice(0))
+      this.audioQueue.push({
+        buffer,
+        text: options.text,
+        id: options.id,
+      })
       this.isPendingEnd = true
       this.isForceStop = false
     }
@@ -129,7 +151,7 @@ export default class StreamAudioPlayer {
     this.isPlayingLocked = true
 
     while (this.audioQueue.length > 0 && !this.isForceStop) {
-      const next = this.audioQueue.shift()
+      const next = this.audioQueue.shift()?.buffer
       if (!next || !this.audioContext)
         continue
 
@@ -201,12 +223,12 @@ export default class StreamAudioPlayer {
     return 'pcm'
   }
 
-  private _convertPCM(buffer: ArrayBuffer): AudioBuffer {
+  private _convertPCM(options: { buffer: ArrayBuffer, text?: string, id?: number }) {
     const ctx = this.audioContext!
     const bytesPerSample = this.bitDepth / 8
-    const sampleCount = buffer.byteLength / bytesPerSample / this.numChannels
+    const sampleCount = options.buffer.byteLength / bytesPerSample / this.numChannels
     const audioBuffer = ctx.createBuffer(this.numChannels, sampleCount, this.inputSampleRate)
-    const view = new DataView(buffer)
+    const view = new DataView(options.buffer)
 
     for (let ch = 0; ch < this.numChannels; ch++) {
       const channel = audioBuffer.getChannelData(ch)
@@ -227,7 +249,11 @@ export default class StreamAudioPlayer {
       this._applyFades(channel)
     }
 
-    return audioBuffer
+    return {
+      buffer: audioBuffer,
+      text: options.text,
+      id: options.id,
+    }
   }
 
   private _applyFades(channel: Float32Array) {

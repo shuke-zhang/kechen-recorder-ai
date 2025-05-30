@@ -4,6 +4,10 @@ export interface DoubaoAudioModel {
    */
   audio_data: string
   /**
+   * id - 自己传入的id
+   */
+  id: number
+  /**
    * 音频格式，目前支持mp3
    */
   encoding: string

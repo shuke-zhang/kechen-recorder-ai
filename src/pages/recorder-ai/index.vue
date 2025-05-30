@@ -189,8 +189,8 @@ async function autoPlayAiMessage(text: string, index: number) {
     return
   if (!text || text.trim() === '')
     return
+  // 如果正在播放，停止当前播放
   if (isStreamPlaying.value) {
-    SpeechSynthesis.stop()
     streamPlayerRef.value?.onStreamStop()
   }
   // 设置当前播放的消息索引
@@ -430,7 +430,6 @@ const handleRecorder = debounce((text: string, index: number) => {
   if (currentIndex.value === index && isStreamPlaying.value) {
     console.log('🟡 再次点击同一条，执行停止')
     streamPlayerRef.value?.onStreamStop()
-    SpeechSynthesis.stop()
     currentIndex.value = null
     return
   }
@@ -438,7 +437,6 @@ const handleRecorder = debounce((text: string, index: number) => {
   // 切换了消息
   if (isStreamPlaying.value) {
     console.log('🟥 切换消息播放，先停止')
-    SpeechSynthesis.stop()
     streamPlayerRef.value?.onStreamStop()
   }
 
@@ -448,7 +446,7 @@ const handleRecorder = debounce((text: string, index: number) => {
   isStreamPlaying.value = true
   doubaoSpeechSynthesis({
     text,
-    id: index,
+    id: 0,
   }).then((res) => {
     console.log('接口请求成功')
     const { audio_data, text, id } = res.data

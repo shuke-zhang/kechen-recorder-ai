@@ -50,7 +50,7 @@ export default {
     onStreamStop() {
       this.$emit('update:modelValueIsPlaying', false)
       this.$emit('onStreamStop')
-      this.stopSignal = !this.stopSignal
+      this.stopSignal = false
     },
 
   },
@@ -104,8 +104,10 @@ export default {
     console.error('❌ base64 转换失败:', err)
   }
 },
-    stopTTS() {
-      player?.stop()
+    stopTTS(stopSignal) {
+      if(!stopSignal) {
+        player?.stop()
+      }
     },
     // @ts-ignore
     base64ToArrayBuffer(base64Data) {

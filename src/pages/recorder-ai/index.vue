@@ -158,10 +158,7 @@ async function autoPlayAiMessage(text: string, index: number) {
     return
   if (!text || text.trim() === '')
     return
-  // 如果正在播放，停止当前播放
-  if (isStreamPlaying.value) {
-    streamPlayerRef.value?.onStreamStop()
-  }
+
   // 设置当前播放的消息索引
   currentIndex.value = index
 
@@ -286,6 +283,7 @@ const handleRecorder = debounce((text: string, index: number) => {
       id: i,
     }).then((res) => {
       const { audio_buffer, text, id } = res
+      console.log('接口请求成功******', text)
       streamData.value = {
         buffer: audio_buffer,
         text,

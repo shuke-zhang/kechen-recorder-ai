@@ -45,12 +45,12 @@ export default {
       this.$emit('update:modelValueIsPlaying', false)
     },
     /**
-     * 停止播放操作，此操作会将modelValueIsPlaying设置为false
+     * 停止播放操作
      */
     onStreamStop() {
       this.$emit('update:modelValueIsPlaying', false)
       this.$emit('onStreamStop')
-      this.stopSignal = false
+      this.stopSignal = !this.stopSignal
     },
 
   },
@@ -61,6 +61,7 @@ export default {
 import StreamAudioPlayer from './StreamPlayer'
 // @ts-ignore
 let player = null
+let currentSessionId = 0
 // @ts-expect-error: Ignoring duplicate default export error
 export default {
   data() {
@@ -87,7 +88,9 @@ export default {
  playTTS(currTTSData) {
  const {buffer,text,id} = currTTSData
   console.log(text, 'playTTS的文本')
-
+  if(!player){
+    player = new StreamAudioPlayer()
+  }
   if (!buffer || typeof buffer !== 'string') {
     console.warn('❌ 无效的 base64 buffer:', buffer)
     return
@@ -105,9 +108,10 @@ export default {
   }
 },
     stopTTS(stopSignal) {
-      if(!stopSignal) {
-        player?.stop()
-      }
+       currentSessionId++
+      player?.stop?.()
+      player?.destroy?.()
+      player = null
     },
     // @ts-ignore
     base64ToArrayBuffer(base64Data) {

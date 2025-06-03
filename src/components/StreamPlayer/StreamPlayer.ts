@@ -242,6 +242,17 @@ export default class StreamAudioPlayer {
     this.decodeQueue = []
     this.isPlaying = false
     this.isPendingEnd = false
+    this.audioBufferMap.clear()
+    // 核心补充，立即停止当前播放节点
+    if (this.currentSource) {
+      try {
+        this.currentSource.stop(0) // 立即终止当前正在播放的音频
+      }
+      catch (e) {
+      // 可能已经停止，忽略异常
+      }
+      this.currentSource = null
+    }
   }
 
   destroy() {

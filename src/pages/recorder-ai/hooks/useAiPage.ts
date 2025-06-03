@@ -15,17 +15,8 @@ export default function useAiPage(height: string) {
     onSuccess,
     onFinish,
   } = useAi(aiModelList[1])
-  const replyForm = ref({ content: '你是谁', role: 'user' })
+  const replyForm = ref({ content: '', role: 'user' })
   const currentModel = computed(() => aiModelList.find(item => item.name === modelName.value))
-  // watch(() => replyForm.value.content, (val) => {
-  //   if (val && val.trim() !== '') {
-  //     bgUrl.value = `/static/images/aiPageBg.gif?t=${Date.now()}`
-  //   }
-  //   else {
-  //     bgUrl.value = `/static/images/aiPageBg-quiet.png`
-  //   }
-  //   console.log('bgUrl', bgUrl.value)
-  // }, { immediate: true })
   /**
    * ai 页面内容样式
    * ${getStatusBarHeight() + NAV_BAR_HEIGHT + 1}px 顶部导航栏高度 + 1px 底部安全区域高度

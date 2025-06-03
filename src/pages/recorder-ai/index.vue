@@ -42,6 +42,8 @@ import { default as RecorderInstance } from 'recorder-core'
 // eslint-disable-next-line import/first, import/no-named-default, import/no-duplicates
 import { default as RecordAppInstance } from 'recorder-core/src/app-support/app'
 // eslint-disable-next-line import/first
+import { useTextFormatter } from './hooks/useTextFormatter'
+// eslint-disable-next-line import/first
 import RecorderInput from './recorder-input.vue'
 // eslint-disable-next-line import/first
 import useRecorder from './hooks/useRecorder'
@@ -52,11 +54,9 @@ import useAutoScroll from './hooks/useAutoScroll'
 // eslint-disable-next-line import/first
 import SpeechSynthesisCore from './xunfei/speech-synthesis-core'
 // eslint-disable-next-line import/first
-import type { AudioResponseModel, DoubaoAudioModel } from '@/model/audio'
-// eslint-disable-next-line import/first
 import { useMultiClickTrigger } from '@/hooks'
 // eslint-disable-next-line import/first
-import { doubaoSpeechSynthesis } from '@/api/audio'
+import { doubaoSpeechSynthesisFormat } from '@/api/audio'
 // eslint-disable-next-line import/first, import/no-duplicates
 import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
 /** 需要编译成微信小程序时，引入微信小程序支持文件 */
@@ -148,6 +148,8 @@ const {
   immediate: true,
 })
 
+const { processText, textReset } = useTextFormatter()
+
 /**
  * 初始化语音合成
  */
@@ -180,7 +182,6 @@ const streamData = ref<{
  */
 const isAutoPlayAiMessage = ref(true)
 // 全局变量存储格式化器实例和当前处理的消息索引
-let textFormatter: ReturnType<typeof createTextFormatter> | null = null
 let lastProcessedIndex: number | null = null
 /**
  * ai内容自动播放音频
@@ -198,32 +199,27 @@ async function autoPlayAiMessage(text: string, index: number) {
   currentIndex.value = index
 
   // 如果是新的消息，重置格式化器
-  if (!textFormatter || currentIndex.value !== lastProcessedIndex) {
-    textFormatter = createTextFormatter()
+  if (currentIndex.value !== lastProcessedIndex) {
+    textReset()
     lastProcessedIndex = currentIndex.value
   }
   // 开始语音合成并播放
-  // SpeechSynthesis.convertTextToSpeech(text)
-  // const formatter = createTextFormatter()
-  const longText = textFormatter.processText(text)
+  const longText = processText(text)
 
   // 处理文本 下面是对接后端的音频 采用接口的方式
   if (longText.length > 0) {
     tempFormattedTexts.value.push(longText)
 
-    // console.log(`longText`, longText)
-    doubaoSpeechSynthesis({
+    doubaoSpeechSynthesisFormat({
       text: longText,
       id: tempFormattedTexts.value.findIndex(t => t === longText) || 0,
     }).then((res) => {
-      const { audio, text, id } = JSON.parse(res.msg) as DoubaoAudioModel
-      const audioData = JSON.parse(audio) as AudioResponseModel
+      const { audio_buffer, text, id } = res
       streamData.value = {
-        buffer: audioData.data,
+        buffer: audio_buffer,
         text,
         id,
       }
-      console.log('streamData.value ', streamData.value)
       // ai返回的消息结束了
       if (isAiMessageEnd.value) {
         tempFormattedTexts.value = []
@@ -242,76 +238,6 @@ async function autoPlayAiMessage(text: string, index: number) {
 function handleConfirm() {
   tempBuffers.value = []
   handleSendMsg()
-}
-// 创建文本格式化器
-function createTextFormatter() {
-  let buffer = '' // 累加的文字缓冲区
-  let lastProcessedText = '' // 上次处理的完整文本
-
-  const punctuationMarks = ['，', '。', '！', '；', '？']
-
-  function containsPunctuation(text: string) {
-    for (let i = 0; i < text.length; i++) {
-      if (punctuationMarks.includes(text[i])) {
-        return { hasPunctuation: true, index: i, punctuation: text[i] }
-      }
-    }
-    return { hasPunctuation: false, index: -1, punctuation: '' }
-  }
-
-  // 每次输入完整文本
-  function processText(fullText: string): string {
-    let incrementalText = ''
-    if (fullText.length > lastProcessedText.length && fullText.startsWith(lastProcessedText)) {
-      incrementalText = fullText.substring(lastProcessedText.length)
-    }
-    else if (fullText !== lastProcessedText) {
-      // 文本不是增量，重置缓冲区
-      buffer = ''
-      incrementalText = fullText
-    }
-    else {
-      // 没有变化
-      return ''
-    }
-
-    lastProcessedText = fullText
-    buffer += incrementalText
-
-    // 检查是否有标点符号
-    const punctuationInfo = containsPunctuation(buffer)
-    if (punctuationInfo.hasPunctuation) {
-      // 有符号就直接截断返回
-      const textWithPunctuation = buffer.substring(0, punctuationInfo.index + 1)
-      buffer = buffer.substring(punctuationInfo.index + 1)
-      return textWithPunctuation
-    }
-
-    // 没有符号就等待下次
-    return ''
-  }
-
-  // 获取剩余缓冲区内容（用于流结束时）
-  function flush(): string[] {
-    const results: string[] = []
-    if (buffer.trim()) {
-      results.push(buffer)
-      buffer = ''
-    }
-    return results
-  }
-
-  function reset() {
-    buffer = ''
-    lastProcessedText = ''
-  }
-
-  return {
-    processText,
-    flush,
-    reset,
-    getBuffer: () => buffer,
-  }
 }
 
 function handleTouchStart() {
@@ -368,8 +294,6 @@ function handleTouchEnd() {
  * @warning 由于语音点击之后播放音频会有延迟， 所以在这儿直接设置状态
  */
 const handleRecorder = debounce((text: string, index: number) => {
-  console.log('点击语音按钮')
-
   // 当前已经在播放此条消息
   if (currentIndex.value === index && isStreamPlaying.value) {
     console.log('🟡 再次点击同一条，执行停止')
@@ -388,18 +312,19 @@ const handleRecorder = debounce((text: string, index: number) => {
   console.log('🟢 开始播放新消息')
   currentIndex.value = index
   isStreamPlaying.value = true
-  doubaoSpeechSynthesis({
-    text,
-    id: 0,
-  }).then((res) => {
-    const { audio, text, id } = JSON.parse(res.msg) as DoubaoAudioModel
-    const audioData = JSON.parse(audio) as AudioResponseModel
-
-    streamData.value = {
-      buffer: audioData.data,
-      text,
-      id,
-    }
+  const longTexts = processText(text, true)
+  longTexts.forEach((longText, i) => {
+    doubaoSpeechSynthesisFormat({
+      text: longText,
+      id: i,
+    }).then((res) => {
+      const { audio_buffer, text, id } = res
+      streamData.value = {
+        buffer: audio_buffer,
+        text,
+        id,
+      }
+    })
   })
 }, 500)
 
@@ -452,9 +377,7 @@ function handleClearContent() {
       streamPlayerRef.value?.onStreamStop()
     }
     // 重置格式化器
-    if (textFormatter) {
-      textFormatter.reset()
-    }
+    textReset()
   })
 }
 
@@ -468,7 +391,6 @@ watch(
       })
       // 检查最后一条消息是否是AI的回复
       const lastMessage = content.value[content.value.length - 1]
-      // console.log('内容变化ai回复', lastMessage)
       if (lastMessage?.role === 'assistant' && lastMessage?.streaming) {
         // 自动播放
         autoPlayAiMessage(lastMessage.content || '', content.value.length - 1)

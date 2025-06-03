@@ -31,41 +31,27 @@ export default {
 </script>
 <!-- #endif -->
 
+<!-- eslint-disable import/first, import/order, import/no-named-default,import/no-duplicates -->
 <script setup lang='ts'>
-// eslint-disable-next-line import/first, import/order
 import type StreamPlayer from '@/components/StreamPlayer/StreamPlayer.vue'
-
-// eslint-disable-next-line import/first, import/order
 import { NAV_BAR_HEIGHT, getStatusBarHeight } from '@/components/nav-bar/nav-bar'
-// eslint-disable-next-line import/first, import/no-named-default, import/no-duplicates
 import { default as RecorderInstance } from 'recorder-core'
-// eslint-disable-next-line import/first, import/no-named-default, import/no-duplicates
 import { default as RecordAppInstance } from 'recorder-core/src/app-support/app'
-// eslint-disable-next-line import/first
 import { useTextFormatter } from './hooks/useTextFormatter'
-// eslint-disable-next-line import/first
 import RecorderInput from './recorder-input.vue'
-// eslint-disable-next-line import/first
 import useRecorder from './hooks/useRecorder'
-// eslint-disable-next-line import/first
 import useAiPage from './hooks/useAiPage'
-// eslint-disable-next-line import/first
 import useAutoScroll from './hooks/useAutoScroll'
-// eslint-disable-next-line import/first
 import { useMultiClickTrigger } from '@/hooks'
-// eslint-disable-next-line import/first
 import { doubaoSpeechSynthesisFormat } from '@/api/audio'
-// eslint-disable-next-line import/first, import/no-duplicates
 import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
 /** 需要编译成微信小程序时，引入微信小程序支持文件 */
 // #ifdef MP-WEIXIN
-// import 'recorder-core/src/app-support/app-miniProgram-wx-support.js'
+import 'recorder-core/src/app-support/app-miniProgram-wx-support.js'
 // #endif
 
 // #ifdef H5 || MP-WEIXIN
-// eslint-disable-next-line import/first, import/no-duplicates
 import 'recorder-core/src/engine/pcm'
-// eslint-disable-next-line import/first, import/no-duplicates
 import 'recorder-core/src/extensions/waveview'
 // #endif
 const vueInstance = getCurrentInstance()?.proxy as any // 必须定义到最外面，getCurrentInstance得到的就是当前实例this

@@ -123,8 +123,6 @@ export function useAi(options: AiOptionsModel) {
 
     // #ifdef APP || APP-PLUS || H5
     if (msg.includes('DONE')) {
-      console.log('结束了_______________________________________________________')
-
       isAiMessageEnd.value = true
       return
     }

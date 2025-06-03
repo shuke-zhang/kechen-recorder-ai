@@ -5,6 +5,7 @@
 
 interface NavigateToOptions {
   url: "/pages/recorder-ai/index" |
+       "/pages/hint/index" |
        "/pages/ai/deepseek" |
        "/pages/ai/index" |
        "/pages/auth/index" |

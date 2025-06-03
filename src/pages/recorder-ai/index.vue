@@ -52,6 +52,8 @@ import useAutoScroll from './hooks/useAutoScroll'
 // eslint-disable-next-line import/first
 import SpeechSynthesisCore from './xunfei/speech-synthesis-core'
 // eslint-disable-next-line import/first
+import type { AudioResponseModel, DoubaoAudioModel } from '@/model/audio'
+// eslint-disable-next-line import/first
 import { useMultiClickTrigger } from '@/hooks'
 // eslint-disable-next-line import/first
 import { doubaoSpeechSynthesis } from '@/api/audio'
@@ -59,8 +61,7 @@ import { doubaoSpeechSynthesis } from '@/api/audio'
 import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
 /** 需要编译成微信小程序时，引入微信小程序支持文件 */
 // #ifdef MP-WEIXIN
-// eslint-disable-next-line import/first
-import 'recorder-core/src/app-support/app-miniProgram-wx-support.js'
+// import 'recorder-core/src/app-support/app-miniProgram-wx-support.js'
 // #endif
 
 // #ifdef H5 || MP-WEIXIN
@@ -215,9 +216,10 @@ async function autoPlayAiMessage(text: string, index: number) {
       text: longText,
       id: tempFormattedTexts.value.findIndex(t => t === longText) || 0,
     }).then((res) => {
-      const { audio_data, text, id } = res.data
+      const { audio, text, id } = JSON.parse(res.msg) as DoubaoAudioModel
+      const audioData = JSON.parse(audio) as AudioResponseModel
       streamData.value = {
-        buffer: audio_data,
+        buffer: audioData.data,
         text,
         id,
       }
@@ -390,10 +392,11 @@ const handleRecorder = debounce((text: string, index: number) => {
     text,
     id: 0,
   }).then((res) => {
-    console.log('接口请求成功')
-    const { audio_data, text, id } = res.data
+    const { audio, text, id } = JSON.parse(res.msg) as DoubaoAudioModel
+    const audioData = JSON.parse(audio) as AudioResponseModel
+
     streamData.value = {
-      buffer: audio_data,
+      buffer: audioData.data,
       text,
       id,
     }

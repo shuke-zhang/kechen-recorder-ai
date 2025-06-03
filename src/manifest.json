@@ -65,9 +65,9 @@
             "splashscreen" : {
                 "androidStyle" : "default",
                 "android" : {
-                    "hdpi" : "unpackage/res/icons/app-active-480.png",
-                    "xhdpi" : "unpackage/res/icons/app-active-720.png",
-                    "xxhdpi" : "unpackage/res/icons/app-active-1080.png"
+                    "hdpi" : "unpackage/res/icons/koala_480x762_centered.png",
+                    "xhdpi" : "unpackage/res/icons/koala_720x1242_centered.png",
+                    "xxhdpi" : "unpackage/res/icons/koala_1080x1882_centered.png"
                 }
             },
             "icons" : {

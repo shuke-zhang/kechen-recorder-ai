@@ -22,13 +22,6 @@
       }
     },
     {
-      "path": "pages/hint/index",
-      "type": "home",
-      "style": {
-        "navigationBarTitleText": "柯臣"
-      }
-    },
-    {
       "path": "pages/ai/deepseek",
       "type": "page"
     },

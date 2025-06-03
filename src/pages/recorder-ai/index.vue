@@ -52,8 +52,6 @@ import useAiPage from './hooks/useAiPage'
 // eslint-disable-next-line import/first
 import useAutoScroll from './hooks/useAutoScroll'
 // eslint-disable-next-line import/first
-import SpeechSynthesisCore from './xunfei/speech-synthesis-core'
-// eslint-disable-next-line import/first
 import { useMultiClickTrigger } from '@/hooks'
 // eslint-disable-next-line import/first
 import { doubaoSpeechSynthesisFormat } from '@/api/audio'
@@ -85,9 +83,7 @@ const router = useRouter()
 const streamPlayerRef = ref<InstanceType<typeof StreamPlayer>>()
 const { handleMultiClick } = useMultiClickTrigger({
   onTrigger: () => {
-    if (__DEV__) {
-      router.push('/pages/test/index')
-    }
+    router.push('/pages/test/index')
   },
 })
 const {
@@ -150,25 +146,10 @@ const {
 
 const { processText, textReset } = useTextFormatter()
 
-/**
- * 初始化语音合成
- */
-const SpeechSynthesis = new SpeechSynthesisCore({
-  APPID: 'f9b52f87',
-  APISecret: 'ZDVkYzU5YmFhZmNlODVkM2RlNDMyNDhl',
-  APIKey: '287ae449056d33e0f4995f480737564a',
-  url: 'wss://tts-api.xfyun.cn/v2/tts',
-  host: 'tts-api.xfyun.cn',
-})
-SpeechSynthesis.on('audio', (res: ArrayBuffer) => {
-  currBuffer.value = res
-})
-
 const scrollViewRef = ref(null)
 const animatedDots = ref('')
 let dotTimer: NodeJS.Timeout | null = null
 const currentIndex = ref<number | null>(null)
-const currBuffer = ref()
 const isAudioPlaying = ref(false)
 const tempBuffers = ref<{ audio_data: string, text: string }[]>([])
 const tempFormattedTexts = ref<string[]>([])
@@ -373,7 +354,6 @@ function handleClearContent() {
     content.value = []
     // 停止播放
     if (isStreamPlaying.value) {
-      SpeechSynthesis.stop()
       streamPlayerRef.value?.onStreamStop()
     }
     // 重置格式化器

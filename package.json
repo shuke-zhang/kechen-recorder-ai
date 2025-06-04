@@ -1,9 +1,10 @@
 {
   "name": "kechen",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "scripts": {
     "bumpp": "bumpp --patch --yes",
+    "prepatch": "tsc scripts/patch-version.ts && node scripts/patch-version.js",
     "dev:app": "uni -p app",
     "dev:app-android": "uni -p app-android",
     "dev:app-ios": "uni -p app-ios",

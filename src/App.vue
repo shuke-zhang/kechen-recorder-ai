@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onHide, onShow } from '@dcloudio/uni-app'
+import { useCheckAppVersion } from './hooks/useCheckAppVersion'
 
 onShow(() => {
   console.log('App Show')
@@ -22,6 +23,9 @@ onHide(() => {
 //     }
 //   })
 // })
+
+// const { checkNewVersion } = useCheckAppVersion()
+// checkNewVersion()
 </script>
 
 <style lang="scss">

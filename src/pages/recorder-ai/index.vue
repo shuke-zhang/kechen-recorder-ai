@@ -230,6 +230,7 @@ function handleTouchEnd() {
     if (isRecorderClose.value) {
       // 用户上滑取消
       removeLastUserMessage('user')
+      replyForm.value = { content: '', role: 'user' }
     }
     else {
       // 用户正常抬起

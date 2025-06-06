@@ -172,7 +172,7 @@ export default class RecorderCoreManager extends EventEmitter {
       }
 
       this.socketTask.sendMessage(midFrame)
-      this.emit('log', '📤 发送中间帧')
+      // this.emit('log', '📤 发送中间帧')
     }, 40)
   }
 
@@ -208,19 +208,39 @@ export default class RecorderCoreManager extends EventEmitter {
 
       const ws = result.ws || []
       let text = ''
-      for (const seg of ws) text += seg.cw[0].w
-
-      if (result.pgs === 'apd') {
-        this.resultText = this.resultTextTemp
-        this.resultTextTemp += text
+      for (const seg of ws) {
+        if (seg.cw && seg.cw[0]) {
+          text += seg.cw[0].w
+        }
       }
-      else {
+
+      // 空内容不处理
+      if (!text.trim())
+        return
+
+      const pgs = result.pgs
+      const rg = result.rg || []
+
+      if (pgs === 'apd') {
+      // 追加拼接
         this.resultText += text
       }
-      console.log('识别结果:', this.resultText)
+      else if (pgs === 'rpl' || pgs === 'rlt') {
+      // 替换旧内容中指定范围
+        const [start, end] = rg
+        const oldChars = this.resultText.split('')
+        oldChars.splice(start, end - start + 1, ...text.split(''))
+        this.resultText = oldChars.join('')
+      }
+      else {
+      // 其他未知模式（保险处理）
+        this.resultText += text
+      }
 
-      this.onTextChange?.(this.resultTextTemp || this.resultText)
+      // 实时返回更新文本
+      this.onTextChange?.(this.resultText)
 
+      // 最后一帧
       if (json.data.status === 2) {
         this.sendLastFrame()
         this.socketTask?.closeSocket('识别完成')

@@ -393,6 +393,7 @@ watch(() => isRunning.value, (val: boolean) => {
 watch(() => textRes.value, async (newVal) => {
   await nextTick() // 确保视图更新完成
   replyForm.value.content = newVal as string
+  console.log('文本内容赋值更新：', newVal)
 })
 
 onMounted(() => {

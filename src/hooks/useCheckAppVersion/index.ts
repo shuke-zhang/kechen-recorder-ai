@@ -5,6 +5,16 @@ import type { UniAppResponse, versionModel } from './types'
 // 下载地址：url
 // 每次更新版本后需要将该文件需要和打包后的app文件上传到oss服务器
 // 记住 这个json文件内不能有注释 否则会报错
+
+/**
+ * @warn 注意
+ *7
+ * 1. 运行环境  仅限 **App** 端，H5 环境会报错
+ * 2. 更新钱准备
+ *    2.1 发布前必须更新 `script/version.json` version-版本号，appUrl-下载地址
+ *    2.2 更新后需要将 version.json 文件和打包后的app文件上传到oss服务器
+ *
+ */
 export function useCheckAppVersion() {
   /**
    * 通过json检测最新版本
@@ -105,72 +115,127 @@ export function useCheckAppVersion() {
   }
 
   /**
-   * 下载最新版本
+   * 下载并安装更新包（同时兼容 .apk / .wgt / .wgtu 及 .zip 容器）
+   * @param url 远程文件地址
    */
-  function downloadApp(url: string) {
-    // 先打印下载地址，检查 URL 是否正确
-    console.log('下载地址:', url)
+  function downloadApp(url: string): void {
     if (!url) {
-      return console.error('下载地址为空')
+      uni.showToast({ title: '下载地址为空', icon: 'none' })
+      return
     }
-    const showLoading = plus.nativeUI.showWaiting('正在下载')
-    const downloadTask = uni.downloadFile({
+
+    const waiting = plus.nativeUI.showWaiting('正在下载 0%')
+
+    /* ---------- 开始下载 ---------- */
+    const task = uni.downloadFile({
       url,
       success: (res) => {
-        console.log('下载结果:', res) // 添加日志
-        if (res.statusCode === 200) {
-          console.log('开始安装:', res.tempFilePath) // 添加日志
-          plus.runtime.install(
-            res.tempFilePath,
-            {
-              force: false,
-            },
-            () => {
-              console.log('安装成功') // 添加日志
-              plus.nativeUI.closeWaiting()
-              plus.runtime.restart()
-            },
-            (error) => {
-              console.error('安装失败:', error) // 添加错误日志
-              plus.nativeUI.closeWaiting()
-              uni.showToast({
-                title: `安装失败: ${error.message}`,
-                icon: 'none',
-                duration: 2000,
-              })
-            },
-          )
+        if (res.statusCode !== 200) {
+          showError(`下载失败（${res.statusCode}）`)
+          return
+        }
+
+        const tempPath = res.tempFilePath
+        console.log('下载成功，临时文件路径：', tempPath)
+
+        if (/\.zip$/i.test(url)) {
+          console.log('解压并安装 ZIP 包')
+
+          unzipAndInstall(tempPath)
         }
         else {
-          console.error('下载状态码异常:', res.statusCode) // 添加错误日志
-          plus.nativeUI.closeWaiting()
-          uni.showToast({
-            title: `下载失败: ${res.statusCode}`,
-            icon: 'none',
-            duration: 2000,
+          console.log('直接安装 APK/WGT/WGTU 包')
+          installPackage(tempPath)
+        }
+      },
+      fail: err => showError(`下载失败：${err.errMsg}`),
+    })
+
+    task.onProgressUpdate(({ progress }) => {
+      waiting.setTitle(`正在下载 ${progress}%`)
+      console.log(`下载进度：${progress}%`)
+    })
+  }
+  /* ---------- 通用报错 ---------- */
+  function showError(msg: string) {
+    console.error(msg)
+    plus.nativeUI.closeWaiting()
+    uni.showToast({ title: msg, icon: 'none', duration: 2500 })
+  }
+
+  /* ---------- 安装包 ---------- */
+  function installPackage(pkgPath: string) {
+    console.log('开始安装 →', pkgPath)
+    plus.runtime.install(
+      pkgPath,
+      { force: false },
+      () => { // success
+        plus.nativeUI.closeWaiting()
+        plus.runtime.restart()
+      },
+      err => showError(`安装失败：${err.message}`),
+    )
+  }
+  /* ---------- 递归扫描目录并安装 ---------- */
+  function scanAndInstall(dirPath: string) {
+    plus.io.resolveLocalFileSystemURL(
+      dirPath,
+      (entry: any) => {
+        if (entry.isFile) {
+          const name = (entry.name as string).toLowerCase()
+          if (/\.(?:apk|wgt|wgtu)$/.test(name)) {
+            installPackage(entry.fullPath)
+            return
+          }
+        }
+
+        if (entry.isDirectory) {
+          const reader = (entry as any).createReader()
+          reader.readEntries((entries: any[]) => {
+            for (const item of entries) {
+              if (item.isDirectory) {
+                scanAndInstall(item.fullPath)
+              }
+              else if (/\.(?:apk|wgt|wgtu)$/.test((item.name as string).toLowerCase())) {
+                installPackage(item.fullPath)
+                return
+              }
+            }
           })
         }
       },
-      fail: (err) => {
-        console.error('下载失败:', err) // 添加错误日志
-        plus.nativeUI.closeWaiting()
-        uni.showToast({
-          title: `下载失败: ${err.errMsg}`,
-          icon: 'none',
-          duration: 2000,
-        })
-      },
-
-    })
-
-    downloadTask.onProgressUpdate((res) => {
-      console.log('下载进度:', res.progress) // 添加日志
-      if (res.progress > 0) { // 只在有实际进度时更新提示
-        showLoading.setTitle(`正在下载${res.progress}%`)
-      }
-    })
+      err => showError(`读取目录失败：${err.message}`),
+    )
   }
+  /**
+   * ZIP 解压 + 安装
+   */
+  function unzipAndInstall(zipPath: string) {
+    const docDir: string = plus.io.convertLocalFileSystemURL('_doc')
+    console.log('docDir', docDir)
 
+    const targetDir: string = `${docDir.startsWith('file://') ? docDir : `file://${docDir}`}/update_${Date.now()}/`
+    console.log('targetDir', targetDir)
+
+    if (zipPath && targetDir) {
+      plus.zip.decompress(zipPath, targetDir, () => {
+        console.log('解压完成，开始扫描安装')
+        scanAndInstall(targetDir)
+      }, () => {
+        console.log('解压失败')
+      })
+    }
+    // ;(plus.zip.decompress as any)(
+    //   zipPath,
+    //   targetDir,
+    //   {}, // options
+    //   () => {
+    //     console.log('解压完成，开始扫描安装')
+    //     scanAndInstall(targetDir)
+    //   }, // success
+    //   (err: any) => showError(`解压失败：${err?.message ?? err}`), // fail
+    // )
+  }
   return {
     checkNewVersion,
   }

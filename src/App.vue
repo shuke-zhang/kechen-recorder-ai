@@ -24,8 +24,13 @@ onHide(() => {
 //   })
 // })
 
-// const { checkNewVersion } = useCheckAppVersion()
-// checkNewVersion()
+const { checkNewVersion } = useCheckAppVersion()
+onLaunch(() => {
+  /**
+   * 检查新版本
+   */
+  checkNewVersion()
+})
 </script>
 
 <style lang="scss">

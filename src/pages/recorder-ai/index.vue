@@ -42,6 +42,7 @@ import RecorderInput from './recorder-input.vue'
 import useRecorder from './hooks/useRecorder'
 import useAiPage from './hooks/useAiPage'
 import useAutoScroll from './hooks/useAutoScroll'
+import { useCheckAppVersion } from '@/hooks/useCheckAppVersion'
 import { useMultiClickTrigger } from '@/hooks'
 import { doubaoSpeechSynthesisFormat } from '@/api/audio'
 import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
@@ -150,6 +151,22 @@ const streamData = ref<{
 const isAutoPlayAiMessage = ref(true)
 // 全局变量存储格式化器实例和当前处理的消息索引
 let lastProcessedIndex: number | null = null
+
+// 自动更新逻辑，暂时放这儿
+const updateList = ref<string[]>(['修复启动闪退问题', '优化首页加载速度', '新增深色模式'])
+// #ifdef APP-PLUS
+const { visible, downloadUrl, downloadApp, checkNewVersion } = useCheckAppVersion()
+handleCheckNewVersion()
+function handleCheckNewVersion() {
+  checkNewVersion()
+}
+function handleUpdate() {
+  return downloadApp(downloadUrl.value)
+}
+function handleRemind() {
+  console.log('稍后提醒')
+}
+// #endif
 /**
  * ai内容自动播放音频
  */
@@ -543,6 +560,8 @@ onShow(() => {
       </scroll-view>
     </view>
 
+    <check-app-page v-model="visible" :update-list="updateList" @update-now="handleUpdate" @remind-later="handleRemind" />
+
     <!-- 统一输入框 -->
     <RecorderInput
       v-model:model-value="replyForm.content"
@@ -560,7 +579,8 @@ onShow(() => {
       @recorder-confirm="handleRecorderConfirm"
       @confirm="handleConfirm "
     />
-
+    <!-- 添加条件编译 -->
+    <!-- #ifdef APP-PLUS -->
     <popup v-model="popupVisible" type="left" :is-mask-click="false">
       <view class="bg-#fff w-400rpx h-100vh py-140rpx px-32rpx">
         <view class="flex flex-1 justify-end mb-60rpx w-full" @click="popupVisible = false">
@@ -581,6 +601,7 @@ onShow(() => {
         </view>
       </view>
     </popup>
+    <!-- #endif -->
   </view>
 </template>
 

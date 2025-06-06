@@ -5,56 +5,22 @@
 </route>
 
 <script setup lang="ts">
-import { SpeechSynthesisDoubao } from '../recorder-ai/doubao/speech-synthesis-doubao'
-import SpeechSynthesisCore from '../recorder-ai/xunfei/speech-synthesis-core'
-import type StreamPlayer from '@/components/StreamPlayer/StreamPlayer.vue'
+const visible = ref(false)
 
-const currBuffer = ref<ArrayBuffer >()
-const streamPlayerRef = ref<InstanceType<typeof StreamPlayer> | null>(null)
-const SpeechSynthesis = new SpeechSynthesisCore({
-  APPID: 'f9b52f87',
-  APISecret: 'ZDVkYzU5YmFhZmNlODVkM2RlNDMyNDhl',
-  APIKey: '287ae449056d33e0f4995f480737564a',
-  url: 'wss://tts-api.xfyun.cn/v2/tts',
-  host: 'tts-api.xfyun.cn',
-})
-
-const APPID = '3810425215'
-const AccessToken = 'mHT8sdy_o3wVHNSIw9jfJqCawEu0Aq5s'
-const SecretKey = 'WcH7__6VXDbmzKbXaNkLt9PN9kFCyFy0'
-const host = 'openapi.xf-yun.com'
-
-const SpeechSynthesisDoubaoCore = new SpeechSynthesisDoubao({
-  APPID,
-  AccessToken,
-  SecretKey,
-  host,
-})
-SpeechSynthesisDoubaoCore.on('audio', (res: ArrayBuffer) => {
-  currBuffer.value = res
-})
-
-SpeechSynthesis.on('audio', (res: ArrayBuffer) => {
-  currBuffer.value = res
-})
-const text = '今天天气特别好，阳光暖洋洋的，天蓝得像洗过一样，风也不大，吹在脸上挺舒服的，整个人都觉得特别轻松愉快，特别适合出去走走。'
-
-function xunfeiSend() {
-  // SpeechSynthesis.convertTextToSpeech(text)
-  SpeechSynthesisDoubaoCore.sendTextStream(text)
+function checkVersion() {
+  visible.value = true
 }
 </script>
 
 <template>
   <view class="audioPlay">
-    <button class="mt-40rpx" type="primary" @click="xunfeiSend">
-      点击-讯飞
+    <button class="mt-40rpx" type="primary" @click="checkVersion">
+      版本更新
     </button>
-    <!-- 音频播放组件 -->
-    <StreamPlayer
-      ref="streamPlayerRef"
-      :stream="currBuffer"
-      :curr-buffer="currBuffer"
+
+    <check-app-page
+      v-model="visible"
+      :update-list="['修复启动闪退问题', '优化首页加载速度', '新增深色模式']"
     />
   </view>
 </template>

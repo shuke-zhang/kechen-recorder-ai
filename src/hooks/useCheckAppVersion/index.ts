@@ -1,11 +1,5 @@
 import type { UniAppResponse, versionModel } from './types'
 
-// 用于更新版本的json文件
-// 版本号：version
-// 下载地址：url
-// 每次更新版本后需要将该文件需要和打包后的app文件上传到oss服务器
-// 记住 这个json文件内不能有注释 否则会报错
-
 /**
  * @warn 注意
  *7
@@ -16,6 +10,8 @@ import type { UniAppResponse, versionModel } from './types'
  *
  */
 export function useCheckAppVersion() {
+  const visible = ref(false) // 是否显示弹窗
+  const downloadUrl = ref('') // 下载地址
   /**
    * 通过json检测最新版本
    */
@@ -59,8 +55,10 @@ export function useCheckAppVersion() {
     try {
     // 获取线上/远程版本
       const nextVersionRes = await getVersionFromJson() // 比如 '1.3.68'
+
       const nextVersion = nextVersionRes?.version
-      const downloadUrl = nextVersionRes?.appUrl || ''
+      downloadUrl.value = nextVersionRes?.appUrl || ''
+
       // 获取当前App本地版本
       const currentVersion = await detectNewVersion() // 比如 '1.3.67'
       console.log('本地版本:', currentVersion, '线上版本:', nextVersion)
@@ -70,25 +68,11 @@ export function useCheckAppVersion() {
       // 对比版本号
       if (compareVersion(nextVersion, currentVersion) > 0) {
       // 有新版本，弹窗提示
-        uni.showModal({
-          title: '发现新版本',
-          content: `最新版本：${nextVersion}\n当前版本：${currentVersion}\n是否前往更新？`,
-          confirmText: '去更新',
-          cancelText: '稍后',
-          success: (res) => {
-            if (res.confirm) {
-              console.log('用户点击了确定按钮')
-              downloadApp(downloadUrl)
-            // 这里可跳转下载页面/应用商店，或调用更新逻辑
-            // uni.navigateTo({ url: '/pages/update/index' })
-            // 或调用你的自定义更新方法
-            }
-          },
-        })
+        console.log('有新版本^^^^^^^^^^^^^^^^^^^^^^^', downloadUrl.value)
+        visible.value = true
       }
       else {
         console.log('没有新版本')
-
       // 没有新版本，可选提示
       // uni.showToast({ title: '当前已是最新版本', icon: 'none' })
       }
@@ -136,24 +120,30 @@ export function useCheckAppVersion() {
         }
 
         const tempPath = res.tempFilePath
-        console.log('下载成功，临时文件路径：', tempPath)
 
         if (/\.zip$/i.test(url)) {
-          console.log('解压并安装 ZIP 包')
-
           unzipAndInstall(tempPath)
         }
         else {
-          console.log('直接安装 APK/WGT/WGTU 包')
           installPackage(tempPath)
         }
       },
       fail: err => showError(`下载失败：${err.errMsg}`),
     })
-
+    let lastTitleUpdate = 0
     task.onProgressUpdate(({ progress }) => {
-      waiting.setTitle(`正在下载 ${progress}%`)
-      console.log(`下载进度：${progress}%`)
+      const now = Date.now()
+      if (now - lastTitleUpdate > 300) { // 每 300ms 更新一次 UI
+        lastTitleUpdate = now
+        waiting.setTitle(`正在下载 ${progress}%`)
+      }
+
+      if (progress === 100) {
+        waiting.setTitle('正在安装...')
+        setTimeout(() => {
+          waiting.close()
+        }, 300)
+      }
     })
   }
   /* ---------- 通用报错 ---------- */
@@ -165,13 +155,11 @@ export function useCheckAppVersion() {
 
   /* ---------- 安装包 ---------- */
   function installPackage(pkgPath: string) {
-    console.log('开始安装 →', pkgPath)
     plus.runtime.install(
       pkgPath,
       { force: false },
-      () => { // success
-        plus.nativeUI.closeWaiting()
-        plus.runtime.restart()
+      () => {
+        // plus.nativeUI.closeWaiting()
       },
       err => showError(`安装失败：${err.message}`),
     )
@@ -212,31 +200,21 @@ export function useCheckAppVersion() {
    */
   function unzipAndInstall(zipPath: string) {
     const docDir: string = plus.io.convertLocalFileSystemURL('_doc')
-    console.log('docDir', docDir)
 
     const targetDir: string = `${docDir.startsWith('file://') ? docDir : `file://${docDir}`}/update_${Date.now()}/`
-    console.log('targetDir', targetDir)
 
     if (zipPath && targetDir) {
       plus.zip.decompress(zipPath, targetDir, () => {
-        console.log('解压完成，开始扫描安装')
         scanAndInstall(targetDir)
       }, () => {
         console.log('解压失败')
       })
     }
-    // ;(plus.zip.decompress as any)(
-    //   zipPath,
-    //   targetDir,
-    //   {}, // options
-    //   () => {
-    //     console.log('解压完成，开始扫描安装')
-    //     scanAndInstall(targetDir)
-    //   }, // success
-    //   (err: any) => showError(`解压失败：${err?.message ?? err}`), // fail
-    // )
   }
   return {
+    visible,
+    downloadUrl,
     checkNewVersion,
+    downloadApp,
   }
 }

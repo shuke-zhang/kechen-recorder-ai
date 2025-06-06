@@ -142,7 +142,9 @@ function handleStop() {
 </script>
 
 <template>
+  <!-- #ifdef MP-WEIXIN -->
   <root-portal enable>
+    <!-- #endif -->
     <view
       v-show="show"
       class="c-popup-container"
@@ -178,7 +180,9 @@ function handleStop() {
         </view>
       </view>
     </view>
+  <!-- #ifdef MP-WEIXIN -->
   </root-portal>
+  <!-- #endif -->
 </template>
 
 <style lang="scss">

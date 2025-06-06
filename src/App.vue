@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onHide, onShow } from '@dcloudio/uni-app'
-import { useCheckAppVersion } from './hooks/useCheckAppVersion'
 
 onShow(() => {
   console.log('App Show')
@@ -8,7 +7,6 @@ onShow(() => {
 onHide(() => {
   console.log('App Hide')
 })
-
 // onLaunch(async () => {
 //   nextTick(async () => {
 //     const t = getCurrentPages()
@@ -23,14 +21,6 @@ onHide(() => {
 //     }
 //   })
 // })
-
-const { checkNewVersion } = useCheckAppVersion()
-onLaunch(() => {
-  /**
-   * 检查新版本
-   */
-  checkNewVersion()
-})
 </script>
 
 <style lang="scss">

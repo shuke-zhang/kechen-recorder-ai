@@ -37,7 +37,7 @@ export function useQuery<T extends object = object>(defaultValue: T = {} as T, d
         const route = getCurrentPages()?.[getCurrentPages().length - 1].route
         logger.info(`[useQuery] ${route}`)
         const data = JSON.parse(JSON.stringify(toRaw(unref(query))))
-        console.log(data)
+        console.log(data, 'useQuery')
       }
     }
   })

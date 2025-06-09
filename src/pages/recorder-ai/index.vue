@@ -42,7 +42,6 @@ import RecorderInput from './recorder-input.vue'
 import useRecorder from './hooks/useRecorder'
 import useAiPage from './hooks/useAiPage'
 import useAutoScroll from './hooks/useAutoScroll'
-import { useCheckAppVersion } from '@/hooks/useCheckAppVersion'
 import { useMultiClickTrigger } from '@/hooks'
 import { doubaoSpeechSynthesisFormat } from '@/api/audio'
 import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
@@ -63,16 +62,21 @@ const pageHeight = computed(() => {
  * 音频是否正在播放
  */
 const isStreamPlaying = ref(false)
-const router = useRouter()
+const router = useRouter<{
+  modelName: string
+}>()
+console.log(router.query, '检查路由参数')
+
 /**
  * 音频播放组件实例
  */
 const streamPlayerRef = ref<InstanceType<typeof StreamPlayer>>()
 const { handleMultiClick } = useMultiClickTrigger({
   onTrigger: () => {
-    router.push('/pages/test/index')
+    router.push('/pages/test/index', { id: 123 })
   },
 })
+
 const {
   chatSSEClientRef,
   loading,
@@ -81,11 +85,8 @@ const {
   modelName,
   currentModel,
   replyForm,
-  popupVisible,
   aiPageContent,
   aiScrollView,
-  aiNameList,
-  aiCurrentIndex,
   onStart,
   onError,
   onSuccess,
@@ -152,21 +153,6 @@ const isAutoPlayAiMessage = ref(true)
 // 全局变量存储格式化器实例和当前处理的消息索引
 let lastProcessedIndex: number | null = null
 
-// 自动更新逻辑，暂时放这儿
-const updateList = ref<string[]>(['修复启动闪退问题', '优化首页加载速度', '新增深色模式'])
-// #ifdef APP-PLUS
-const { visible, downloadUrl, downloadApp, checkNewVersion } = useCheckAppVersion()
-handleCheckNewVersion()
-function handleCheckNewVersion() {
-  checkNewVersion()
-}
-function handleUpdate() {
-  return downloadApp(downloadUrl.value)
-}
-function handleRemind() {
-  console.log('稍后提醒')
-}
-// #endif
 /**
  * ai内容自动播放音频
  */
@@ -175,7 +161,8 @@ async function autoPlayAiMessage(text: string, index: number) {
     return
   if (!text || text.trim() === '')
     return
-
+  if (!isApp)
+    return
   // 设置当前播放的消息索引
   currentIndex.value = index
 
@@ -210,7 +197,6 @@ async function autoPlayAiMessage(text: string, index: number) {
       console.log(error, '错误')
     })
   }
-
   isStreamPlaying.value = true
 }
 /**
@@ -262,7 +248,6 @@ function handleTouchEnd() {
         resetAndScrollToBottom() // 强制滚动到底部
       }
       else {
-        console.log('无识别结果，删除最后一条占位消息')
         removeLastUserMessage('user')
       }
     }
@@ -432,11 +417,20 @@ onShow(() => {
     RecordAppInstance.UniPageOnShow(vueInstance)
   }
 })
+
+router.ready(() => {
+  const { modelName } = router.query as any
+  console.log(modelName, '路由参数')
+
+  if (modelName) {
+    handleChangeAiModel(modelName)
+  }
+})
 </script>
 
 <template>
   <view>
-    <nav-bar :show-back="false">
+    <nav-bar>
       <template #right>
         <icon-font :name="isAutoPlayAiMessage ? 'sound' : 'mute'" :color="isAutoPlayAiMessage ? COLOR_PRIMARY : ''" size="40" @click="isAutoPlayAiMessage = !isAutoPlayAiMessage" />
       </template>
@@ -454,11 +448,12 @@ onShow(() => {
       ref="chatSSEClientRef"
       @on-open="onStart"
       @on-error="onError"
-      @on-message="onSuccess"
+      @on-message="onSuccess && onSuccess?.($event)"
       @on-finish="onFinish"
     />
 
     <!-- 音频播放组件 -->
+    <!-- #ifdef APP-PLUS -->
     <StreamPlayer
       ref="streamPlayerRef"
       :stream-data="streamData"
@@ -466,6 +461,7 @@ onShow(() => {
       @on-stream-play-end="onStreamPlayEnd"
       @on-stream-stop="onStreamStop"
     />
+    <!-- #endif -->
 
     <view :style="aiPageContent">
       <view
@@ -560,8 +556,6 @@ onShow(() => {
       </scroll-view>
     </view>
 
-    <check-app-page v-model="visible" :update-list="updateList" @update-now="handleUpdate" @remind-later="handleRemind" />
-
     <!-- 统一输入框 -->
     <RecorderInput
       v-model:model-value="replyForm.content"
@@ -579,29 +573,6 @@ onShow(() => {
       @recorder-confirm="handleRecorderConfirm"
       @confirm="handleConfirm "
     />
-    <!-- 添加条件编译 -->
-    <!-- #ifdef APP-PLUS -->
-    <popup v-model="popupVisible" type="left" :is-mask-click="false">
-      <view class="bg-#fff w-400rpx h-100vh py-140rpx px-32rpx">
-        <view class="flex flex-1 justify-end mb-60rpx w-full" @click="popupVisible = false">
-          <icon-font name="close" size="48" />
-        </view>
-
-        <view
-          v-for="(item, index) in aiNameList"
-          :key="index"
-          class="h-80rpx flex justify-between items-center px-16rpx"
-          :class="[aiCurrentIndex === index ? 'bg-primary text-white' : '']"
-          @click="handleChangeAiModel(index)"
-        >
-          <text>
-            {{ item }}
-          </text>
-          <icon-font name="right" />
-        </view>
-      </view>
-    </popup>
-    <!-- #endif -->
   </view>
 </template>
 
@@ -615,7 +586,7 @@ onShow(() => {
 }
 </style>
 
-<route lang="json" type="page">
+<route lang="json">
   {
        "style": { "navigationBarTitleText": "录音","navigationStyle": "custom" }
   }

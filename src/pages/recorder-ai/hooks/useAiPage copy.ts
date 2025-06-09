@@ -1,4 +1,3 @@
-import type { AiMessage } from '@/hooks'
 import { aiModelList, setAiContent } from '@/pages/ai/const'
 
 export default function useAiPage(height: string) {
@@ -24,57 +23,41 @@ export default function useAiPage(height: string) {
   // 动态挂载 useAi 的返回值
   const chatSSEClientRef = ref()
   const loading = ref(false)
-  const content = ref<AiMessage[]>([])
+  const content = ref<any[]>([])
   const isAiMessageEnd = ref(false)
   const isStreaming = ref(false)
-  const chatSSEClientShow = ref(false)
+
   let startChat = () => {}
   let stopChat = () => {}
   let onStart = () => {}
   let onError: (err: Error | string) => void = () => {}
-  const onSuccess = ref<(msg: string) => void>(() => {})
-  const onFinish = ref<() => void>(() => {})
+  let onSuccess = (msg: string) => {}
+  let onFinish = () => {}
 
   function init() {
     const model = aiModelList[aiCurrentIndex.value]
     if (!model)
       return
 
-    const aiHooks = useAi(model, chatSSEClientRef.value)
+    const aiHooks = useAi(model)
     chatSSEClientRef.value = aiHooks.chatSSEClientRef
-
     startChat = aiHooks.startChat
     stopChat = aiHooks.stopChat
     onStart = aiHooks.onStart
     onError = aiHooks.onError
-    onSuccess.value = aiHooks.onSuccess
-    onFinish.value = aiHooks.onFinish
+    onSuccess = aiHooks.onSuccess
+    onFinish = aiHooks.onFinish
     loading.value = aiHooks.loading.value
-    // content.value = aiHooks.content.value
+    content.value = aiHooks.content.value
     isAiMessageEnd.value = aiHooks.isAiMessageEnd.value
     isStreaming.value = aiHooks.isStreaming.value
+
     aiInited.value = true
-    chatSSEClientShow.value = true
-
-    watch(() => loading.value, (val) => {
-      loading.value = val
-    }, { immediate: true, deep: true })
-
-    watch(() => aiHooks.content.value, (val) => {
-      content.value = val
-    }, { immediate: true, deep: true })
-
-    watch(() => aiHooks.isAiMessageEnd.value, (val) => {
-      isAiMessageEnd.value = val
-    }, { immediate: true, deep: true })
-
-    watch(() => aiHooks.isStreaming.value, (val) => {
-      isStreaming.value = val
-    }, { immediate: true, deep: true })
   }
 
   function handleToggle() {
     popupVisible.value = true
+    console.log('toggle')
   }
 
   function handleCopy(str: string) {
@@ -87,14 +70,8 @@ export default function useAiPage(height: string) {
   }
 
   function handleChangeAiModel(model: string) {
-    const index = aiModelList.findIndex(item => item.name === model)
-
-    if (index === -1) {
-      console.warn(`找不到模型名 ${model}，handleChangeAiModel 被跳过`)
-      return
-    }
-
-    aiCurrentIndex.value = index
+    aiCurrentIndex.value = aiModelList.findIndex(item => item.name === model)
+    console.log('切换 AI 模型', aiCurrentIndex.value)
 
     if (!aiInited.value) {
       init()
@@ -125,6 +102,7 @@ export default function useAiPage(height: string) {
         msg: replyForm.value.content,
         modeName: modelName.value || '',
       })
+      console.log('sendText---------------------', sendText)
 
       content.value.push(sendText)
     }
@@ -137,6 +115,7 @@ export default function useAiPage(height: string) {
     })
     startChat()
   }
+
   return {
     replyForm,
     popupRef,
@@ -153,7 +132,6 @@ export default function useAiPage(height: string) {
     content,
     isAiMessageEnd,
     isStreaming,
-    chatSSEClientShow,
     handleToggle,
     handleChangeAiModel,
     startChat,

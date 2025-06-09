@@ -47,8 +47,6 @@ export default {
         responseType: 'arraybuffer',
         success: () => {},
         fail: (error) => {
-          console.log('请求失败组件:', error)
-
           this.$emit('onInnerError', error)
         },
         complete: () => {

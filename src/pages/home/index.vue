@@ -9,8 +9,13 @@ import { aiModelList } from '../ai/const'
 
 const router = useRouter()
 
-function handleCardClick(model: string) {
-  router.push(`/pages/ai/${model}`)
+function handleCardClick(model?: typeof aiModelList[number]['model']) {
+  if (model) {
+    // router.push(`/pages/recorder-ai/index`, { modelName: model, id: 123 })
+    uni.navigateTo({
+      url: `/pages/recorder-ai/index?modelName=${model}&id=123`,
+    })
+  }
 }
 </script>
 
@@ -21,7 +26,7 @@ function handleCardClick(model: string) {
         v-for="item in aiModelList"
         :key="item.model"
         class="size-300rpx bg-white rounded-32rpx shadow-[0_4rpx_24rpx_rgba(0,_0,_0,_0.08)] flex flex-col items-center justify-center  "
-        @click="handleCardClick(item.icon!)"
+        @click="handleCardClick(item.name)"
       >
         <image
           class="size-96rpx mb-24rpx"

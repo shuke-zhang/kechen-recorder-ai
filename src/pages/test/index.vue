@@ -6,10 +6,15 @@
 
 <script setup lang="ts">
 const visible = ref(false)
+const router = useRouter()
+console.log(router.query, '录音传递的参数')
 
 function checkVersion() {
   visible.value = true
 }
+router.ready(() => {
+  console.log(router.query, '录音传递的参数2')
+})
 </script>
 
 <template>

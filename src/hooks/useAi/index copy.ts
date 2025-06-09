@@ -11,7 +11,7 @@ export interface AiMessage extends AiModel.AiRequestMessagesModel {
    */
   isRecordingPlaceholder?: boolean
 }
-export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChatSSEClientInstance) {
+export function useAi(options: AiOptionsModel) {
   // const optionsParams = {
   //   'deepseek-r1': options.params,
   //   'doubao': options.params,
@@ -47,7 +47,7 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
   /**
    * @description GaoChatSSEClient组件实例
    */
-  // const chatSSEClientRef = ref<AiModel.GaoChatSSEClientInstance>()
+  const chatSSEClientRef = ref<AiModel.GaoChatSSEClientInstance>()
 
   /**
    * @description ai请求loading
@@ -72,8 +72,9 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
       return showToast('请先输入聊天内容')
     }
     isAiMessageEnd.value = false
+    console.log(999999999)
 
-    return chatSSEClientRef?.startChat({
+    return chatSSEClientRef.value?.startChat({
       url: options.baseURL,
       headers: {
         Authorization: `Bearer ${options.apiKey}`,
@@ -95,7 +96,7 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
    */
   function stopChat() {
     loading.value = false
-    return chatSSEClientRef?.stopChat()
+    return chatSSEClientRef.value?.stopChat()
   }
 
   /**

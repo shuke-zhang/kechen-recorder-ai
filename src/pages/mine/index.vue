@@ -1,69 +1,130 @@
-<route lang="json">
+<route  lang="json" type="mine">
   {
-    "style": {
-      "navigationBarTitleText": "组合式API桥接方案"
-    }
-  }
-  </route>
+    "style": { "navigationBarTitleText": "柯臣","navigationStyle": "custom" }
 
-  <!-- #ifdef APP -->
-<script module="demoRender" lang="renderjs">
-// eslint-disable-next-line ts/ban-ts-comment
-// @ts-nocheck
-export default {
-  mounted() {
-    console.log('📢 renderjs mounted，准备调用逻辑层 onRenderCall')
-    setTimeout(() => {
-      if (this.$ownerInstance?.callMethod) {
-        console.log('📤 renderjs 开始 callMethod onRenderCall')
-        this.$ownerInstance.callMethod('onRenderCall', {
-          msg: 'hello from renderjs',
-        })
-      }
-      else {
-        console.error('❌ this.$ownerInstance.callMethod 不存在')
-      }
-    }, 500) // 加延迟以确保逻辑层挂载完成
-  },
-}
-</script>
-  <!-- #endif -->
+  }
+</route>
 
 <script setup lang="ts">
-onMounted(() => {
-  const instance = getCurrentInstance()
-  console.log('📌 getCurrentInstance:', instance)
+// 直接解构会丢失响应式数据 也可以用 storeToRefs https://pinia.vuejs.org/zh/api/modules/pinia.html#storetorefs
+const userInfo = useUserStore()
+const router = useRouter()
+const userHeightStyle = computed(() => {
+  return {
+    height: '520rpx',
+    backgroundImage: `url(${STATIC_URL}/images/user-bg.png)`,
+    // 拉伸背景图片
+    backgroundSize: '750rpx 520rpx',
+    backgroundPosition: 'center bottom',
+    backgroundRepeat: 'no-repeat',
+  }
+})
 
-  if (instance?.proxy?.$scope) {
-    console.log('✅ $scope 存在，开始挂载 onRenderCall')
+const listFeature = [
+  {
+    title: '意见反馈',
+    icon: '/images/icons/user-feature-advice.png',
+    // path: '/feature/pages/test/index',
+  },
+  {
+    title: '关于我们',
+    icon: '/images/icons/user-feature-about.png',
+  },
+  {
+    title: '检查更新',
+    icon: '/images/icons/user-feature-update.png',
+  },
+]
 
-    instance.proxy.$scope.onRenderCall = (e) => {
-      console.log('🎯 renderjs 调用了逻辑层 onRenderCall@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:', e)
-      uni.showToast({ title: `收到：${e?.msg}`, icon: 'none' })
-    }
+function handleClickFeature(item: any) {
+  if (item.path) {
+    router.push(item.path)
   }
   else {
-    console.error('❌ $scope 不存在')
+    showToast('敬请期待！')
   }
-})
-defineExpose({
-  onRenderCall,
-})
+}
 </script>
 
 <template>
-  <view class="container">
-    <text>RenderJS 调用逻辑层示例</text>
-    <view
-      ref="renderView"
-      type="renderjs"
-      module="demoRender"
-    />
+  <view class="mine-bg-container" :style="userHeightStyle">
+    <nav-bar transparent :show-back="false" />
+    <view class="h-124rpx mt-20rpx  mx-32rpx flex-center">
+      <view class="size-300rpx border-rd-124rpx bg-#ffffff flex-center">
+        <image
+          :src="`${STATIC_URL}/images/logo.png`"
+          class="size-300rpx border-rd-36rpx "
+          :class="userInfo.userInfo?.sex === '2' ? 'bg-#f7def0' : 'bg-#def0f7'"
+        />
+      </view>
+    </view>
+  </view>
+
+  <view class="m-32rpx">
+    <view class=" card card-form list-features">
+      <view class="features-container">
+        <view
+          v-for="item in listFeature" :key="item.title"
+          class="features-item flex items-center"
+          @click="handleClickFeature(item)"
+        >
+          <image
+            mode="aspectFill"
+            :src="`${STATIC_URL}${item.icon}`"
+          />
+          <view class="flex items-center h-full title flex-1">
+            <text>
+              {{ item.title }}
+            </text>
+          </view>
+          <icon-font
+            name="right"
+            color="#ccc"
+            class="more"
+            size="24"
+          />
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
-  <style>
-  .container {
-  padding: 50rpx;
+<style lang="scss">
+.list-features {
+  padding: 0 40rpx 0 40rpx;
+  .features-container {
+    image {
+      width: 48rpx;
+      height: 48rpx;
+      margin-right: 20rpx;
+    }
+  }
+}
+
+.features-item {
+  height: 100rpx;
+  position: relative;
+
+  &:not(:last-of-type) {
+    .title {
+      border-bottom: 1rpx solid;
+      border-color: rgba(185, 183, 194, 0.5);
+    }
+  }
+
+  .more {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    margin: auto 0;
+    right: 30rpx;
+  }
+}
+
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-gap: 20rpx;
+  padding: 40rpx 0;
 }
 </style>

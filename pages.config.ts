@@ -9,31 +9,31 @@ export default defineUniPages({
     navigationBarBackgroundColor: '#ffffff',
     backgroundColor: '#ffffff',
   },
-  // tabBar: {
-  //   color: '#707070',
-  //   selectedColor: '#49b9ad',
-  //   backgroundColor: '#ffffff',
-  //   borderStyle: 'black',
-  //   fontSize: '10px',
-  //   height: '50px',
-  //   iconWidth: '24px',
-  //   spacing: '3px',
-  //   position: 'bottom',
-  //   list: [
-  //     {
-  //       pagePath: 'pages/home/index',
-  //       iconPath: 'static/tabbar/home-off.png',
-  //       selectedIconPath: 'static/tabbar/home-on.png',
-  //       text: '首页',
-  //     },
-  //     {
-  //       pagePath: 'pages/mine/index',
-  //       iconPath: 'static/tabbar/mine-off.png',
-  //       selectedIconPath: 'static/tabbar/mine-on.png',
-  //       text: '个人',
-  //     },
-  //   ],
-  // },
+  tabBar: {
+    color: '#707070',
+    selectedColor: '#49b9ad',
+    backgroundColor: '#ffffff',
+    borderStyle: 'black',
+    fontSize: '10px',
+    height: '50px',
+    iconWidth: '24px',
+    spacing: '3px',
+    position: 'bottom',
+    list: [
+      {
+        pagePath: 'pages/home/index',
+        iconPath: 'static/tabbar/home-off.png',
+        selectedIconPath: 'static/tabbar/home-on.png',
+        text: '首页',
+      },
+      {
+        pagePath: 'pages/mine/index',
+        iconPath: 'static/tabbar/mine-off.png',
+        selectedIconPath: 'static/tabbar/mine-on.png',
+        text: '个人',
+      },
+    ],
+  },
 
   easycom: {
     autoscan: true,

@@ -5,6 +5,31 @@
     "navigationBarBackgroundColor": "#ffffff",
     "backgroundColor": "#ffffff"
   },
+  "tabBar": {
+    "color": "#707070",
+    "selectedColor": "#49b9ad",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "fontSize": "10px",
+    "height": "50px",
+    "iconWidth": "24px",
+    "spacing": "3px",
+    "position": "bottom",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "iconPath": "static/tabbar/home-off.png",
+        "selectedIconPath": "static/tabbar/home-on.png",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/mine/index",
+        "iconPath": "static/tabbar/mine-off.png",
+        "selectedIconPath": "static/tabbar/mine-on.png",
+        "text": "个人"
+      }
+    ]
+  },
   "easycom": {
     "autoscan": true,
     "custom": {
@@ -14,11 +39,10 @@
   },
   "pages": [
     {
-      "path": "pages/recorder-ai/index",
+      "path": "pages/home/index",
       "type": "home",
       "style": {
-        "navigationBarTitleText": "录音",
-        "navigationStyle": "custom"
+        "navigationBarTitleText": "柯臣"
       }
     },
     {
@@ -41,22 +65,20 @@
       }
     },
     {
-      "path": "pages/home/index",
-      "type": "page",
-      "style": {
-        "navigationBarTitleText": "柯臣"
-      }
-    },
-    {
       "path": "pages/mine/index",
-      "type": "page",
+      "type": "mine",
       "style": {
-        "navigationBarTitleText": "组合式API桥接方案"
+        "navigationBarTitleText": "柯臣",
+        "navigationStyle": "custom"
       }
     },
     {
-      "path": "pages/mine/test",
-      "type": "page"
+      "path": "pages/recorder-ai/index",
+      "type": "page",
+      "style": {
+        "navigationBarTitleText": "录音",
+        "navigationStyle": "custom"
+      }
     },
     {
       "path": "pages/recorder-ai/recorder-input",

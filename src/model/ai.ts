@@ -4,6 +4,10 @@ export interface AiOptionsModel {
    */
   name?: string
   /**
+   * 备注
+   */
+  mark?: string
+  /**
    * 模型apiKey
    */
   apiKey: string

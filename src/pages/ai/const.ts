@@ -4,6 +4,7 @@ import type { AiOptionsModel } from '@/model/ai'
 export const aiModelList: AiOptionsModel[] = [
   {
     name: 'deepseek-r1',
+    mark: '模型更深，推理更强',
     model: 'deepseek-r1-250120',
     icon: 'deepseek',
     params: 'messages',
@@ -15,6 +16,7 @@ export const aiModelList: AiOptionsModel[] = [
   },
   {
     name: 'doubao',
+    mark: '字节出品，适合日常轻使用',
     model: 'doubao-vision-pro-32k-241028',
     icon: 'doubao',
     params: 'messages',
@@ -26,6 +28,7 @@ export const aiModelList: AiOptionsModel[] = [
   },
   {
     name: '通义千问',
+    mark: '学术与中文深度理解强',
     model: 'qwen-plus',
     icon: 'qwen',
     params: 'messages',
@@ -37,6 +40,7 @@ export const aiModelList: AiOptionsModel[] = [
   },
   {
     name: '智谱清言',
+    mark: '阿里技术底座，多语言多模态优',
     model: 'glm-4-plus',
     icon: 'zhipu',
     params: 'messages',

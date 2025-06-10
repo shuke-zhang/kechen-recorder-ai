@@ -87,6 +87,7 @@ const {
   replyForm,
   aiPageContent,
   aiScrollView,
+  stopChat,
   onStart,
   onError,
   onSuccess,
@@ -206,12 +207,18 @@ async function autoPlayAiMessage(text: string, index: number) {
  */
 function handleConfirm() {
   tempBuffers.value = []
+  //  点击时如果ai消息没有返回完 ，并且正在播放，直接停止
+  if (isAiMessageEnd.value && isStreamPlaying.value) {
+    stopAll()
+    handleSendMsg()
+    return
+  }
   handleSendMsg()
 }
 
 function handleTouchStart() {
   if (loading.value) {
-    return showToast('请等待上个回答完成')
+    stopAll()
   }
 
   textRes.value = ''
@@ -264,6 +271,7 @@ function handleTouchEnd() {
  */
 const handleRecorder = debounce((text: string, index: number) => {
   // 当前已经在播放此条消息
+
   if (currentIndex.value === index && isStreamPlaying.value) {
     console.log('🟡 再次点击同一条，执行停止')
     streamPlayerRef.value?.onStreamStop()
@@ -271,10 +279,10 @@ const handleRecorder = debounce((text: string, index: number) => {
     return
   }
 
-  // 切换了消息
-  if (isStreamPlaying.value) {
+  if (!isStreamPlaying.value) {
     console.log('🟥 切换消息播放，先停止')
     streamPlayerRef.value?.onStreamStop()
+    // stopChat()
   }
 
   // ✅ 开始新的播放
@@ -339,7 +347,7 @@ function handleClearContent() {
     return showToast('当前对话为空')
   }
   if (loading.value) {
-    return showToast('请等待回答完成, 再清空对话')
+    stopAll()
   }
 
   showModal('是否清空对话？').then(() => {
@@ -351,6 +359,18 @@ function handleClearContent() {
     // 重置格式化器
     textReset()
   })
+}
+
+function stopAll() {
+  // 停止ai消息
+  stopChat()
+  // 停止播放
+  streamPlayerRef.value?.onStreamStop()
+  currentIndex.value = null
+  // 重置格式化器
+  textReset()
+  // 重置播放状态
+  isStreamPlaying.value = false
 }
 
 // 添加一个监听最后一条消息内容的变化（对于流式输出非常有用）
@@ -567,10 +587,8 @@ router.ready(() => {
       v-model:focus="isFocus"
       v-model:show-recording-button="showRecordingButton"
       placeholder="请输入您的问题..."
-      is-offset
       class="flex-1"
       btn-text="发送"
-      :is-disabled-recorder="loading"
       @recorder-close="handleRecorderClose"
       @show-recorder="handleShowRecorder"
       @recorder-touch-start="handleTouchStart"

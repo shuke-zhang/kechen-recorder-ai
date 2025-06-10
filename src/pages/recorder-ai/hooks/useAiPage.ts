@@ -111,9 +111,6 @@ export default function useAiPage(height: string) {
     if (!replyForm.value.content.trim() && !last?.isRecordingPlaceholder) {
       return showToastError('请输入问题')
     }
-    if (loading.value) {
-      return showToast('请等待上个回答完成')
-    }
 
     if (last?.isRecordingPlaceholder) {
       last.content = replyForm.value.content

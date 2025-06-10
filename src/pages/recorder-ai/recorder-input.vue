@@ -8,6 +8,9 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  /**
+   * 输入框占位符
+   */
   placeholder: String,
   btnText: {
     type: String,
@@ -27,6 +30,8 @@ const emit = defineEmits<{
   'update:modelValue': [string]
   'update:focus': [boolean]
   'update:showRecordingButton': [boolean]
+  /** 点击发送按钮 */
+  /** 点击发送按钮 */
   'confirm': []
   'recorderConfirm': []
   'recorderClose': []
@@ -36,9 +41,17 @@ const emit = defineEmits<{
   /** 录音按钮抬起 */
   'recorderTouchEnd': []
 }>()
-
+/**
+ * 输入框的值
+ */
 const inputValue = useVModel(props, 'modelValue', emit)
+/**
+ * 是否聚焦
+ */
 const isFocus = useVModel(props, 'focus', emit)
+/**
+ * 是否显示录音按钮
+ */
 const showRecordingButton = useVModel(props, 'showRecordingButton', emit)
 
 /**
@@ -129,6 +142,11 @@ onHide(() => {
   uni.offKeyboardHeightChange()
   // #endif
 })
+function handleConfirm() {
+  /** 点击按钮 */
+  emit('confirm')
+  inputValue.value = ''
+}
 </script>
 
 <template>
@@ -156,7 +174,7 @@ onHide(() => {
         class="send-btn"
         type="primary"
         :disabled="isDisabled || !inputValue"
-        @click="emit('confirm')"
+        @click="handleConfirm"
       >
         {{ btnText }}
       </button>

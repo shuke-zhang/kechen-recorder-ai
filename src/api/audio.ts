@@ -36,6 +36,7 @@ export async function doubaoSpeechSynthesisFormat(params: { text: string, id: nu
       message: audioData.message,
       sequence: audioData.sequence,
     }
+    console.log('接口请求成功格式化', audioRes.code)
 
     if (audioRes.code !== 3000) {
       throw new Error(audioRes.message || '语音合成失败')

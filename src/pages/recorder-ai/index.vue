@@ -65,7 +65,6 @@ const isStreamPlaying = ref(false)
 const router = useRouter<{
   modelName: string
 }>()
-console.log(router.query, '检查路由参数')
 
 /**
  * 音频播放组件实例
@@ -139,7 +138,7 @@ const scrollViewRef = ref(null)
 const animatedDots = ref('')
 let dotTimer: NodeJS.Timeout | null = null
 const currentIndex = ref<number | null>(null)
-const isAudioPlaying = ref(false)
+const isAudioPlaying = ref(false) // 音频播放真正的开始
 const tempBuffers = ref<{ audio_data: string, text: string }[]>([])
 const tempFormattedTexts = ref<string[]>([])
 const streamData = ref<{
@@ -147,6 +146,9 @@ const streamData = ref<{
   buffer: string
   id: number
 }>()
+// 是否切换到新的消息进行播放
+const isSwitchingNewMessage = ref(false)
+
 /**
  * 是否自动播放
  */
@@ -193,7 +195,6 @@ async function autoPlayAiMessage(text: string, index: number) {
       if (isAiMessageEnd.value) {
         tempFormattedTexts.value = []
       }
-      isAudioPlaying.value = true
     }).catch((error) => {
       isStreamPlaying.value = false
       isAudioPlaying.value = false
@@ -217,9 +218,7 @@ function handleConfirm() {
 }
 
 function handleTouchStart() {
-  if (loading.value) {
-    stopAll()
-  }
+  stopAll()
 
   textRes.value = ''
   handleRecorderTouchStart()
@@ -278,32 +277,36 @@ const handleRecorder = debounce((text: string, index: number) => {
     currentIndex.value = null
     return
   }
-
-  if (!isStreamPlaying.value) {
-    console.log('🟥 切换消息播放，先停止')
+  // 添加逻辑档切换新消息时先停止已经播放的消息，之后再播放新的消息
+  if (currentIndex.value !== null && isStreamPlaying.value) {
+    isSwitchingNewMessage.value = true // 避免 onStreamStop 设置为false时有延迟，导致我点击之后不能立马设置为true
+    console.log('🔴 切换新消息，先停止已播放的消息')
     streamPlayerRef.value?.onStreamStop()
-    // stopChat()
   }
 
   // ✅ 开始新的播放
   console.log('🟢 开始播放新消息')
-  currentIndex.value = index
   isStreamPlaying.value = true
+  currentIndex.value = index
+
   const longTexts = processText(text, true)
   longTexts.forEach((longText, i) => {
-    doubaoSpeechSynthesisFormat({
-      text: longText,
-      id: i,
-    }).then((res) => {
-      const { audio_buffer, text, id } = res
-      streamData.value = {
-        buffer: audio_buffer,
-        text,
-        id,
-      }
-    }).catch(() => {
-      isStreamPlaying.value = false
-    })
+    if (longText.length) {
+      doubaoSpeechSynthesisFormat({
+        text: longText,
+        id: i,
+      }).then((res) => {
+        const { audio_buffer, text, id } = res
+        streamData.value = {
+          buffer: audio_buffer,
+          text,
+          id,
+        }
+      }).catch((e) => {
+        console.log('点击时捕获到错误', e)
+        isStreamPlaying.value = false
+      })
+    }
   })
 }, 500)
 
@@ -311,14 +314,30 @@ const handleRecorder = debounce((text: string, index: number) => {
  * 语音播放真正的开始
  */
 function onStreamPlayStart() {
+  console.log('页面检测到播放音频开始----设置状态true')
+
   isAudioPlaying.value = true
+  // 防止由于播放器停止时触发延迟，所以这儿也要设置状态
+  isStreamPlaying.value = true
 }
 
 /**
  * 语音播放结束
  */
 function onStreamPlayEnd() {
-  isStreamPlaying.value = false
+  console.log('页面检测到播放音频结束----设置状态为false')
+  /**
+   * 这儿使用  isSwitchingNewMessage 来控制立即更新 isStreamPlaying 的状态的
+   * 已知当我前几切换新的消息播放时 ， 会触发该函数，此时会关闭 isStreamPlaying 的状态
+   * 此时 isSwitchingNewMessage 的状态就不是在我点击后立即触发了，而是在音频播放时才触发，这会造成观看上的延迟
+   * 所以在这儿使用 isSwitchingNewMessage 来控制立即更新 isStreamPlaying 的状态的
+   */
+  if (isSwitchingNewMessage.value) {
+    isSwitchingNewMessage.value = false
+  }
+  else {
+    isStreamPlaying.value = false
+  }
   isAudioPlaying.value = false
 }
 /**
@@ -369,6 +388,7 @@ function stopAll() {
   textReset()
   // 重置播放状态
   isStreamPlaying.value = false
+  isAudioPlaying.value = false
 }
 
 // 添加一个监听最后一条消息内容的变化（对于流式输出非常有用）
@@ -418,7 +438,6 @@ watch(() => isRunning.value, (val: boolean) => {
 watch(() => textRes.value, async (newVal) => {
   await nextTick() // 确保视图更新完成
   replyForm.value.content = newVal as string
-  console.log('文本内容赋值更新：', newVal)
 })
 
 onMounted(() => {
@@ -443,7 +462,6 @@ onShow(() => {
 
 router.ready(() => {
   const { modelName } = router.query as any
-  console.log(modelName, '路由参数')
 
   if (modelName) {
     handleChangeAiModel(modelName)
@@ -554,7 +572,7 @@ router.ready(() => {
                   :class="[msg.streaming && !(msg.content && msg.content.length) ? 'flex-center w-120rpx h-120rpx ' : '']"
                 >
                   <view v-if="msg.content">
-                    <UaMarkdown :source="msg.content" :show-line="false" />
+                    <UaMarkdown :source="`${msg.content}`" :show-line="false" />
                     <view class="h-2rpx  bg-black-3 my-10rpx" />
 
                     <view class="flex items-center justify-end ">

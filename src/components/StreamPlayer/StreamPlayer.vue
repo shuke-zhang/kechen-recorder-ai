@@ -87,7 +87,6 @@ export default {
     // @ts-ignore
  playTTS(currTTSData) {
  const {buffer,text,id} = currTTSData
-  console.log(text, 'playTTS的文本')
   if(!player){
     player = new StreamAudioPlayer()
   }
@@ -110,8 +109,6 @@ export default {
     stopTTS(stopSignal) {
        currentSessionId++
       player?.stop?.()
-      player?.destroy?.()
-      player = null
     },
     // @ts-ignore
     base64ToArrayBuffer(base64Data) {

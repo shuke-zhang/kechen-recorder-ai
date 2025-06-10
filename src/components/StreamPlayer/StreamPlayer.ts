@@ -143,7 +143,12 @@ export default class StreamAudioPlayer {
       return
     console.log('this.nextPlayId', this.nextPlayId)
 
-    const { text, id } = this.audioBufferMap.get(this.nextPlayId)!
+    const currentAudio = this.audioBufferMap.get(this.nextPlayId)
+    if (!currentAudio) {
+      console.log('当前没有音频片段需要播放，等待下一个')
+      return
+    }
+    const { text, id } = currentAudio
     console.log('test^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^', text, id)
 
     // 检查 Map 里是否有当前要播放的 nextPlayId

@@ -203,6 +203,7 @@ export default class RecorderCoreManager extends EventEmitter {
       }
 
       const result = json.data?.result
+
       if (!result)
         return
 
@@ -222,23 +223,24 @@ export default class RecorderCoreManager extends EventEmitter {
       const rg = result.rg || []
 
       if (pgs === 'apd') {
-      // 追加拼接
-        this.resultText += text
-      }
-      else if (pgs === 'rpl' || pgs === 'rlt') {
-      // 替换旧内容中指定范围
-        const [start, end] = rg
-        const oldChars = this.resultText.split('')
-        oldChars.splice(start, end - start + 1, ...text.split(''))
-        this.resultText = oldChars.join('')
-      }
-      else {
-      // 其他未知模式（保险处理）
-        this.resultText += text
+        // 当前结果是最终追加文本，可确认保存
+        this.resultText = this.resultTextTemp || ''
       }
 
-      // 实时返回更新文本
-      this.onTextChange?.(this.resultText)
+      // 动态修正逻辑：无论是 apd 还是 rpl 都应作用于 resultText
+      if (pgs === 'rpl' || pgs === 'rlt') {
+        const [start, end] = rg
+        const oldChars = (this.resultText || '').split('')
+        oldChars.splice(start, end - start + 1, ...text.split(''))
+        this.resultTextTemp = oldChars.join('')
+      }
+      else {
+        // 默认处理：直接追加到 resultText（用于非动态修正场景）
+        this.resultTextTemp = (this.resultText || '') + text
+      }
+
+      // 实时触发变更回调
+      this.onTextChange?.(this.resultTextTemp || this.resultText || '')
 
       // 最后一帧
       if (json.data.status === 2) {

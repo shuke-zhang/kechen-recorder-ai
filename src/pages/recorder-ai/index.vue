@@ -296,7 +296,6 @@ const handleRecorder = debounce((text: string, index: number) => {
       id: i,
     }).then((res) => {
       const { audio_buffer, text, id } = res
-      console.log('接口请求成功******', text)
       streamData.value = {
         buffer: audio_buffer,
         text,
@@ -304,7 +303,6 @@ const handleRecorder = debounce((text: string, index: number) => {
       }
     }).catch(() => {
       isStreamPlaying.value = false
-      console.log('接口请求失败******', text)
     })
   })
 }, 500)
@@ -457,12 +455,12 @@ router.ready(() => {
   <view>
     <nav-bar>
       <template #right>
-        <icon-font :name="isAutoPlayAiMessage ? 'sound' : 'mute'" :color="isAutoPlayAiMessage ? COLOR_PRIMARY : ''" size="40" @click="isAutoPlayAiMessage = !isAutoPlayAiMessage" />
+        <view class="flex  pr-50rpx">
+          <icon-font name="clear" color="#E95655" size="40" @click="handleClearContent" />
+          <icon-font :name="isAutoPlayAiMessage ? 'sound' : 'mute'" :color="isAutoPlayAiMessage ? COLOR_PRIMARY : ''" size="40" class="ml-20rpx" @click="isAutoPlayAiMessage = !isAutoPlayAiMessage" />
+        </view>
       </template>
 
-      <template #left>
-        <icon-font name="clear" color="#E95655" size="40" @click="handleClearContent" />
-      </template>
       <text @click="handleMultiClick">
         柯仔AI
       </text>

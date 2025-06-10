@@ -6,17 +6,19 @@
 
 <script setup lang="ts">
 import { aiModelList } from '../ai/const'
+import { useCheckAppVersion } from '@/hooks'
 
 const router = useRouter()
+const { visible, downloadUrl, updateList, downloadApp, checkNewVersion } = useCheckAppVersion()
 
 function handleCardClick(model?: typeof aiModelList[number]['model']) {
   if (model) {
-    // router.push(`/pages/recorder-ai/index`, { modelName: model, id: 123 })
-    uni.navigateTo({
-      url: `/pages/recorder-ai/index?modelName=${model}&id=123`,
-    })
+    router.push(`/pages/recorder-ai/index`, { modelName: model })
   }
 }
+router.ready(() => {
+  checkNewVersion()
+})
 </script>
 
 <template>
@@ -41,6 +43,7 @@ function handleCardClick(model?: typeof aiModelList[number]['model']) {
         </view>
       </view>
     </view>
+    <check-app-page v-model="visible" :update-list="updateList" @update-now="downloadApp(downloadUrl)" />
   </view>
 </template>
 

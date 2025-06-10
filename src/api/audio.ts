@@ -16,6 +16,7 @@ export async function doubaoSpeechSynthesisFormat(params: { text: string, id: nu
       url: `/audio/synthesis/v1`,
       withToken: false,
       params,
+      showErrorMsg: false,
     })
 
     // 解析最外层msg为对象

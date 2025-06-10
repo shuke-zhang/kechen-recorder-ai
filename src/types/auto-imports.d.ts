@@ -177,6 +177,7 @@ declare global {
   const unref: typeof import('vue')['unref']
   const useAi: typeof import('../hooks/useAi/index')['useAi']
   const useAttrs: typeof import('vue')['useAttrs']
+  const useCheckAppVersion: typeof import('../hooks/useCheckAppVersion/index')['useCheckAppVersion']
   const useComputedRef: typeof import('../hooks/useComputedRef/index')['useComputedRef']
   const useContext: typeof import('../hooks/useContext/index')['useContext']
   const useCssModule: typeof import('vue')['useCssModule']

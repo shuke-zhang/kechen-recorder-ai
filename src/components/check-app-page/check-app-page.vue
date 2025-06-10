@@ -6,9 +6,7 @@ const props = defineProps<{
 const emit = defineEmits(['updateNow', 'remindLater'])
 
 const model = defineModel<boolean>()
-watch(model, (newVal) => {
-  console.log('监听到了弹窗变化', newVal)
-})
+
 function handleUpdateNow() {
   emit('updateNow')
   model.value = false
@@ -17,9 +15,6 @@ function handleRemindLater() {
   emit('remindLater')
   model.value = false
 }
-onReady(() => {
-  console.log('页面加载完成check-app-page')
-})
 </script>
 
 <template>

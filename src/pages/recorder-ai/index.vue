@@ -194,6 +194,8 @@ async function autoPlayAiMessage(text: string, index: number) {
       }
       isAudioPlaying.value = true
     }).catch((error) => {
+      isStreamPlaying.value = false
+      isAudioPlaying.value = false
       console.log(error, '错误')
     })
   }
@@ -292,6 +294,9 @@ const handleRecorder = debounce((text: string, index: number) => {
         text,
         id,
       }
+    }).catch(() => {
+      isStreamPlaying.value = false
+      console.log('接口请求失败******', text)
     })
   })
 }, 500)

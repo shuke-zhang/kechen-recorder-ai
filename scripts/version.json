@@ -1,4 +1,8 @@
 {
-  "version": "1.0.1",
-  "appUrl": "https://shuke-zhang.oss-cn-chengdu.aliyuncs.com/kezai/kezai-AI.zip"
+  "version": "1.0.2",
+  "appUrl": "https://shuke-zhang.oss-cn-chengdu.aliyuncs.com/kezai/kezai-AI.zip",
+  "updateList": [
+    "添加首页选择AI模型功能",
+    "修复了部分bug"
+  ]
 }

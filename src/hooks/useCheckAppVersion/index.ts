@@ -12,6 +12,7 @@ import type { UniAppResponse, versionModel } from './types'
 export function useCheckAppVersion() {
   const visible = ref(false) // 是否显示弹窗
   const downloadUrl = ref('') // 下载地址
+  const updateList = ref<string[]>([]) // 更新内容列表
   /**
    * 通过json检测最新版本
    */
@@ -20,7 +21,6 @@ export function useCheckAppVersion() {
       const nextVersion = await uni.request({
         url: 'https://shuke-zhang.oss-cn-chengdu.aliyuncs.com/kezai/version.json',
         method: 'GET',
-
       }) as UniAppResponse<versionModel>
       return nextVersion.data
     }
@@ -58,7 +58,7 @@ export function useCheckAppVersion() {
 
       const nextVersion = nextVersionRes?.version
       downloadUrl.value = nextVersionRes?.appUrl || ''
-
+      updateList.value = nextVersionRes?.updateList || []
       // 获取当前App本地版本
       const currentVersion = await detectNewVersion() // 比如 '1.3.67'
       console.log('本地版本:', currentVersion, '线上版本:', nextVersion)
@@ -214,6 +214,7 @@ export function useCheckAppVersion() {
   return {
     visible,
     downloadUrl,
+    updateList,
     checkNewVersion,
     downloadApp,
   }

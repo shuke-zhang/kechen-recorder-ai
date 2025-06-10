@@ -5,4 +5,5 @@ export interface UniAppResponse<T extends BaseResponse = BaseResponse> extends U
 export interface versionModel {
   version: string
   appUrl: string
+  updateList: string[]
 }

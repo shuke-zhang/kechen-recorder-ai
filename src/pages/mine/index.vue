@@ -11,7 +11,6 @@ import { useCheckAppVersion } from '@/hooks/useCheckAppVersion'
 // 直接解构会丢失响应式数据 也可以用 storeToRefs https://pinia.vuejs.org/zh/api/modules/pinia.html#storetorefs
 const userInfo = useUserStore()
 const router = useRouter()
-const updateList = ref<any[]>(['添加首页选择ai模型功能', '修复了一些bug'])
 const userHeightStyle = computed(() => {
   return {
     height: '520rpx',
@@ -22,7 +21,7 @@ const userHeightStyle = computed(() => {
     backgroundRepeat: 'no-repeat',
   }
 })
-const { visible, downloadUrl, downloadApp, checkNewVersion } = useCheckAppVersion()
+const { visible, downloadUrl, updateList, downloadApp, checkNewVersion } = useCheckAppVersion()
 const listFeature = [
   {
     title: '意见反馈',
@@ -39,9 +38,7 @@ const listFeature = [
     function: onCheckUpdate,
   },
 ]
-function handleUpdate() {
-  return downloadApp(downloadUrl.value)
-}
+
 function handleClickFeature(item: any) {
   if (item.path) {
     router.push(item.path)
@@ -102,7 +99,7 @@ function onCheckUpdate() {
     </view>
   </view>
 
-  <check-app-page v-model="visible" :update-list="updateList" @update-now="handleUpdate" />
+  <check-app-page v-model="visible" :update-list="updateList" @update-now="downloadApp(downloadUrl)" />
 </template>
 
 <style lang="scss">

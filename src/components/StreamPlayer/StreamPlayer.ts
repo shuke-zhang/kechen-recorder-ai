@@ -21,24 +21,9 @@ export default class StreamAudioPlayer {
   private _onStart: (() => void) | null = null
   private _onEnd: (() => void) | null = null
   private incompleteBuffer: Uint8Array | null = null
-  /**
-   * 用于缓存所有已解码、但还未播放的音频片段。
-   * 键为每个音频片段的顺序 id（如 0, 1, 2, ...），值为包含音频数据和附加信息的对象。
-   * 播放时会按 id 顺序查找并移除，保证音频流按正确顺序播放。
-   */
   private audioBufferMap: Map<number, { buffer: AudioBuffer, text?: string, id: number }> = new Map()
-  /**
-   * 下一个需要播放的音频片段的 id。
-   * 只有当 audioBufferMap 中存在 nextPlayId 时，才会继续播放；
-   * 如果中间某个 id 缺失，则等待该 id 的片段到达，后续所有更大 id 的片段将继续缓存等待。
-   */
   private nextPlayId: number = 0
-  /**
-   * 当前正在播放的音频片段的 id。
-   * 如果没有音频在播放，则为 null。
-   * 可用于外部或调试判断当前正在播放的片段序号。
-   */
-  // private playingId: number | null = null
+
   constructor({
     inputSampleRate = 16000,
     numChannels = 1,
@@ -52,7 +37,6 @@ export default class StreamAudioPlayer {
     this.bitDepth = bitDepth
     this.littleEndian = littleEndian
     this.pcmType = pcmType as 'int' | 'float'
-    console.log('创建StreamAudioPlayer实例')
   }
 
   onStart(callback: () => void) {
@@ -63,15 +47,21 @@ export default class StreamAudioPlayer {
     this._onEnd = callback
   }
 
-  // ✅ 支持两个参数：data 为 ArrayBuffer，text 仅用于日志展示
-  async appendSmartChunk(options: { buffer: ArrayBuffer, text?: string, id?: number }) {
+  private async ensureAudioContextRunning() {
     if (this.audioContext?.state === 'suspended') {
-      await this.audioContext.resume()
+      try {
+        await this.audioContext.resume()
+        console.log('✅ AudioContext resumed')
+      }
+      catch (e) {
+        console.warn('⚠️ AudioContext resume failed:', e)
+      }
     }
+  }
 
+  async appendSmartChunk(options: { buffer: ArrayBuffer, text?: string, id?: number }) {
+    await this.ensureAudioContextRunning()
     const format = this.detectFormat(options.buffer)
-    console.log(`检测到音频格式为：${format}`)
-
     if (format === 'mp3') {
       await this.appendMP3Chunk(options)
     }
@@ -103,12 +93,7 @@ export default class StreamAudioPlayer {
       return
 
     const validBuffer = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength)
-
-    this.decodeQueue.push({
-      buffer: validBuffer,
-      text: options.text,
-      id: options.id,
-    })
+    this.decodeQueue.push({ buffer: validBuffer, text: options.text, id: options.id })
     this.isPendingEnd = true
     this.isForceStop = false
 
@@ -120,14 +105,15 @@ export default class StreamAudioPlayer {
   async appendMP3Chunk(options: { buffer: ArrayBuffer, text?: string, id?: number }) {
     if (!this.audioContext)
       return
+    await this.ensureAudioContextRunning()
+
     try {
       const buffer = await this.audioContext.decodeAudioData(options.buffer.slice(0))
       const id = options.id
       if (id == null)
         return
-      this.audioBufferMap.set(id, { buffer, text: options.text, id })
-      console.log('添加数据进audioBufferMap————————————————', id, options.text)
 
+      this.audioBufferMap.set(id, { buffer, text: options.text, id })
       this._tryPlayNextBuffer()
       this.isPendingEnd = true
       this.isForceStop = false
@@ -138,12 +124,9 @@ export default class StreamAudioPlayer {
   }
 
   private async _tryPlayNextBuffer() {
-  // 如果正在播放，直接返回
     if (this.isPlayingLocked || this.isPlaying)
       return
-    console.log('this.nextPlayId', this.nextPlayId)
 
-    // 检查 Map 里是否有当前要播放的 nextPlayId
     while (this.audioBufferMap.has(this.nextPlayId)) {
       const data = this.audioBufferMap.get(this.nextPlayId)
       if (!data) {
@@ -156,41 +139,34 @@ export default class StreamAudioPlayer {
       await this._playOneBuffer(buffer, text, id)
       this.nextPlayId++
     }
-    // === 【新增】播放队列空时自动 stop 或 onEnd ===
+
     if (
       this.audioBufferMap.size === 0
       && this.decodeQueue.length === 0
       && !this.isPlaying
       && !this.isPlayingLocked
-      && !this.isPendingEnd // 播放完最后一段才走这里
+      && !this.isPendingEnd
     ) {
-    // 播放全部结束，自动调用 stop 或触发回调
       this.stop()
-      if (typeof this._onEnd === 'function') {
-        this._onEnd()
-      }
+      this._onEnd?.()
     }
   }
 
   private async _playOneBuffer(buffer: AudioBuffer, text?: string, id?: number) {
     if (!this.audioContext)
       return
+    await this.ensureAudioContextRunning()
 
     this.isPlayingLocked = true
-
-    // 播放前回调
     if (!this.isPlaying) {
       this._onStart?.()
     }
     this.isPlaying = true
-    // this.playingId = id ?? null
-    // https://developer.mozilla.org/zh-CN/docs/Web/API/BaseAudioContext/createBufferSource
-    // createBufferSource() 方法用于创建一个新的AudioBufferSourceNode接口，该接口可以通过AudioBuffer 对象来播放音频数据。AudioBuffer对象可以通过AudioContext.createBuffer 来创建或者通过 AudioContext.decodeAudioData成功解码音轨后获取。
+
     const source = this.audioContext.createBufferSource()
-    //  在 AudioBufferSourceNode 中设置缓冲区（音频数据）。
     source.buffer = buffer
-    // 将 AudioBufferSourceNode 连接到输出（destination），这样我们才能听到声音。
     source.connect(this.audioContext.destination)
+
     const onEnded = new Promise<void>((resolve) => {
       source.onended = () => resolve()
     })
@@ -203,8 +179,6 @@ export default class StreamAudioPlayer {
     this.isPlaying = false
     this.isPlayingLocked = false
 
-    // 播放结束后检查下一个
-    // 下一个片段如果已经准备好，会在 _tryPlayNextBuffer 的 while 里自动顺序播放
     if (this.isPendingEnd && !this.isForceStop && this.decodeQueue.length === 0 && this.audioBufferMap.size === 0) {
       this._onEnd?.()
       this.isPendingEnd = false
@@ -222,10 +196,9 @@ export default class StreamAudioPlayer {
         continue
       const { buffer, text, id } = this._convertPCM(rawPCM)
       if (id == null)
-        continue // id 必须存在
-      // 缓存到 Map
+        continue
+
       this.audioBufferMap.set(id, { buffer, text, id })
-      // 每有新片段就尝试顺序播放
       this._tryPlayNextBuffer()
     }
 
@@ -240,14 +213,12 @@ export default class StreamAudioPlayer {
     this.isPlaying = false
     this.isPendingEnd = false
     this.audioBufferMap.clear()
-    // 核心补充，立即停止当前播放节点
+
     if (this.currentSource) {
       try {
-        this.currentSource.stop(0) // 立即终止当前正在播放的音频
+        this.currentSource.stop(0)
       }
-      catch (e) {
-      // 可能已经停止，忽略异常
-      }
+      catch (e) {}
       this.currentSource = null
     }
   }
@@ -255,7 +226,7 @@ export default class StreamAudioPlayer {
   destroy() {
     this.stop()
     if (this.audioContext) {
-      this.audioContext.close() // 关闭一个音频环境，释放任何正在使用系统资源的音频。
+      this.audioContext.close()
       this.audioContext = null
     }
   }
@@ -298,11 +269,7 @@ export default class StreamAudioPlayer {
       this._applyFades(channel)
     }
 
-    return {
-      buffer: audioBuffer,
-      text: options.text,
-      id: options.id,
-    }
+    return { buffer: audioBuffer, text: options.text, id: options.id }
   }
 
   private _applyFades(channel: Float32Array) {

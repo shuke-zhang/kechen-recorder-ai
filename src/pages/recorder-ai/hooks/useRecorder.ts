@@ -77,6 +77,7 @@ export default function useRecorder(options: AnyObject) {
         chunk = Recorder.SampleData(buffers, sampleRate, 16000, chunk)
         const pcmInt16 = new Int16Array(chunk.data)
         const arrayBuffer = pcmInt16.buffer // ✅ 得到最终的 ArrayBuffer
+        // 在这儿可以进行语音识别的操作，如果更换语音识别，那么可以把这个arrayBuffer发送给语音识别的接口
         arrayBuffer ? RecorderCoreClass.pushAudioData(arrayBuffer) : null
 
         // #ifdef H5 || MP-WEIXIN
@@ -117,10 +118,12 @@ export default function useRecorder(options: AnyObject) {
                 //放一些仅在renderjs中才生效的事情，不提供也行
             }`,
     }
+
     RecordApp.UniWebViewActivate(vueInstance) // App环境下必须先切换成当前页面WebView
+
     RecordApp.Start(set, () => {
-      console.log('RecordApp-已开始录音')
       textRes.value = ''
+
       handleStart()
       RecorderCoreClass.on('log', (msg) => {
         console.log(msg)
@@ -166,12 +169,10 @@ export default function useRecorder(options: AnyObject) {
   function handleShowRecorder() {
     if (isFirstVisit.value) {
       recReq().then(() => {
-        console.log('录音权限已获得sss ')
         showRecordingButton.value = true
         isFirstVisit.value = false // 更新标志，后续不再请求录音权限
       }).catch((err: any) => {
         showRecordingButton.value = false
-        console.log('录音权限未获得', err)
         showToastError(err)
       })
     }
@@ -179,14 +180,6 @@ export default function useRecorder(options: AnyObject) {
       // 直接显示录音按钮
       showRecordingButton.value = true
     }
-    // recReq().then(() => {
-    //   console.log('录音权限已获得sss ')
-    //   showRecordingButton.value = true
-    // }).catch((err: any) => {
-    //   showRecordingButton.value = false
-    //   console.log('录音权限未获得', err)
-    //   showToastError(err)
-    // })
   }
 
   /**
@@ -196,6 +189,7 @@ export default function useRecorder(options: AnyObject) {
     try {
       iseRecorderTouchStart.value = true
       isRecorderClose.value = false
+
       recStart()
     }
     catch (error: any) {
@@ -211,7 +205,6 @@ export default function useRecorder(options: AnyObject) {
       if (!RecorderCoreClass.isRunning) {
         isRunning.value = false
         recStop()
-        console.log('松开录音按钮-useRecorder')
       }
     })
   }
@@ -220,8 +213,6 @@ export default function useRecorder(options: AnyObject) {
    * 录音按钮取消录音
    */
   function handleRecorderClose() {
-    console.log('录音按钮取消录音-useRecorder')
-
     // 是否是取消录音
     isRecorderClose.value = true
     handleStop()
@@ -237,7 +228,6 @@ export default function useRecorder(options: AnyObject) {
    */
   function onTextChanged(text: string) {
     textRes.value = text
-    console.log('识别结果实时返回', text)
   }
 
   function pushPcmData({ array }: any) {

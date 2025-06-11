@@ -175,6 +175,14 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
     }
   }
 
+  function resetAi() {
+    console.log('重置ai---resetAi')
+
+    content.value = []
+    isAiMessageEnd.value = false
+    isStreaming.value = false
+  }
+
   return {
     loading,
     chatSSEClientRef,
@@ -190,6 +198,7 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
     onSuccess,
     onFinish,
     hotUpdate,
+    resetAi,
   }
 }
 /**

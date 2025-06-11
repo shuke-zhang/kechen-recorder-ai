@@ -132,6 +132,7 @@ export default function useAiPage(height: string) {
       content: '',
       streaming: true,
     })
+
     startChat()
   }
   return {

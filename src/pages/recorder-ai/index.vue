@@ -78,7 +78,6 @@ const { handleMultiClick } = useMultiClickTrigger({
 
 const {
   chatSSEClientRef,
-  loading,
   content,
   isAiMessageEnd,
   modelName,
@@ -86,11 +85,11 @@ const {
   replyForm,
   aiPageContent,
   aiScrollView,
+  onSuccess,
+  onFinish,
   stopChat,
   onStart,
   onError,
-  onSuccess,
-  onFinish,
   handleChangeAiModel,
   handleSendMsg,
   handleCopy,
@@ -155,12 +154,14 @@ const isSwitchingNewMessage = ref(false)
 const isAutoPlayAiMessage = ref(true)
 // 全局变量存储格式化器实例和当前处理的消息索引
 let lastProcessedIndex: number | null = null
+/** 代表当点击了音频小图标时 ，如果此时ai消息还没回复完音频也在播放时为true 否则为false 主要是用于判断ai回复中点击了音频图标后不再需要自动播放 */
+const hasUserInterruptedAutoPlay = ref(false)
 
 /**
  * ai内容自动播放音频
  */
 async function autoPlayAiMessage(text: string, index: number) {
-  if (!isAutoPlayAiMessage.value)
+  if (!isAutoPlayAiMessage.value || hasUserInterruptedAutoPlay.value)
     return
   if (!text || text.trim() === '')
     return
@@ -194,6 +195,7 @@ async function autoPlayAiMessage(text: string, index: number) {
       // ai返回的消息结束了
       if (isAiMessageEnd.value) {
         tempFormattedTexts.value = []
+        hasUserInterruptedAutoPlay.value = false
       }
     }).catch((error) => {
       isStreamPlaying.value = false
@@ -203,6 +205,7 @@ async function autoPlayAiMessage(text: string, index: number) {
   }
   isStreamPlaying.value = true
 }
+
 /**
  * 发送消息确认按钮
  */
@@ -217,9 +220,10 @@ function handleConfirm() {
   handleSendMsg()
 }
 
-function handleTouchStart() {
+const startTime = ref(0)
+const handleTouchStart = debounce(() => {
+  startTime.value = Date.now()
   stopAll()
-
   textRes.value = ''
   handleRecorderTouchStart()
   // 开始录音，插入一个临时消息（占位）
@@ -234,10 +238,19 @@ function handleTouchStart() {
   nextTick(() => {
     resetAndScrollToBottom()
   })
-}
+}, 300)
 
 function handleTouchEnd() {
   handleRecorderTouchEnd().then(async () => {
+    const endTime = Date.now()
+    const duration = endTime - startTime.value
+    console.log('🕒 说话时长===================================:', duration, 'ms')
+    if (duration < 300) {
+      removeLastUserMessage('user')
+      showToastError('说话时间太短')
+      stopAll() // ✅ 强制关闭所有逻辑
+      return
+    }
     if (isRecorderClose.value) {
       // 用户上滑取消
       removeLastUserMessage('user')
@@ -256,6 +269,7 @@ function handleTouchEnd() {
         resetAndScrollToBottom() // 强制滚动到底部
       }
       else {
+        showToastError('未识别到内容')
         removeLastUserMessage('user')
       }
     }
@@ -269,19 +283,25 @@ function handleTouchEnd() {
  * @warning 由于语音点击之后播放音频会有延迟， 所以在这儿直接设置状态
  */
 const handleRecorder = debounce((text: string, index: number) => {
+  // 如果 AI 消息还在回复中，标记用户中断自动播放
+  if (!isAiMessageEnd.value) {
+    hasUserInterruptedAutoPlay.value = true
+  }
   // 当前已经在播放此条消息
-
   if (currentIndex.value === index && isStreamPlaying.value) {
     console.log('🟡 再次点击同一条，执行停止')
     streamPlayerRef.value?.onStreamStop()
     currentIndex.value = null
+    isStreamPlaying.value = false
     return
   }
-  // 添加逻辑档切换新消息时先停止已经播放的消息，之后再播放新的消息
+
+  // 如果正在播放且是新的消息，先停止当前播放
   if (currentIndex.value !== null && isStreamPlaying.value) {
-    isSwitchingNewMessage.value = true // 避免 onStreamStop 设置为false时有延迟，导致我点击之后不能立马设置为true
+    isSwitchingNewMessage.value = true
     console.log('🔴 切换新消息，先停止已播放的消息')
     streamPlayerRef.value?.onStreamStop()
+    isStreamPlaying.value = false
   }
 
   // ✅ 开始新的播放
@@ -305,6 +325,7 @@ const handleRecorder = debounce((text: string, index: number) => {
       }).catch((e) => {
         console.log('点击时捕获到错误', e)
         isStreamPlaying.value = false
+        currentIndex.value = null
       })
     }
   })
@@ -314,8 +335,6 @@ const handleRecorder = debounce((text: string, index: number) => {
  * 语音播放真正的开始
  */
 function onStreamPlayStart() {
-  console.log('页面检测到播放音频开始----设置状态true')
-
   isAudioPlaying.value = true
   // 防止由于播放器停止时触发延迟，所以这儿也要设置状态
   isStreamPlaying.value = true
@@ -325,7 +344,6 @@ function onStreamPlayStart() {
  * 语音播放结束
  */
 function onStreamPlayEnd() {
-  console.log('页面检测到播放音频结束----设置状态为false')
   /**
    * 这儿使用  isSwitchingNewMessage 来控制立即更新 isStreamPlaying 的状态的
    * 已知当我前几切换新的消息播放时 ， 会触发该函数，此时会关闭 isStreamPlaying 的状态
@@ -337,6 +355,7 @@ function onStreamPlayEnd() {
   }
   else {
     isStreamPlaying.value = false
+    currentIndex.value = null
   }
   isAudioPlaying.value = false
 }
@@ -346,36 +365,23 @@ function onStreamPlayEnd() {
 function onStreamStop() {
   isStreamPlaying.value = false
   isAudioPlaying.value = false
+  currentIndex.value = null
 }
 
 /**
  * 根据角色类型删除最后一条消息
  */
 function removeLastUserMessage(type: string) {
-  const lastIndex = [...content.value].reverse().findIndex(item => item.role === type)
-  if (lastIndex !== -1) {
-    const realIndex = content.value.length - 1 - lastIndex
-    content.value.splice(realIndex, 1)
-  }
-}
+  for (let i = content.value.length - 1; i >= 0; i--) {
+    const item = content.value[i]
+    const raw = item.content
+    const text = Array.isArray(raw) ? raw[0]?.text ?? '' : raw ?? ''
 
-function handleClearContent() {
-  if (content.value.length === 0) {
-    return showToast('当前对话为空')
-  }
-  if (loading.value) {
-    stopAll()
-  }
-
-  showModal('是否清空对话？').then(() => {
-    content.value = []
-    // 停止播放
-    if (isStreamPlaying.value) {
-      streamPlayerRef.value?.onStreamStop()
+    const isEmpty = typeof text === 'string' && text.trim() === ''
+    if (item.role === type && isEmpty) {
+      content.value.splice(i, 1)
     }
-    // 重置格式化器
-    textReset()
-  })
+  }
 }
 
 function stopAll() {
@@ -403,7 +409,7 @@ watch(
       const lastMessage = content.value[content.value.length - 1]
       if (lastMessage?.role === 'assistant' && lastMessage?.streaming) {
         // 自动播放
-        autoPlayAiMessage(lastMessage.content || '', content.value.length - 1)
+        autoPlayAiMessage(lastMessage.content as string || '', content.value.length - 1)
       }
     }
   },
@@ -474,7 +480,6 @@ router.ready(() => {
     <nav-bar>
       <template #right>
         <view class="flex  pr-50rpx">
-          <icon-font name="clear" color="#E95655" size="40" @click="handleClearContent" />
           <icon-font :name="isAutoPlayAiMessage ? 'sound' : 'mute'" :color="isAutoPlayAiMessage ? COLOR_PRIMARY : ''" size="40" class="ml-20rpx" @click="isAutoPlayAiMessage = !isAutoPlayAiMessage" />
         </view>
       </template>
@@ -506,13 +511,13 @@ router.ready(() => {
 
     <view :style="aiPageContent">
       <view
-        class="absolute top-0 left-0 w-full h-full z-0 flex justify-center pointer-events-none"
-        :style="{ 'padding-top': pageHeight }"
+        class="absolute top-0 left-0 w-full h-full z-0 flex-center pointer-events-none"
       >
+        <!-- :style="{ 'padding-top': pageHeight }" -->
         <image
           :src="(isStreamPlaying && isAudioPlaying) ? '/static/images/aiPageBg.gif' : '/static/images/aiPageBg-quiet.png'"
           mode="aspectFit"
-          class="aiPageBg-img"
+          class="aiPageBg-img size-1000rpx"
         />
       </view>
 
@@ -527,7 +532,8 @@ router.ready(() => {
         @scrolltolower="scrolltolower"
       >
         <view class="scroll-content">
-          <view v-if="content.length === 0" class="h-full flex justify-end flex-col items-center pb-200rpx pt-500rpx">
+          <!-- content.length === 0 -->
+          <view v-if="true" class="h-full flex justify-end flex-col items-center pb-200rpx pt-500rpx">
             <view>
               <image
                 class="ai-img"
@@ -552,7 +558,7 @@ router.ready(() => {
                     msg.isRecordingPlaceholder
                       ? (textRes || '') + (isRunning && textRes ? animatedDots : '')
                       : Array.isArray(msg.content)
-                        ? msg.content[0].text
+                        ? (msg.content as any)[0].text
                         : msg.content
                   }}
                 </text>
@@ -569,24 +575,24 @@ router.ready(() => {
               <view class="flex mt-16rpx mb-16rpx flex-justify-start bg-#ffffff color-#333333 max-w-80% border-rd-16rpx">
                 <view
                   class="message-bubble  p-32rpx border-rd-16rpx w-100%"
-                  :class="[msg.streaming && !(msg.content && msg.content.length) ? 'flex-center w-120rpx h-120rpx ' : '']"
+                  :class="[msg.streaming && !(msg.content && msg.content!.length) ? 'flex-center w-120rpx h-120rpx ' : '']"
                 >
                   <view v-if="msg.content">
                     <UaMarkdown :source="`${msg.content}`" :show-line="false" />
                     <view class="h-2rpx  bg-black-3 my-10rpx" />
 
                     <view class="flex items-center justify-end ">
-                      <view class="border-rd-16rpx size-60rpx bg-#e8ecf5 flex-center" @click="handleCopy(msg.content)">
+                      <view class="border-rd-16rpx size-60rpx bg-#e8ecf5 flex-center" @click="handleCopy(msg.content as string)">
                         <icon-font name="copy" :color="COLOR_PRIMARY" :size="28" />
                       </view>
-                      <view class="border-rd-16rpx size-60rpx  bg-#e8ecf5 flex-center  ml-20rpx" @click="handleRecorder(msg.content, index)">
+                      <view class="border-rd-16rpx size-60rpx  bg-#e8ecf5 flex-center  ml-20rpx" @click="handleRecorder(msg.content as string, index)">
                         <audio-wave v-if="isStreamPlaying && currentIndex === index" :color="COLOR_PRIMARY" />
                         <icon-font v-else name="sound" :color="COLOR_PRIMARY" :size="28" />
                       </view>
                     </view>
                   </view>
                   <!-- 流式加载动画 -->
-                  <view v-if=" msg.streaming && !(msg.content && msg.content.length)" class="flex-center">
+                  <view v-if=" msg.streaming && !(msg.content && msg.content!.length)" class="flex-center">
                     <uni-load-more icon-type="auto" status="loading" :show-text="false" />
                   </view>
                 </view>

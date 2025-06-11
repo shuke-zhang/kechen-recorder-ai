@@ -65,13 +65,17 @@ declare namespace AiModel{
    */
   interface AiRequestMessagesModel {
     role?: string
-    content?: string
+    content?: string | AiMessage []
     text?: string
     /**
      * 是否开启继续对话功能
      */
     prefix?: boolean
 
+  }
+  export interface AiMessage {
+    type: string
+    text: string
   }
 
   /**

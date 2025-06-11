@@ -38,7 +38,6 @@ export default class RecorderCoreManager extends EventEmitter {
 
   /** 初始化识别流程 */
   public start() {
-    console.log('开始录音-class-start')
     this.reset()
     this.isRunning = true
     this.resultText = ''
@@ -52,18 +51,17 @@ export default class RecorderCoreManager extends EventEmitter {
   public stop() {
     return new Promise((resolve, reject) => {
       try {
-        if (!this.isRunning)
-          return
+        // ❗ 无论如何都尝试停止识别（不要依赖 isRunning 判断）
         this.isRunning = false
-
         this.sendLastFrame()
         this.clearHandlerInterval()
-        // 延迟关闭WebSocket，确保最后一帧数据发送完成
+
+        // 延迟关闭 WebSocket，确保最后一帧发送完成
         setTimeout(() => {
           this.socketTask?.closeSocket('手动关闭')
           this.socketTask = null
           resolve('stop')
-        }, 1000)
+        }, 300) // 可以减到 300ms 提升响应
       }
       catch (error) {
         reject(error)
@@ -90,15 +88,12 @@ export default class RecorderCoreManager extends EventEmitter {
       this.socketUrl = this.getWebSocketUrl() as string
       if (!this.socketUrl)
         return
-      console.log('初始化Socket-class')
 
       this.socketTask = new WebSocket(this.socketUrl, false)
       this.socketTask.reset()
       this.socketTask.initSocket()
 
       this.socketTask.on('open', () => {
-        console.log('✅ WebSocket已连接')
-
         this.emit('log', '✅ WebSocket已连接')
         setTimeout(() => this.sendAudioData(), 100)
       })
@@ -149,14 +144,6 @@ export default class RecorderCoreManager extends EventEmitter {
         this.clearHandlerInterval()
         return
       }
-
-      // if (this.audioDataList.length === 0) {
-      //   if (!this.isRunning) {
-      //     this.sendLastFrame()
-      //     this.clearHandlerInterval()
-      //   }
-      //   return
-      // }
 
       const buffer = this.audioDataList.shift()
       if (!buffer)

@@ -9,6 +9,7 @@ import { ref } from 'vue'
 import { io } from 'socket.io-client'
 import { Base64 } from 'js-base64'
 import CryptoJS from 'crypto-js'
+import { doubaoSpeechSynthesisFormat } from '@/api/audio'
 
 const APPID = 'f9b52f87'
 const APISecret = 'ZDVkYzU5YmFhZmNlODVkM2RlNDMyNDhl'
@@ -135,13 +136,13 @@ function uniSocketInit() {
 }
 
 function handleRequest() {
-  uni.request({
-    url: 'http://192.168.3.22:5000',
-    method: 'GET',
+  doubaoSpeechSynthesisFormat({
+    text: '你好',
+    id: 0,
   }).then((res) => {
-    console.log(`成功：${res.data}`)
+    console.log('接口调用成功', res)
   }).catch((err) => {
-    console.log(`失败：${err}`)
+    console.error('❌ 接口调用失败:', err)
   })
 }
 </script>

@@ -98,8 +98,8 @@ export const request = new UniRequest<HttpRequestUserConfig>({
     if (statusCode !== 200) {
       const msg = getSystemErrorMessage(statusCode)
       console.log('接口失败', 'msg')
-
-      return handleError(msg)
+      // handleError(msg)
+      return
     }
 
     // 判断是否为流式传输 质谱的响应头 Content-Type
@@ -169,7 +169,11 @@ function getSystemErrorMessage(status: number) {
 
 function handleError(msg: string, showErrorMsg = true) {
   console.log('handleError', msg, showErrorMsg)
+  if (showErrorMsg) {
+    showToastError(msg)
+    throw new Error(msg)
+  }
 
-  showErrorMsg && showToastError(msg)
-  throw new Error(msg)
+  // 静默失败时，不抛错
+  return undefined
 }

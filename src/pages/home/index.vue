@@ -9,6 +9,11 @@ import { aiModelList } from '../ai/const'
 import { useCheckAppVersion } from '@/hooks'
 
 const router = useRouter()
+const { handleMultiClick } = useMultiClickTrigger({
+  onTrigger: () => {
+    router.push('/pages/test/index', { id: 123 })
+  },
+})
 const { visible, downloadUrl, updateList, downloadApp, checkNewVersion } = useCheckAppVersion()
 
 function handleCardClick(model?: typeof aiModelList[number]['model']) {

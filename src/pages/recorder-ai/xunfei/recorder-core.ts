@@ -86,6 +86,8 @@ export default class RecorderCoreManager extends EventEmitter {
   private initSocket() {
     try {
       this.socketUrl = this.getWebSocketUrl() as string
+      console.log('讯飞socketUrl', this.socketUrl)
+
       if (!this.socketUrl)
         return
 

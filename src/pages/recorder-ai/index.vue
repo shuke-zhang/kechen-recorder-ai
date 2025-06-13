@@ -222,6 +222,8 @@ function handleConfirm() {
 
 const startTime = ref(0)
 const handleTouchStart = debounce(() => {
+  console.log('🟢 开始录音')
+
   startTime.value = Date.now()
   stopAll()
   textRes.value = ''
@@ -240,7 +242,9 @@ const handleTouchStart = debounce(() => {
   })
 }, 300)
 
-function handleTouchEnd() {
+function onTouchEnd() {
+  console.log('🔴 录音按钮抬起')
+
   handleRecorderTouchEnd().then(async () => {
     const endTime = Date.now()
     const duration = endTime - startTime.value
@@ -277,6 +281,10 @@ function handleTouchEnd() {
     iseRecorderTouchStart.value = false
   })
 }
+
+const handleTouchEnd = debounce(() => {
+  onTouchEnd()
+}, 500)
 
 /**
  * ai消息点击语音

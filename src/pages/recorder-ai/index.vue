@@ -223,7 +223,7 @@ function handleConfirm() {
 const startTime = ref(0)
 const handleTouchStart = debounce(() => {
   console.log('🟢 开始录音')
-
+  removeEmptyMessagesByRole('assistant')
   startTime.value = Date.now()
   stopAll()
   textRes.value = ''
@@ -248,16 +248,16 @@ function onTouchEnd() {
   handleRecorderTouchEnd().then(async () => {
     const endTime = Date.now()
     const duration = endTime - startTime.value
-    console.log('🕒 说话时长===================================:', duration, 'ms')
+
     if (duration < 300) {
-      removeLastUserMessage('user')
+      removeEmptyMessagesByRole('user')
       showToastError('说话时间太短')
       stopAll() // ✅ 强制关闭所有逻辑
       return
     }
     if (isRecorderClose.value) {
       // 用户上滑取消
-      removeLastUserMessage('user')
+      removeEmptyMessagesByRole('user')
       replyForm.value = { content: '', role: 'user' }
     }
     else {
@@ -274,7 +274,7 @@ function onTouchEnd() {
       }
       else {
         showToastError('未识别到内容')
-        removeLastUserMessage('user')
+        removeEmptyMessagesByRole('user')
       }
     }
   }).finally(() => {
@@ -379,7 +379,7 @@ function onStreamStop() {
 /**
  * 根据角色类型删除最后一条消息
  */
-function removeLastUserMessage(type: string) {
+function removeEmptyMessagesByRole(type: string) {
   for (let i = content.value.length - 1; i >= 0; i--) {
     const item = content.value[i]
     const raw = item.content

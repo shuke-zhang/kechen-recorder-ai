@@ -529,7 +529,7 @@ router.ready(() => {
         <image
           :src="(isStreamPlaying && isAudioPlaying) ? '/static/images/aiPageBg.gif' : '/static/images/aiPageBg-quiet.png'"
           mode="aspectFit"
-          class="aiPageBg-img size-1000rpx"
+          class=" size-100% "
         />
       </view>
 

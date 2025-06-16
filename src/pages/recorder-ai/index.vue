@@ -211,10 +211,12 @@ async function autoPlayAiMessage(text: string, index: number) {
  */
 function handleConfirm() {
   tempBuffers.value = []
+  removeEmptyMessagesByRole('assistant') // 移除assistant角色的空消息
   //  点击时如果ai消息没有返回完 ，并且正在播放，直接停止
   if (isAiMessageEnd.value && isStreamPlaying.value) {
     stopAll()
     handleSendMsg()
+
     return
   }
   handleSendMsg()

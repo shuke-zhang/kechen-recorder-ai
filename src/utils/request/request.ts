@@ -98,7 +98,6 @@ export const request = new UniRequest<HttpRequestUserConfig>({
     if (statusCode !== 200) {
       const msg = getSystemErrorMessage(statusCode)
       console.log('接口失败', 'msg')
-      // handleError(msg)
       return
     }
 
@@ -132,8 +131,9 @@ export const request = new UniRequest<HttpRequestUserConfig>({
 
   responseError(error: any) {
     if (error) {
+      const config = error?.config as UniRequestConfig<HttpRequestUserConfig>
       const err = error?.errMsg || error?.msg || error?.message || ''
-      return handleError(err)
+      return handleError(err, config?.showErrorMsg)
     }
   },
 })
@@ -168,7 +168,6 @@ function getSystemErrorMessage(status: number) {
 }
 
 function handleError(msg: string, showErrorMsg = true) {
-  console.log('handleError', msg, showErrorMsg)
   if (showErrorMsg) {
     showToastError(msg)
     throw new Error(msg)

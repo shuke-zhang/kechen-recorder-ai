@@ -393,8 +393,10 @@ function removeLastUserMessage(type: string) {
 }
 
 function stopAll() {
+  console.log('🚫 强制关闭所有逻辑')
+
   // 停止ai消息
-  stopChat()
+  stopChat.value()
   // 停止播放
   streamPlayerRef.value?.onStreamStop()
   currentIndex.value = null
@@ -617,7 +619,6 @@ router.ready(() => {
       v-model:focus="isFocus"
       v-model:show-recording-button="showRecordingButton"
       placeholder="请输入您的问题..."
-      class="flex-1"
       btn-text="发送"
       @recorder-close="handleRecorderClose"
       @show-recorder="handleShowRecorder"

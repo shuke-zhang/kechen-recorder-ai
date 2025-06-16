@@ -29,9 +29,9 @@ export default function useAiPage(height: string) {
   const isStreaming = ref(false)
   const chatSSEClientShow = ref(false)
   let startChat = () => {}
-  let stopChat = () => {}
   let onStart = () => {}
   let onError: (err: Error | string) => void = () => {}
+  const stopChat = ref<() => void>(() => {})
   const onSuccess = ref<(msg: string) => void>(() => {})
   const onFinish = ref<() => void>(() => {})
 
@@ -44,9 +44,9 @@ export default function useAiPage(height: string) {
     chatSSEClientRef.value = aiHooks.chatSSEClientRef
 
     startChat = aiHooks.startChat
-    stopChat = aiHooks.stopChat
     onStart = aiHooks.onStart
     onError = aiHooks.onError
+    stopChat.value = aiHooks.stopChat
     onSuccess.value = aiHooks.onSuccess
     onFinish.value = aiHooks.onFinish
     loading.value = aiHooks.loading.value

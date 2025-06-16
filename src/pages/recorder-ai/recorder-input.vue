@@ -24,12 +24,18 @@ const props = defineProps({
    * 是否禁用输入框
    */
   isDisabled: Boolean,
+  /** 是否显示上划取消的页面样式 */
+  isShowRecordingTip: {
+    type: Boolean,
+    default: true,
+  },
 })
 
 const emit = defineEmits<{
   'update:modelValue': [string]
   'update:focus': [boolean]
   'update:showRecordingButton': [boolean]
+
   /** 点击发送按钮 */
   /** 点击发送按钮 */
   'confirm': []
@@ -100,21 +106,42 @@ function handleTouchMove(e: TouchEvent) {
   const fingerX = e.touches[0].clientX
   const fingerY = e.touches[0].clientY
 
-  uni.createSelectorQuery()
-    .select('#recording-tip')
-    .boundingClientRect((_rect) => {
-      if (!_rect)
-        return
-      const rect = _rect as UniNamespace.NodeInfo
-      const isInCancelArea
-        = fingerX >= rect.left!
-          && fingerX <= rect.right!
-          && fingerY >= rect.top!
-          && fingerY <= rect.bottom!
+  if (props.isShowRecordingTip) {
+    // 显示提示区域：判断是否进入提示区域
+    uni.createSelectorQuery()
+      .select('#recording-tip')
+      .boundingClientRect((_rect) => {
+        if (!_rect)
+          return
+        const rect = _rect as UniNamespace.NodeInfo
+        const isInCancelArea
+          = fingerX >= rect.left!
+            && fingerX <= rect.right!
+            && fingerY >= rect.top!
+            && fingerY <= rect.bottom!
 
-      cancelRecording.value = isInCancelArea
-    })
-    .exec()
+        cancelRecording.value = isInCancelArea
+      })
+      .exec()
+  }
+  else {
+    // 不显示提示区域：只要移动出按钮区域就视为取消
+    uni.createSelectorQuery()
+      .select('.press-record-btn') // 按钮的 class
+      .boundingClientRect((_rect) => {
+        if (!_rect)
+          return
+        const rect = _rect as UniNamespace.NodeInfo
+        const isOutsideButton
+          = fingerX < rect.left!
+            || fingerX > rect.right!
+            || fingerY < rect.top!
+            || fingerY > rect.bottom!
+
+        cancelRecording.value = isOutsideButton
+      })
+      .exec()
+  }
 }
 
 // 手指松开，发送或取消
@@ -204,16 +231,17 @@ function handleConfirm() {
         v-if="recording"
         id="recording-tip"
         ref="tipRef"
-        class="recording-tip bg-#b6b6b6 w-full h-300rpx flex-center "
+        class="recording-tip bg-[rgba(182,182,182,0.5)] w-full h-300rpx flex-center "
       >
         <text v-if="cancelRecording" class="text-size-38rpx">
           松手取消发送
         </text>
         <text v-else class="text-size-38rpx">
-          上滑取消
+          滑动到此位置取消发送
         </text>
       </view>
       <button
+        id="press-record-btn"
         class="press-record-btn"
         type="primary"
         :disabled="isDisabledRecorder"

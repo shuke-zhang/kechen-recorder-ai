@@ -45,6 +45,7 @@ const emit = defineEmits<{
  * 输入框的值
  */
 const inputValue = useVModel(props, 'modelValue', emit)
+const tipRef = ref<HTMLElement>()
 /**
  * 是否聚焦
  */
@@ -93,11 +94,27 @@ function handleTouchStart(e: TouchEvent) {
 
 // 手指移动过程中判断是否上滑取消
 function handleTouchMove(e: TouchEvent) {
-  if (props.isDisabledRecorder) {
+  if (props.isDisabledRecorder)
     return
-  }
-  const deltaY = touchStartY.value - e.touches[0].clientY
-  cancelRecording.value = deltaY > 80
+
+  const fingerX = e.touches[0].clientX
+  const fingerY = e.touches[0].clientY
+
+  uni.createSelectorQuery()
+    .select('#recording-tip')
+    .boundingClientRect((_rect) => {
+      if (!_rect)
+        return
+      const rect = _rect as UniNamespace.NodeInfo
+      const isInCancelArea
+        = fingerX >= rect.left!
+          && fingerX <= rect.right!
+          && fingerY >= rect.top!
+          && fingerY <= rect.bottom!
+
+      cancelRecording.value = isInCancelArea
+    })
+    .exec()
 }
 
 // 手指松开，发送或取消
@@ -182,6 +199,20 @@ function handleConfirm() {
 
     <!-- 显示录音按钮 -->
     <template v-else>
+      <!-- 上划取消提示 -->
+      <view
+        v-if="recording"
+        id="recording-tip"
+        ref="tipRef"
+        class="recording-tip bg-#b6b6b6 w-full h-300rpx flex-center "
+      >
+        <text v-if="cancelRecording" class="text-size-38rpx">
+          松手取消发送
+        </text>
+        <text v-else class="text-size-38rpx">
+          上滑取消
+        </text>
+      </view>
       <button
         class="press-record-btn"
         type="primary"
@@ -272,5 +303,18 @@ function handleConfirm() {
   .press-record-btn:disabled {
     opacity: 0.5;
   }
+}
+
+.recording-tip {
+  position: absolute;
+  top: -300rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  padding: 10rpx 20rpx;
+  border-radius: 120rpx 120rpx 0 0;
+  font-size: 26rpx;
+  z-index: 99;
+  white-space: nowrap;
 }
 </style>

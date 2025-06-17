@@ -21,6 +21,7 @@ export default function useAiPage(height: string) {
   }))
   const modelName = computed(() => aiModelList[aiCurrentIndex.value]?.name || '')
   const modelSubTitle = computed(() => aiModelList[aiCurrentIndex.value]?.subTitle || '')
+  const modelPrefix = computed(() => aiModelList[aiCurrentIndex.value]?.sendMsgPrefix || defaultSendMsgPre)
   const currentModel = computed(() => aiModelList[aiCurrentIndex.value])
 
   // 动态挂载 useAi 的返回值
@@ -124,7 +125,7 @@ export default function useAiPage(height: string) {
     else {
       const sendText = setAiContent({
         type: 'send',
-        msg: defaultSendMsgPre + replyForm.value.content,
+        msg: modelPrefix.value + replyForm.value.content,
         modeName: modelName.value || '',
       })
 
@@ -153,6 +154,7 @@ export default function useAiPage(height: string) {
     chatSSEClientRef,
     modelName,
     modelSubTitle,
+    modelPrefix,
     currentModel,
     loading,
     content,

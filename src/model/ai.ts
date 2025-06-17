@@ -8,6 +8,10 @@ export interface AiOptionsModel {
    */
   subTitle?: string
   /**
+   * 模型前缀，方便于ai只能回复相关的知识问答
+   */
+  sendMsgPrefix?: string
+  /**
    * 备注
    */
   mark?: string

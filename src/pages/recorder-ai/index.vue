@@ -37,7 +37,6 @@ import type StreamPlayer from '@/components/StreamPlayer/StreamPlayer.vue'
 import { NAV_BAR_HEIGHT, getStatusBarHeight } from '@/components/nav-bar/nav-bar'
 import { default as RecorderInstance } from 'recorder-core'
 import { default as RecordAppInstance } from 'recorder-core/src/app-support/app'
-import { defaultSendMsgPre } from './const'
 import { useTextFormatter } from './hooks/useTextFormatter'
 import RecorderInput from './recorder-input.vue'
 import useRecorder from './hooks/useRecorder'
@@ -84,6 +83,7 @@ const {
   loading,
   modelName,
   modelSubTitle,
+  modelPrefix,
   currentModel,
   replyForm,
   aiPageContent,
@@ -206,6 +206,7 @@ async function autoPlayAiMessage(text: string, index: number) {
 
       streamPlayerRef.value?.onStreamStop()
     }
+    console.log('autoPlayAiMessage----11')
 
     doubaoSpeechSynthesisFormat({
       text: longText,
@@ -231,10 +232,9 @@ async function autoPlayAiMessage(text: string, index: number) {
   isStreamPlaying.value = true
 }
 
-function userMsgFormat(text: string, isFormat = true) {
+function userMsgFormat(prefix: string, text: string, isFormat = true) {
   if (!isFormat)
     return text
-  const prefix = defaultSendMsgPre
   const index = text.indexOf(prefix)
   if (index === -1)
     return text // 没有前缀就返回原内容
@@ -507,7 +507,7 @@ watch(() => isRunning.value, (val: boolean) => {
 
 watch(() => textRes.value, async (newVal) => {
   await nextTick() // 确保视图更新完成
-  replyForm.value.content = defaultSendMsgPre + newVal as string
+  replyForm.value.content = modelPrefix.value + newVal as string
 })
 
 watch(() => replyForm.value.content, (newVal) => {
@@ -626,8 +626,8 @@ router.ready(() => {
                     msg.isRecordingPlaceholder
                       ? (textRes || '') + (isRunning && textRes ? animatedDots : '')
                       : Array.isArray(msg.content)
-                        ? userMsgFormat((msg.content as any)[0].text, true)
-                        : userMsgFormat(msg.content || '', true)
+                        ? userMsgFormat(modelPrefix, (msg.content as any)[0].text, true)
+                        : userMsgFormat(modelPrefix, msg.content || '', true)
                   }}
                 </text>
                 <!-- 流式加载动画 -->

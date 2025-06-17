@@ -206,14 +206,6 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
       })
 
       content.value.push(text)
-
-      // const systems = setAiContent({
-      //   modeName: modelName.value || '',
-      //   type: 'systems',
-      //   msg: defaultSendMsgPre,
-      // })
-
-      // content.value.push(systems)
     }
     else {
       const newContent = [...content.value]

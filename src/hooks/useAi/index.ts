@@ -98,6 +98,7 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
     console.log('触发----------------stopChat')
 
     loading.value = false
+    isAiMessageEnd.value = true
     return chatSSEClientRef?.stopChat()
   }
 

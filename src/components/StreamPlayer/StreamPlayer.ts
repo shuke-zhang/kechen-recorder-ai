@@ -60,6 +60,12 @@ export default class StreamAudioPlayer {
   }
 
   async appendSmartChunk(options: { buffer: ArrayBuffer, text?: string, id?: number }) {
+    if (options.id === 0) {
+      console.log('appendSmartChunk 收到的id为0，重置状态')
+
+      this.nextPlayId = 0
+      this.audioBufferMap.clear()
+    }
     await this.ensureAudioContextRunning()
     const format = this.detectFormat(options.buffer)
     if (format === 'mp3') {
@@ -129,6 +135,7 @@ export default class StreamAudioPlayer {
 
     while (this.audioBufferMap.has(this.nextPlayId)) {
       const data = this.audioBufferMap.get(this.nextPlayId)
+
       if (!data) {
         console.error('❌ 无法获取音频数据:', this.nextPlayId)
         this.nextPlayId++

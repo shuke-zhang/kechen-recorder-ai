@@ -93,6 +93,7 @@ export default {
 							this.$ownerInstance.callMethod('error', err);
 						},
 					}).then(() => {
+						console.log('组件触发finish');
 						this.$ownerInstance.callMethod('finish');
 				}).catch(err => {
 					this.$ownerInstance.callMethod('error', err);

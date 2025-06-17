@@ -137,6 +137,7 @@ export default function useAiPage(height: string) {
       content: '',
       streaming: true,
     })
+    console.log('startChat-------发送内容啦', content.value)
 
     startChat()
   }

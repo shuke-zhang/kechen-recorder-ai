@@ -163,8 +163,6 @@ const hasUserInterruptedAutoPlay = ref(false)
  * ai内容自动播放音频
  */
 async function autoPlayAiMessage(text: string, index: number) {
-  console.log('ai触发回复消息了', text, isAutoPlayAiMessage.value)
-
   if (!isAutoPlayAiMessage.value || hasUserInterruptedAutoPlay.value)
     return
   if (!text || text.trim() === '')
@@ -185,14 +183,13 @@ async function autoPlayAiMessage(text: string, index: number) {
   // 处理文本 下面是对接后端的音频 采用接口的方式
   if (longText.length > 0) {
     tempFormattedTexts.value.push(longText)
-    console.log('调用接口转化成音频', longText)
 
     doubaoSpeechSynthesisFormat({
       text: longText,
       id: tempFormattedTexts.value.findIndex(t => t === longText) || 0,
     }).then((res) => {
       const { audio_buffer, text, id } = res
-      console.log('doubaoSpeechSynthesisFormat  请求到的结果', text, id)
+      console.log('接口请求成功', text, id)
 
       streamData.value = {
         buffer: audio_buffer,
@@ -231,7 +228,6 @@ async function handleConfirm() {
   tempFormattedTexts.value = []
   tempBuffers.value = []
   removeEmptyMessagesByRole('assistant') // 移除assistant角色的空消息
-  console.log('查看状态', replyForm.value.content, !isAiMessageEnd.value, loading.value, isStreamPlaying.value)
 
   //  点击时如果ai消息没有返回完 ，并且正在播放，直接停止
   if ((!isAiMessageEnd.value && loading.value) || isStreamPlaying.value) {
@@ -240,6 +236,7 @@ async function handleConfirm() {
     handleSendMsg()
     return
   }
+
   handleSendMsg()
 }
 
@@ -343,25 +340,25 @@ const handleRecorder = debounce((text: string, index: number) => {
   const longTexts = processText(text, true)
   console.log('longTexts', longTexts)
 
-  // longTexts.forEach((longText, i) => {
-  //   if (longText.length) {
-  //     doubaoSpeechSynthesisFormat({
-  //       text: longText,
-  //       id: i,
-  //     }).then((res) => {
-  //       const { audio_buffer, text, id } = res
-  //       streamData.value = {
-  //         buffer: audio_buffer,
-  //         text,
-  //         id,
-  //       }
-  //     }).catch((e) => {
-  //       console.log('点击时捕获到错误', e)
-  //       isStreamPlaying.value = false
-  //       currentIndex.value = null
-  //     })
-  //   }
-  // })
+  longTexts.forEach((longText, i) => {
+    if (longText.length) {
+      doubaoSpeechSynthesisFormat({
+        text: longText,
+        id: i,
+      }).then((res) => {
+        const { audio_buffer, text, id } = res
+        streamData.value = {
+          buffer: audio_buffer,
+          text,
+          id,
+        }
+      }).catch((e) => {
+        console.log('点击时捕获到错误', e)
+        isStreamPlaying.value = false
+        currentIndex.value = null
+      })
+    }
+  })
 }, 500)
 
 /**
@@ -441,6 +438,7 @@ watch(
       nextTick(() => {
         scrollToBottom()
       })
+
       // 检查最后一条消息是否是AI的回复
       const lastMessage = content.value[content.value.length - 1]
       if (lastMessage?.role === 'assistant' && lastMessage?.streaming) {

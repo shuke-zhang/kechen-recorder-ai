@@ -41,6 +41,7 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
    * 结束 false
    */
   const isStreaming = ref(false)
+  let lastFinishPromise: Promise<void> = Promise.resolve()
   /**
    * 发送消息
    */
@@ -66,7 +67,8 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
   /**
    *  @description 开始聊天
    */
-  function startChat() {
+  async function startChat() {
+    await lastFinishPromise
     loading.value = true
     if (!content.value) {
       return showToast('请先输入聊天内容')
@@ -94,12 +96,32 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
   /**
    *  @description 停止聊天
    */
-  function stopChat() {
-    console.log('触发----------------stopChat')
+  function stopChat(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      try {
+        console.log('触发----------------stopChat')
 
-    loading.value = false
-    isAiMessageEnd.value = true
-    return chatSSEClientRef?.stopChat()
+        loading.value = false
+        isAiMessageEnd.value = true
+        isStreaming.value = false
+        const lastIndex = content.value.length - 1
+        if (content.value[lastIndex]?.streaming && content.value[lastIndex].content) {
+        // 移除流式标记并格式化内容
+          const finalContent = {
+            ...content.value[lastIndex],
+            content: content.value[lastIndex].content,
+            streaming: undefined,
+          }
+          content.value.splice(lastIndex, 1, finalContent)
+        }
+
+        chatSSEClientRef?.stopChat?.()
+        resolve()
+      }
+      catch (error) {
+        reject(error)
+      }
+    })
   }
 
   /**
@@ -120,8 +142,6 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
    * @param msg 聊天内容
    */
   function onSuccess(msg: string) {
-    console.log('onSuccess触发了')
-
     // #ifdef MP-WEIXIN
     const { content: streamContent } = wxExtractStreamContent(msg)
     // message.value += streamContent
@@ -140,19 +160,32 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
   /**
    * @description 聊天请求结束的回调
    */
-  function onFinish() {
-    loading.value = false
-    isStreaming.value = false
-    const lastIndex = content.value.length - 1
-    if (content.value[lastIndex]?.streaming) {
-      // 移除流式标记并格式化内容
-      const finalContent = {
-        ...content.value[lastIndex],
-        content: content.value[lastIndex].content,
-        streaming: undefined,
+  function onFinish(): Promise<void> {
+    lastFinishPromise = new Promise((resolve, reject) => {
+      try {
+        console.log('触发onFinish-----------------------------------')
+
+        loading.value = false
+        isStreaming.value = false
+
+        const lastIndex = content.value.length - 1
+        if (content.value[lastIndex]?.streaming && content.value[lastIndex].content) {
+          const finalContent = {
+            ...content.value[lastIndex],
+            content: content.value[lastIndex].content,
+            streaming: undefined,
+          }
+          content.value.splice(lastIndex, 1, finalContent)
+        }
+
+        resolve()
       }
-      content.value.splice(lastIndex, 1, finalContent)
-    }
+      catch (err) {
+        reject(err)
+      }
+    })
+
+    return lastFinishPromise
   }
 
   function hotUpdate(acceptMsg: string) {

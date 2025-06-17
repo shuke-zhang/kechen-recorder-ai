@@ -23,7 +23,7 @@ export default class StreamAudioPlayer {
   private incompleteBuffer: Uint8Array | null = null
   private audioBufferMap: Map<number, { buffer: AudioBuffer, text?: string, id: number }> = new Map()
   private nextPlayId: number = 0
-
+  private lastStopPromise: Promise<void> = Promise.resolve()
   constructor({
     inputSampleRate = 16000,
     numChannels = 1,
@@ -60,12 +60,8 @@ export default class StreamAudioPlayer {
   }
 
   async appendSmartChunk(options: { buffer: ArrayBuffer, text?: string, id?: number }) {
-    if (options.id === 0) {
-      console.log('appendSmartChunk 收到的id为0，重置状态')
-
-      this.nextPlayId = 0
-      this.audioBufferMap.clear()
-    }
+    // 等待上一次 stop 执行完
+    await this.lastStopPromise
     await this.ensureAudioContextRunning()
     const format = this.detectFormat(options.buffer)
     if (format === 'mp3') {
@@ -112,6 +108,7 @@ export default class StreamAudioPlayer {
     if (!this.audioContext)
       return
     await this.ensureAudioContextRunning()
+    console.log('添加音频到任务队列', options.text, options.id)
 
     try {
       const buffer = await this.audioContext.decodeAudioData(options.buffer.slice(0))
@@ -212,22 +209,29 @@ export default class StreamAudioPlayer {
     this.isDecoding = false
   }
 
-  stop() {
+  stop(): Promise<void> {
     console.log('触发stop 停止播放')
-    this.isForceStop = true
-    this.nextPlayId = 0
-    this.decodeQueue = []
-    this.isPlaying = false
-    this.isPendingEnd = false
-    this.audioBufferMap.clear()
 
-    if (this.currentSource) {
-      try {
-        this.currentSource.stop(0)
+    this.lastStopPromise = new Promise((resolve) => {
+      this.isForceStop = true
+      this.nextPlayId = 0
+      this.decodeQueue = []
+      this.isPlaying = false
+      this.isPendingEnd = false
+      this.audioBufferMap.clear()
+
+      if (this.currentSource) {
+        try {
+          this.currentSource.stop(0)
+        }
+        catch (e) {}
+        this.currentSource = null
       }
-      catch (e) {}
-      this.currentSource = null
-    }
+
+      resolve()
+    })
+
+    return this.lastStopPromise
   }
 
   destroy() {

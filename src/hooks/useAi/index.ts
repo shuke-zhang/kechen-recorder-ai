@@ -42,6 +42,7 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
    */
   const isStreaming = ref(false)
   let lastFinishPromise: Promise<void> = Promise.resolve()
+  let onFinishLock: Promise<void> = Promise.resolve()
   /**
    * 发送消息
    */
@@ -63,12 +64,13 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
    * @description ai聊天请求成功的返回内容
    */
   const message = ref('')
-
+  let onFinishResolver: (() => void) | null = null
   /**
    *  @description 开始聊天
    */
   async function startChat() {
     await lastFinishPromise
+    await onFinishLock
     loading.value = true
     if (!content.value) {
       return showToast('请先输入聊天内容')
@@ -161,10 +163,13 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
    * @description 聊天请求结束的回调
    */
   function onFinish(): Promise<void> {
-    lastFinishPromise = new Promise((resolve, reject) => {
+    onFinishLock = new Promise((resolve) => {
+      onFinishResolver = resolve
+    })
+
+    lastFinishPromise = (async () => {
       try {
         console.log('触发onFinish-----------------------------------')
-
         loading.value = false
         isStreaming.value = false
 
@@ -177,13 +182,11 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
           }
           content.value.splice(lastIndex, 1, finalContent)
         }
-
-        resolve()
       }
-      catch (err) {
-        reject(err)
+      finally {
+        onFinishResolver?.()
       }
-    })
+    })()
 
     return lastFinishPromise
   }

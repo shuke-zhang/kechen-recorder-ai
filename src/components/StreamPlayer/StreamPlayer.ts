@@ -62,6 +62,13 @@ export default class StreamAudioPlayer {
   async appendSmartChunk(options: { buffer: ArrayBuffer, text?: string, id?: number }) {
     // 等待上一次 stop 执行完
     await this.lastStopPromise
+    // if (options.id === 0 && ) {
+    //   this.isForceStop = true
+    //   this.audioBufferMap.clear()
+    //   this.isPlaying = false
+    //   this.isPlayingLocked = false
+    //   this.isPendingEnd = false
+    // }
     await this.ensureAudioContextRunning()
     const format = this.detectFormat(options.buffer)
     if (format === 'mp3') {
@@ -219,7 +226,6 @@ export default class StreamAudioPlayer {
       this.isPlaying = false
       this.isPendingEnd = false
       this.audioBufferMap.clear()
-
       if (this.currentSource) {
         try {
           this.currentSource.stop(0)
@@ -227,7 +233,6 @@ export default class StreamAudioPlayer {
         catch (e) {}
         this.currentSource = null
       }
-
       resolve()
     })
 
@@ -235,7 +240,6 @@ export default class StreamAudioPlayer {
   }
 
   destroy() {
-    this.stop()
     if (this.audioContext) {
       this.audioContext.close()
       this.audioContext = null

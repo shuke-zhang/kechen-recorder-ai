@@ -4,6 +4,10 @@ export interface AiOptionsModel {
    */
   name?: string
   /**
+   * 标题名字
+   */
+  subTitle?: string
+  /**
    * 备注
    */
   mark?: string

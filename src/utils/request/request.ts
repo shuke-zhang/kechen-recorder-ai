@@ -96,8 +96,6 @@ export const request = new UniRequest<HttpRequestUserConfig>({
     const { data, statusCode, header } = response
 
     if (statusCode !== 200) {
-      const msg = getSystemErrorMessage(statusCode)
-      console.log('接口失败', 'msg')
       return
     }
 

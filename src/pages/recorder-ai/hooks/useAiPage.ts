@@ -20,6 +20,7 @@ export default function useAiPage(height: string) {
     height: `calc(100vh - ${height} - 120rpx - 40rpx)`,
   }))
   const modelName = computed(() => aiModelList[aiCurrentIndex.value]?.name || '')
+  const modelSubTitle = computed(() => aiModelList[aiCurrentIndex.value]?.subTitle || '')
   const currentModel = computed(() => aiModelList[aiCurrentIndex.value])
 
   // 动态挂载 useAi 的返回值
@@ -88,7 +89,6 @@ export default function useAiPage(height: string) {
     })
   }
   watch(() => replyForm.value.content, (newVal) => {
-    console.log(' replyForm.value.content变化22222222222222222222222了', newVal)
   })
   function handleChangeAiModel(model: string) {
     const index = aiModelList.findIndex(item => item.name === model)
@@ -152,6 +152,7 @@ export default function useAiPage(height: string) {
     aiCurrentIndex,
     chatSSEClientRef,
     modelName,
+    modelSubTitle,
     currentModel,
     loading,
     content,

@@ -22,7 +22,12 @@ interface UniAppResponse<T extends BaseResponse = BaseResponse> extends UniApp.R
 /**
  * 基础配置
  */
-export interface UniRequestBaseConfig extends Partial<RequestOptions>, BaseConfig {}
+export interface UniRequestBaseConfig extends Partial<RequestOptions>, BaseConfig {
+  /**
+   * 是否取消前面的请求
+   */
+  cancelPrevious?: boolean
+}
 /**
  * 用户自定义请求配置(完整的配置，用于拦截器)
  */
@@ -72,6 +77,10 @@ export class UniRequest<
    * 拦截器
    */
   private interceptors?: UniRequestInterceptors<UserConfig>
+  /**
+   * 存储请求队列
+   */
+  private pendingMap: Map<string, UniApp.RequestTask> = new Map()
   /**
    * @param options 基础配置
    * @param interceptors 拦截器
@@ -154,10 +163,37 @@ export class UniRequest<
       this.interceptors?.requestError?.(error)
       throw error
     }
+
     try {
-      const response = await uni.request(_config as RequestOptions) as UniAppResponse<D>
+      const requestKey = `${Date.now()}_${Math.random().toString(36).slice(2)}`
+
+      // ✅ 封装 uni.request 成 Promise
+      const response: UniAppResponse<D> = await new Promise((resolve, reject) => {
+        const requestTask = uni.request({
+          ...(_config as RequestOptions),
+          success: res => resolve(res as UniAppResponse<D>),
+          fail: err => reject(err),
+          complete: () => {
+            this.pendingMap.delete(requestKey)
+          },
+        }) as UniApp.RequestTask
+        if (_config.cancelPrevious) {
+          for (const [key, task] of this.pendingMap) {
+            task.abort?.()
+            this.pendingMap.delete(key)
+          }
+        }
+        // ✅ 提前保存 task 才能成功调用 abort
+        this.pendingMap.set(requestKey, requestTask)
+
+        // ✅ 如果 cancelPrevious 为 true，取消所有
+      })
       const userResponse = await this.interceptors?.response?.({ config: _config, response }) as UniAppResponse<D>
       return userResponse || response
+
+      // const response = await uni.request(_config as RequestOptions) as UniAppResponse<D>
+      // const userResponse = await this.interceptors?.response?.({ config: _config, response }) as UniAppResponse<D>
+      // return userResponse || response
     }
     catch (error) {
       if (error instanceof Error) {

@@ -83,6 +83,7 @@ const {
   isAiMessageEnd,
   loading,
   modelName,
+  modelSubTitle,
   currentModel,
   replyForm,
   aiPageContent,
@@ -158,39 +159,59 @@ const isAutoPlayAiMessage = ref(true)
 let lastProcessedIndex: number | null = null
 /** 代表当点击了音频小图标时 ，如果此时ai消息还没回复完音频也在播放时为true 否则为false 主要是用于判断ai回复中点击了音频图标后不再需要自动播放 */
 const hasUserInterruptedAutoPlay = ref(false)
+const lastAiMsgEnd = ref(false)
 
 /**
  * ai内容自动播放音频
  */
 async function autoPlayAiMessage(text: string, index: number) {
+  console.log('autoPlayAiMessage----0')
+
   if (!isAutoPlayAiMessage.value || hasUserInterruptedAutoPlay.value)
     return
+  console.log('autoPlayAiMessage----1')
+
   if (!text || text.trim() === '')
     return
-  if (!isApp)
-    return
+  console.log('autoPlayAiMessage----3')
+  // if (!isApp)
+  //   return
   // 设置当前播放的消息索引
   currentIndex.value = index
-
+  console.log('autoPlayAiMessage----4')
   // 如果是新的消息，重置格式化器
   if (currentIndex.value !== lastProcessedIndex) {
+    console.log('autoPlayAiMessage----5')
+
     textReset()
     lastProcessedIndex = currentIndex.value
   }
+  console.log('autoPlayAiMessage----6')
+
   // 开始语音合成并播放
   const longText = processText(text)
+  console.log('autoPlayAiMessage-c---7')
 
   // 处理文本 下面是对接后端的音频 采用接口的方式
   if (longText.length > 0) {
+    console.log('autoPlayAiMessage----8')
+
     tempFormattedTexts.value.push(longText)
+    console.log('autoPlayAiMessage----9')
+
+    console.log('接口开始请求')
+    //  判断是不是新的ai消息
+    if (tempFormattedTexts.value.findIndex(t => t === longText) === 0) {
+      console.log('autoPlayAiMessage----10')
+
+      streamPlayerRef.value?.onStreamStop()
+    }
 
     doubaoSpeechSynthesisFormat({
       text: longText,
       id: tempFormattedTexts.value.findIndex(t => t === longText) || 0,
-    }).then((res) => {
+    }, tempFormattedTexts.value.findIndex(t => t === longText) === 0).then((res) => {
       const { audio_buffer, text, id } = res
-      console.log('接口请求成功', text, id)
-
       streamData.value = {
         buffer: audio_buffer,
         text,
@@ -342,6 +363,7 @@ const handleRecorder = debounce((text: string, index: number) => {
 
   longTexts.forEach((longText, i) => {
     if (longText.length) {
+      console.log('接口开始请求2')
       doubaoSpeechSynthesisFormat({
         text: longText,
         id: i,
@@ -416,7 +438,6 @@ function removeEmptyMessagesByRole(type: string) {
 
 async function stopAll() {
   console.log('🚫 强制关闭所有逻辑')
-
   // 停止ai回复的消息
   await stopChat.value()
   // 停止音频播放
@@ -450,7 +471,9 @@ watch(
 )
 
 watch(() => isAiMessageEnd.value, (newVal) => {
+  console.log(';isAiMessageEnd*******************************************监测到变化了', newVal)
   if (newVal) {
+    lastAiMsgEnd.value = true
     tempFormattedTexts.value = []
     hasUserInterruptedAutoPlay.value = false
   }
@@ -488,7 +511,6 @@ watch(() => textRes.value, async (newVal) => {
 })
 
 watch(() => replyForm.value.content, (newVal) => {
-  console.log(' replyForm.value.content变化1111111111111111111111111了', newVal)
 })
 
 onMounted(() => {
@@ -582,12 +604,12 @@ router.ready(() => {
             <view>
               <image
                 class="ai-img"
-                :src="`/static/images/${currentModel?.icon}.png`"
+                :src="`/static/images/ai-logo/${currentModel?.icon}.png`"
                 mode="aspectFill"
               />
             </view>
             <view class="font-size-60rpx mt-20rpx">
-              我是{{ modelName }}
+              我是{{ modelSubTitle }}
             </view>
             <view class="mt-20rpx w-80%">
               我可以帮你搜索、答疑、写作、请在下方输入你的内容~
@@ -604,8 +626,8 @@ router.ready(() => {
                     msg.isRecordingPlaceholder
                       ? (textRes || '') + (isRunning && textRes ? animatedDots : '')
                       : Array.isArray(msg.content)
-                        ? userMsgFormat((msg.content as any)[0].text, false)
-                        : userMsgFormat(msg.content || '', false)
+                        ? userMsgFormat((msg.content as any)[0].text, true)
+                        : userMsgFormat(msg.content || '', true)
                   }}
                 </text>
                 <!-- 流式加载动画 -->

@@ -10,6 +10,7 @@ import { io } from 'socket.io-client'
 import { Base64 } from 'js-base64'
 import CryptoJS from 'crypto-js'
 import { doubaoSpeechSynthesisFormat } from '@/api/audio'
+import { testCancelPrevious } from '@/api/test'
 
 const APPID = 'f9b52f87'
 const APISecret = 'ZDVkYzU5YmFhZmNlODVkM2RlNDMyNDhl'
@@ -134,16 +135,25 @@ function uniSocketInit() {
     uniStatus.value = '断开连接'
   })
 }
+function delay(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+async function handleRequest() {
+  for (let i = 1; i <= 10; i++) {
+    const shouldCancel = i === 5
 
-function handleRequest() {
-  doubaoSpeechSynthesisFormat({
-    text: '你好',
-    id: 0,
-  }).then((res) => {
-    console.log('接口调用成功', res)
-  }).catch((err) => {
-    console.error('❌ 接口调用失败:', err)
-  })
+    console.log(`🚀 发送第 ${i} 次请求，cancelPrevious = ${shouldCancel}`)
+
+    testCancelPrevious({ text: `第${i}次请求`, id: i }, shouldCancel)
+      .then((res) => {
+        console.log(`✅ 第 ${i} 次请求成功:`, res)
+      })
+      .catch((err) => {
+        console.warn(`❌ 第 ${i} 次请求失败/被取消:`, err)
+      })
+
+    await delay(0) // 模拟节奏：每 300ms 发一个请求
+  }
 }
 </script>
 

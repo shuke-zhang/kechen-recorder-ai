@@ -7,6 +7,10 @@ export interface HttpRequestUserConfig {
    * 是否提示 错误信息
    */
   showErrorMsg?: boolean
+  /**
+   * 是否取消前面的请求
+   */
+  cancelPrevious?: boolean
 }
 /**
  * token key

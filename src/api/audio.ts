@@ -9,7 +9,7 @@ export function doubaoSpeechSynthesis(params: { text: string, id: number }) {
   })
 }
 
-export async function doubaoSpeechSynthesisFormat(params: { text: string, id: number }): Promise<DoubaoAudioFormatModel> {
+export async function doubaoSpeechSynthesisFormat(params: { text: string, id: number }, cancelPrevious = false): Promise<DoubaoAudioFormatModel> {
   try {
     // 发起请求
     const res = await request.get<{ msg: string, code: number }>({
@@ -17,8 +17,8 @@ export async function doubaoSpeechSynthesisFormat(params: { text: string, id: nu
       withToken: false,
       params,
       showErrorMsg: false,
+      cancelPrevious,
     })
-
     // 解析最外层msg为对象
     const msg = typeof res.msg === 'string' ? JSON.parse(res.msg) as DoubaoAudioModel : res.msg as DoubaoAudioModel
 

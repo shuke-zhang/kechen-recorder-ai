@@ -37,11 +37,11 @@ router.ready(() => {
       >
         <image
           class="size-96rpx mb-24rpx"
-          :src="`/static/images/${item.icon}.png`"
+          :src="`/static/images/ai-logo/${item.icon}.png`"
           mode="aspectFit"
         />
         <view class=" text-black-1 mb-12rpx font-bold">
-          {{ item.name }}
+          {{ item.subTitle }}
         </view>
         <view class="text-small text-black-2 text-align-center px-12rpx">
           {{ item.mark || 'AI智能助手' }}

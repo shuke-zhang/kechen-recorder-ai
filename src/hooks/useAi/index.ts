@@ -7,7 +7,7 @@ export interface AiMessage extends AiModel.AiRequestMessagesModel {
    */
   streaming?: boolean
   /**
-   * @description 用户消息临时加载状态
+   * @description 判断是否是语音识别的加载状态
    */
   isRecordingPlaceholder?: boolean
 }
@@ -72,6 +72,7 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
       return showToast('请先输入聊天内容')
     }
     isAiMessageEnd.value = false
+    console.log(loading.value, 'startChat')
 
     return chatSSEClientRef?.startChat({
       url: options.baseURL,
@@ -94,6 +95,8 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
    *  @description 停止聊天
    */
   function stopChat() {
+    console.log('触发----------------stopChat')
+
     loading.value = false
     return chatSSEClientRef?.stopChat()
   }
@@ -116,6 +119,8 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
    * @param msg 聊天内容
    */
   function onSuccess(msg: string) {
+    console.log('onSuccess触发了')
+
     // #ifdef MP-WEIXIN
     const { content: streamContent } = wxExtractStreamContent(msg)
     // message.value += streamContent
@@ -164,6 +169,14 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
       })
 
       content.value.push(text)
+
+      // const systems = setAiContent({
+      //   modeName: modelName.value || '',
+      //   type: 'systems',
+      //   msg: defaultSendMsgPre,
+      // })
+
+      // content.value.push(systems)
     }
     else {
       const newContent = [...content.value]

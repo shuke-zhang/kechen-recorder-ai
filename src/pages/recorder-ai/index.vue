@@ -37,6 +37,7 @@ import type StreamPlayer from '@/components/StreamPlayer/StreamPlayer.vue'
 import { NAV_BAR_HEIGHT, getStatusBarHeight } from '@/components/nav-bar/nav-bar'
 import { default as RecorderInstance } from 'recorder-core'
 import { default as RecordAppInstance } from 'recorder-core/src/app-support/app'
+import { defaultSendMsgPre } from './const'
 import { useTextFormatter } from './hooks/useTextFormatter'
 import RecorderInput from './recorder-input.vue'
 import useRecorder from './hooks/useRecorder'
@@ -80,6 +81,7 @@ const {
   chatSSEClientRef,
   content,
   isAiMessageEnd,
+  loading,
   modelName,
   currentModel,
   replyForm,
@@ -206,17 +208,29 @@ async function autoPlayAiMessage(text: string, index: number) {
   isStreamPlaying.value = true
 }
 
+function userMsgFormat(text: string, isFormat = true) {
+  if (!isFormat)
+    return text
+  const prefix = defaultSendMsgPre
+  const index = text.indexOf(prefix)
+  if (index === -1)
+    return text // 没有前缀就返回原内容
+  return text.slice(index + prefix.length)
+}
+
 /**
  * 发送消息确认按钮
  */
-function handleConfirm() {
+async function handleConfirm() {
   tempBuffers.value = []
   removeEmptyMessagesByRole('assistant') // 移除assistant角色的空消息
-  //  点击时如果ai消息没有返回完 ，并且正在播放，直接停止
-  if (isAiMessageEnd.value && isStreamPlaying.value) {
-    stopAll()
-    handleSendMsg()
+  console.log('查看状态', replyForm.value.content, !isAiMessageEnd.value, loading.value, isStreamPlaying.value)
 
+  //  点击时如果ai消息没有返回完 ，并且正在播放，直接停止
+  if ((!isAiMessageEnd.value && loading.value) || isStreamPlaying.value) {
+    await stopAll()
+    // 停止音频播放
+    handleSendMsg()
     return
   }
   handleSendMsg()
@@ -394,18 +408,19 @@ function removeEmptyMessagesByRole(type: string) {
   }
 }
 
-function stopAll() {
+async function stopAll() {
   console.log('🚫 强制关闭所有逻辑')
 
-  // 停止ai消息
-  stopChat.value()
-  // 停止播放
-  streamPlayerRef.value?.onStreamStop()
+  // 停止ai回复的消息
+  await stopChat.value()
+  // 停止音频播放
+  await streamPlayerRef.value?.onStreamStop()
   currentIndex.value = null
   // 重置格式化器
   textReset()
   // 重置播放状态
   isStreamPlaying.value = false
+  // 充值音频播放真正的状态
   isAudioPlaying.value = false
 }
 
@@ -455,7 +470,11 @@ watch(() => isRunning.value, (val: boolean) => {
 
 watch(() => textRes.value, async (newVal) => {
   await nextTick() // 确保视图更新完成
-  replyForm.value.content = newVal as string
+  // replyForm.value.content = newVal as string
+})
+
+watch(() => replyForm.value.content, (newVal) => {
+  console.log(' replyForm.value.content变化1111111111111111111111111了', newVal)
 })
 
 onMounted(() => {
@@ -565,13 +584,14 @@ router.ready(() => {
             <!-- 用户消息 -->
             <view v-if="msg.role === 'user'" class=" flex  flex-justify-end opacity-60">
               <view class="message-bubble p-32rpx border-rd-16rpx   bg-#07c160 color-white max-w-80%">
-                <text>
+                <text selectable>
+                  <!-- 首先判断 用户消息临时加载状态 如果是则代表是语音识别消息 否则展示已经添加进去的消息 -->
                   {{
                     msg.isRecordingPlaceholder
                       ? (textRes || '') + (isRunning && textRes ? animatedDots : '')
                       : Array.isArray(msg.content)
-                        ? (msg.content as any)[0].text
-                        : msg.content
+                        ? userMsgFormat((msg.content as any)[0].text, false)
+                        : userMsgFormat(msg.content || '', false)
                   }}
                 </text>
                 <!-- 流式加载动画 -->
@@ -582,7 +602,7 @@ router.ready(() => {
             </view>
 
             <!-- AI消息（含加载状态） -->
-            <view v-else class="flex justify-start opacity-60">
+            <view v-if="msg.role === 'assistant'" class="flex justify-start opacity-60">
               <Icon-font name="zhipu" class="mt-20rpx mr-10rpx" />
               <view class="flex mt-16rpx mb-16rpx flex-justify-start bg-#ffffff color-#333333 max-w-80% border-rd-16rpx">
                 <view

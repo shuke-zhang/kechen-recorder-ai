@@ -189,7 +189,7 @@ onHide(() => {
 function handleConfirm() {
   /** 点击按钮 */
   emit('confirm')
-  inputValue.value = ''
+  console.log('错误实在这儿，导致先清空内容再发送消息')
 }
 </script>
 

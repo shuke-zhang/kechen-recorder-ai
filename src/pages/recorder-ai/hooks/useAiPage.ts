@@ -1,3 +1,4 @@
+import { defaultSendMsgPre } from '../const'
 import type { AiMessage } from '@/hooks'
 import { aiModelList, setAiContent } from '@/pages/ai/const'
 
@@ -49,14 +50,15 @@ export default function useAiPage(height: string) {
     stopChat.value = aiHooks.stopChat
     onSuccess.value = aiHooks.onSuccess
     onFinish.value = aiHooks.onFinish
-    loading.value = aiHooks.loading.value
     // content.value = aiHooks.content.value
     isAiMessageEnd.value = aiHooks.isAiMessageEnd.value
     isStreaming.value = aiHooks.isStreaming.value
     aiInited.value = true
     chatSSEClientShow.value = true
 
-    watch(() => loading.value, (val) => {
+    watch(() => aiHooks.loading.value, (val) => {
+      console.log('监听到aiHooks的变化', val)
+
       loading.value = val
     }, { immediate: true, deep: true })
 
@@ -85,7 +87,9 @@ export default function useAiPage(height: string) {
       },
     })
   }
-
+  watch(() => replyForm.value.content, (newVal) => {
+    console.log(' replyForm.value.content变化22222222222222222222222了', newVal)
+  })
   function handleChangeAiModel(model: string) {
     const index = aiModelList.findIndex(item => item.name === model)
 
@@ -105,11 +109,12 @@ export default function useAiPage(height: string) {
 
   function handleSendMsg() {
     const last = content.value[content.value.length - 1]
-    if (!replyForm.value.content && !last?.isRecordingPlaceholder) {
-      return showToast('请输入内容')
-    }
-    if (!replyForm.value.content.trim() && !last?.isRecordingPlaceholder) {
-      return showToastError('请输入问题')
+    console.log(replyForm.value.content, !last?.isRecordingPlaceholder, 'handleSendMsg')
+    const text = replyForm.value.content
+    const isVoicePlaceholder = last?.isRecordingPlaceholder === true
+    // 判断没有内容 并且不是语音识别的加载状态
+    if (!text?.trim() && !isVoicePlaceholder) {
+      return showToastError('请输入内容')
     }
 
     if (last?.isRecordingPlaceholder) {
@@ -119,7 +124,7 @@ export default function useAiPage(height: string) {
     else {
       const sendText = setAiContent({
         type: 'send',
-        msg: replyForm.value.content,
+        msg: defaultSendMsgPre + replyForm.value.content,
         modeName: modelName.value || '',
       })
 

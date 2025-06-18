@@ -3,22 +3,37 @@ const props = defineProps<{
   modelValue: boolean
   updateList: string[]
 }>()
-const emit = defineEmits(['updateNow', 'remindLater'])
+const emit = defineEmits<{
+  updateNow: any
+  remindLater: any
+}>()
+const popup = ref()
 
 const model = defineModel<boolean>()
+// 临时采用
+watch(() => model.value, (v) => {
+  if (v) {
+    popup.value.open('center')
+  }
+  else {
+    popup.value.close()
+  }
+})
 
 function handleUpdateNow() {
-  emit('updateNow')
+  console.log('[Debug] 触发了立即更新')
   model.value = false
+  emit('updateNow')
 }
 function handleRemindLater() {
-  emit('remindLater')
+  console.log('[Debug] 触发了稍后提醒')
   model.value = false
+  emit('remindLater')
 }
 </script>
 
 <template>
-  <popup v-model="model" type="center" :is-mask-click="false">
+  <uni-popup ref="popup" type="center" :is-mask-click="false">
     <view class="check-app-bg">
       <view class="content-card">
         <view class="title">
@@ -45,7 +60,7 @@ function handleRemindLater() {
         </view>
       </view>
     </view>
-  </popup>
+  </uni-popup>
 </template>
 
 <style lang="scss" scoped>

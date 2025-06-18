@@ -1,5 +1,9 @@
 const punctuationMarks = ['，', '。', '！', '；', '？']
-
+interface ProcessTextOptions {
+  text: string
+  isFullText?: boolean
+  forceFlush?: boolean
+}
 function containsPunctuation(text: string) {
   for (let i = 0; i < text.length; i++) {
     if (punctuationMarks.includes(text[i])) {
@@ -14,26 +18,35 @@ export function useTextFormatter() {
   const lastProcessedText = ref('')
 
   // 函数重载区
-  function processText(fullText: string, isFullText: true): string[]
-  function processText(fullText: string, isFullText?: false): string
-  function processText(fullText: string, isFullText: boolean = false): string | string[] {
+  function processText(options: ProcessTextOptions & { isFullText: true }): string[]
+  function processText(options: ProcessTextOptions & { isFullText?: false }): string
+
+  function processText(options: ProcessTextOptions): string | string[] {
+    const {
+      text,
+      isFullText = false,
+      forceFlush = false,
+    } = options
     if (!isFullText) {
+      if (forceFlush) {
+        return buffer.value
+      }
       let incrementalText = ''
       if (
-        fullText.length > lastProcessedText.value.length
-        && fullText.startsWith(lastProcessedText.value)
+        text.length > lastProcessedText.value.length
+        && text.startsWith(lastProcessedText.value)
       ) {
-        incrementalText = fullText.substring(lastProcessedText.value.length)
+        incrementalText = text.substring(lastProcessedText.value.length)
       }
-      else if (fullText !== lastProcessedText.value) {
+      else if (text !== lastProcessedText.value) {
         buffer.value = ''
-        incrementalText = fullText
+        incrementalText = text
       }
       else {
         return ''
       }
 
-      lastProcessedText.value = fullText
+      lastProcessedText.value = text
       buffer.value += incrementalText
 
       const punctuationInfo = containsPunctuation(buffer.value)
@@ -47,23 +60,23 @@ export function useTextFormatter() {
     else {
       const results: string[] = []
       let start = 0
-      for (let i = 0; i < fullText.length; i++) {
-        if (punctuationMarks.includes(fullText[i])) {
-          const segment = fullText.substring(start, i + 1)
+      for (let i = 0; i < text.length; i++) {
+        if (punctuationMarks.includes(text[i])) {
+          const segment = text.substring(start, i + 1)
           if (!isOnlyEmoji(segment)) {
             results.push(segment)
           }
           start = i + 1
         }
       }
-      if (start < fullText.length) {
-        const segment = fullText.substring(start)
+      if (start < text.length) {
+        const segment = text.substring(start)
         if (!isOnlyEmoji(segment)) {
           results.push(segment)
         }
       }
       buffer.value = ''
-      lastProcessedText.value = fullText
+      lastProcessedText.value = text
       return results
     }
   }

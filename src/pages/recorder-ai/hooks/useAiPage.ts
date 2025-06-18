@@ -37,7 +37,6 @@ export default function useAiPage(height: string) {
   const stopChat = ref<() => void>(() => {})
   const onSuccess = ref<(msg: string) => void>(() => {})
   const onFinish = ref<() => void>(() => {})
-
   function init() {
     const model = aiModelList[aiCurrentIndex.value]
     if (!model)

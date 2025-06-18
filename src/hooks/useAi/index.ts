@@ -152,8 +152,10 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
 
     // #ifdef APP || APP-PLUS || H5
     if (msg.includes('DONE')) {
+      // 主动将 DONE 传递出去，方便做ai消息结束的判断
+      // 用于需要在最后一条消息的时候立即做某些事儿
       isAiMessageEnd.value = true
-      return
+      return hotUpdate(' ')
     }
     const { content: appContent } = appExtractStreamContent(msg)
     hotUpdate(appContent)

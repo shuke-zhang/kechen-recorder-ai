@@ -1,8 +1,9 @@
 {
-  "version": "1.0.3",
+  "version": "1.0.4",
   "appUrl": "https://shuke-zhang.oss-cn-chengdu.aliyuncs.com/kezai/kezai-AI.zip",
   "updateList": [
-    "更新了AI模型",
+    "修复短文本不能播放语音的bug",
+    "优化自动更新弹窗显示问题",
     "修复了部分bug"
   ]
 }

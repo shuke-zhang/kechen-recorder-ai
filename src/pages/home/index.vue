@@ -22,6 +22,7 @@ function handleCardClick(model?: typeof aiModelList[number]['model']) {
   }
 }
 router.ready(() => {
+  console.log('版本')
   checkNewVersion()
 })
 </script>

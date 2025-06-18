@@ -147,12 +147,12 @@ function handleStop() {
     <!-- #endif -->
     <view
       v-show="show"
-      class="c-popup-container"
+      class="popup-container"
       :class="type"
     >
       <view
         v-if="type !== 'center'"
-        class="c-popup-mask"
+        class="popup-mask"
         :class="{ show: animation }"
         :style="{ 'background-color': maskBackgroundColor }"
         @click="isMaskClick ? close() : void 0"
@@ -160,20 +160,20 @@ function handleStop() {
       />
 
       <view
-        class="c-popup-wrapper-fixed"
+        class="popup-wrapper-fixed"
         :class="{ show: animation }"
         @touchmove.stop.prevent="handleStop"
       >
         <view
           v-if="type === 'center'"
-          class="c-popup-mask"
+          class="popup-mask"
           :class="{ show: animation }"
           :style="{ 'background-color': maskBackgroundColor }"
           @click="isMaskClick ? close() : void 0"
           @touchmove.stop.prevent="handleStop"
         />
         <view
-          class="c-popup-wrapper"
+          class="popup-wrapper"
           :style="{ backgroundColor }"
         >
           <slot />
@@ -268,7 +268,7 @@ function handleStop() {
   }
 }
 
-.c-popup-container {
+.popup-container {
   position: fixed;
   top: 0;
   left: 0;
@@ -277,7 +277,7 @@ function handleStop() {
   z-index: 99;
 
   &.bottom {
-    .c-popup-wrapper-fixed {
+    .popup-wrapper-fixed {
       left: 0;
       right: 0;
       bottom: 0;
@@ -293,7 +293,7 @@ function handleStop() {
   }
 
   &.center {
-    .c-popup-wrapper-fixed {
+    .popup-wrapper-fixed {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -312,13 +312,13 @@ function handleStop() {
       }
     }
 
-    .c-popup-wrapper {
+    .popup-wrapper {
       transform: translateY(-5vh);
     }
   }
 }
 
-.c-popup-wrapper-fixed {
+.popup-wrapper-fixed {
   position: fixed;
   animation-duration: 300ms;
   // animation-duration: 3s;
@@ -326,7 +326,7 @@ function handleStop() {
   animation-fill-mode: forwards;
 }
 
-.c-popup-mask {
+.popup-mask {
   position: fixed;
   z-index: 0;
   top: 0;
@@ -348,7 +348,7 @@ function handleStop() {
   }
 }
 
-.c-popup-wrapper {
+.popup-wrapper {
   z-index: 1;
   position: relative;
 }

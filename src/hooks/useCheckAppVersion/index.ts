@@ -11,6 +11,8 @@ import type { UniAppResponse, versionModel } from './types'
  */
 export function useCheckAppVersion() {
   const visible = ref(false) // 是否显示弹窗
+  const currentVersion = ref<string | null>('')
+  const nextVersion = ref<string | undefined>('')
   const downloadUrl = ref('') // 下载地址
   const updateList = ref<string[]>([]) // 更新内容列表
   /**
@@ -56,17 +58,19 @@ export function useCheckAppVersion() {
     // 获取线上/远程版本
       const nextVersionRes = await getVersionFromJson() // 比如 '1.3.68'
 
-      const nextVersion = nextVersionRes?.version
+      const _nextVersion = nextVersionRes?.version
       downloadUrl.value = nextVersionRes?.appUrl || ''
       updateList.value = nextVersionRes?.updateList || []
       // 获取当前App本地版本
-      const currentVersion = await detectNewVersion() // 比如 '1.3.67'
-      console.log('本地版本:', currentVersion, '线上版本:', nextVersion)
-      if (!nextVersion || !currentVersion)
+      const _currentVersion = await detectNewVersion() // 比如 '1.3.67'
+      currentVersion.value = _currentVersion
+      nextVersion.value = _nextVersion
+      console.log('本地版本:', _currentVersion, '线上版本:', _nextVersion)
+      if (!_nextVersion || !_currentVersion)
         return
 
       // 对比版本号
-      if (compareVersion(nextVersion, currentVersion) > 0) {
+      if (compareVersion(_nextVersion, _currentVersion) > 0) {
       // 有新版本，弹窗提示
         console.log('有新版本^^^^^^^^^^^^^^^^^^^^^^^', downloadUrl.value)
         visible.value = true
@@ -82,6 +86,13 @@ export function useCheckAppVersion() {
       console.error('检测新版本失败', e)
     }
   }
+  watch(
+    () => visible.value,
+    (v) => {
+      console.log('visible变化了', v)
+    },
+
+  )
   /**
    * 比较版本号
    */
@@ -214,6 +225,8 @@ export function useCheckAppVersion() {
   }
   return {
     visible,
+    currentVersion,
+    nextVersion,
     downloadUrl,
     updateList,
     checkNewVersion,

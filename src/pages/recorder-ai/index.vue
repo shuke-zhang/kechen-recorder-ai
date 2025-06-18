@@ -164,49 +164,35 @@ const lastAiMsgEnd = ref(false)
 /**
  * ai内容自动播放音频
  */
-async function autoPlayAiMessage(text: string, index: number) {
-  console.log('autoPlayAiMessage----0')
-
+async function autoPlayAiMessage(_text: string, index: number) {
   if (!isAutoPlayAiMessage.value || hasUserInterruptedAutoPlay.value)
     return
-  console.log('autoPlayAiMessage----1')
 
-  if (!text || text.trim() === '')
-    return
-  console.log('autoPlayAiMessage----3')
   // if (!isApp)
   //   return
   // 设置当前播放的消息索引
   currentIndex.value = index
-  console.log('autoPlayAiMessage----4')
+
   // 如果是新的消息，重置格式化器
   if (currentIndex.value !== lastProcessedIndex) {
-    console.log('autoPlayAiMessage----5')
-
     textReset()
     lastProcessedIndex = currentIndex.value
   }
-  console.log('autoPlayAiMessage----6')
-
   // 开始语音合成并播放
-  const longText = processText(text)
-  console.log('autoPlayAiMessage-c---7')
+  const longText = processText({
+    text: _text,
+    isFullText: false,
+    forceFlush: isAiMessageEnd.value,
+  })
 
   // 处理文本 下面是对接后端的音频 采用接口的方式
   if (longText.length > 0) {
-    console.log('autoPlayAiMessage----8')
-
     tempFormattedTexts.value.push(longText)
-    console.log('autoPlayAiMessage----9')
 
-    console.log('接口开始请求')
     //  判断是不是新的ai消息
-    if (tempFormattedTexts.value.findIndex(t => t === longText) === 0) {
-      console.log('autoPlayAiMessage----10')
-
+    if (tempFormattedTexts.value.findIndex(t => t === longText) === 0 && !isAiMessageEnd.value) {
       streamPlayerRef.value?.onStreamStop()
     }
-    console.log('autoPlayAiMessage----11')
 
     doubaoSpeechSynthesisFormat({
       text: longText,
@@ -358,12 +344,13 @@ const handleRecorder = debounce((text: string, index: number) => {
   isStreamPlaying.value = true
   currentIndex.value = index
 
-  const longTexts = processText(text, true)
-  console.log('longTexts', longTexts)
+  const longTexts = processText({
+    text,
+    isFullText: true,
+  })
 
   longTexts.forEach((longText, i) => {
     if (longText.length) {
-      console.log('接口开始请求2')
       doubaoSpeechSynthesisFormat({
         text: longText,
         id: i,
@@ -447,7 +434,7 @@ async function stopAll() {
   textReset()
   // 重置播放状态
   isStreamPlaying.value = false
-  // 充值音频播放真正的状态
+  // 重置音频播放真正的状态
   isAudioPlaying.value = false
 }
 
@@ -464,14 +451,13 @@ watch(
       const lastMessage = content.value[content.value.length - 1]
       if (lastMessage?.role === 'assistant' && lastMessage?.streaming) {
         // 自动播放
-        autoPlayAiMessage(lastMessage.content as string || '', content.value.length - 1)
+        autoPlayAiMessage(lastMessage.content as string || ' ', content.value.length - 1)
       }
     }
   },
 )
 
 watch(() => isAiMessageEnd.value, (newVal) => {
-  console.log(';isAiMessageEnd*******************************************监测到变化了', newVal)
   if (newVal) {
     lastAiMsgEnd.value = true
     tempFormattedTexts.value = []
@@ -647,6 +633,7 @@ router.ready(() => {
                 >
                   <view v-if="msg.content">
                     <UaMarkdown :source="`${msg.content}`" :show-line="false" />
+
                     <view class="h-2rpx  bg-black-3 my-10rpx" />
 
                     <view class="flex items-center justify-end ">

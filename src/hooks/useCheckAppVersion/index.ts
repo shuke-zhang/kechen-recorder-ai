@@ -51,7 +51,7 @@ export function useCheckAppVersion() {
   /**
    * 检测最新版本是否高于当前版本 如果是则更新如果不是则不更新
    */
-  async function checkNewVersion() {
+  async function checkNewVersion(isShowToast = false) {
     try {
     // 获取线上/远程版本
       const nextVersionRes = await getVersionFromJson() // 比如 '1.3.68'
@@ -73,6 +73,7 @@ export function useCheckAppVersion() {
       }
       else {
         console.log('没有新版本')
+        isShowToast && showToast('当前已是最新版本')
       // 没有新版本，可选提示
       // uni.showToast({ title: '当前已是最新版本', icon: 'none' })
       }

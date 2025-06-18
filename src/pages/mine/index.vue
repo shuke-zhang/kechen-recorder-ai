@@ -53,7 +53,7 @@ function handleClickFeature(item: any) {
 
 function onCheckUpdate() {
   console.log('检查更新')
-  checkNewVersion()
+  checkNewVersion(true)
 }
 </script>
 

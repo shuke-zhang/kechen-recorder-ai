@@ -81,6 +81,17 @@ function handleCardClick(model?: typeof aiModelList[number]['name']) {
     aiVisible.value = false
   }
 }
+
+// onBackPress((options) => {
+//   console.log('用户触发返回行为')
+
+//   if (options.from === 'backbutton') {
+//     console.log('安卓物理返回键')
+//     onAiPage()
+//   }
+
+//   return false
+// })
 </script>
 
 <template>
@@ -133,7 +144,13 @@ function handleCardClick(model?: typeof aiModelList[number]['name']) {
 
   <sk-popup v-model="aiVisible" type="bottom">
     <view class="card bg-black-2">
-      <view class="flex flex-wrap justify-center gap-32rpx ">
+      <view class="flex w-full justify-end">
+        <view class=" size-50rpx flex-center" @click="aiVisible = false">
+          <icon-font name="close" size="60" />
+        </view>
+      </view>
+
+      <view class="flex flex-wrap justify-center gap-32rpx mt-20rpx">
         <view
           v-for="item in aiModelList"
           :key="item.model"

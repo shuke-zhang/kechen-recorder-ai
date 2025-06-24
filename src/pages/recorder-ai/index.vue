@@ -583,98 +583,99 @@ router.ready(() => {
 
     <view :style="aiPageContent">
       <view
-        class="absolute top-0 left-0 w-full h-full z-0 flex-center pointer-events-none"
+        class="  w-full h-72%   pointer-events-none"
       >
-        <!-- :style="{ 'padding-top': pageHeight }" -->
         <image
           :src="(isStreamPlaying && isAudioPlaying) ? '/static/images/aiPageBg.gif' : '/static/images/aiPageBg-quiet.png'"
           mode="aspectFit"
-          class=" size-100% "
+          class="size-100%"
         />
       </view>
 
-      <scroll-view
-        ref="scrollViewRef"
-        scroll-y
-        :scroll-top="scrollTop"
-        class=" scroll-view pr-20rpx pl-20rpx  block h-full"
-        :scroll-with-animation="true"
-        :style="aiScrollView"
-        @scroll="handleScroll"
-        @scrolltolower="scrolltolower"
-      >
-        <view class="scroll-content">
-          <!-- content.length === 0 -->
-          <view v-if="true" class="h-full flex justify-end flex-col items-center pb-200rpx pt-500rpx">
-            <view>
-              <image
-                class="ai-img"
-                :src="`/static/images/ai-logo/${currentModel?.icon}.png`"
-                mode="aspectFill"
-              />
-            </view>
-            <view class="font-size-60rpx mt-20rpx">
-              我是{{ modelSubTitle }}
-            </view>
-            <view class="mt-20rpx w-80%">
-              我可以帮你搜索、答疑、写作、请在下方输入你的内容~
-            </view>
-          </view>
+      <view class="h-28% ">
+        <scroll-view
+          ref="scrollViewRef"
+          scroll-y
+          :scroll-top="scrollTop"
+          class=" scroll-view pr-20rpx pl-20rpx  h-full"
+          :scroll-with-animation="true"
+          @scroll="handleScroll"
+          @scrolltolower="scrolltolower"
+        >
+          <!-- :style="aiScrollView" -->
 
-          <view v-for="(msg, index) in content" :key="index" class="py-16rpx">
-            <!-- 用户消息 -->
-            <view v-if="msg.role === 'user'" class=" flex  flex-justify-end opacity-60">
-              <view class="message-bubble p-32rpx border-rd-16rpx   bg-#07c160 color-white max-w-80%">
-                <text selectable>
-                  <!-- 首先判断 用户消息临时加载状态 如果是则代表是语音识别消息 否则展示已经添加进去的消息 -->
-                  {{
-                    msg.isRecordingPlaceholder
-                      ? (textRes || '') + (isRunning && textRes ? animatedDots : '')
-                      : Array.isArray(msg.content)
-                        ? userMsgFormat(modelPrefix, (msg.content as any)[0].text, true)
-                        : userMsgFormat(modelPrefix, msg.content || '', true)
-                  }}
-                </text>
-                <!-- 流式加载动画 -->
-                <view v-if="msg.isRecordingPlaceholder && !textRes" class="flex-center">
-                  <uni-load-more icon-type="auto" status="loading" :show-text="false" />
-                </view>
+          <view class="scroll-content">
+            <view v-if=" content.length === 0" class="h-full flex justify-end flex-col items-center ">
+              <view>
+                <image
+                  class="ai-img"
+                  :src="`/static/images/ai-logo/${currentModel?.icon}.png`"
+                  mode="aspectFill"
+                />
+              </view>
+              <view class="font-size-60rpx mt-20rpx">
+                我是{{ modelSubTitle }}
+              </view>
+              <view class="mt-20rpx w-80%">
+                我可以帮你搜索、答疑、写作、请在下方输入你的内容~
               </view>
             </view>
 
-            <!-- AI消息（含加载状态） -->
-            <view v-if="msg.role === 'assistant'" class="flex justify-start opacity-60">
-              <Icon-font name="zhipu" class="mt-20rpx mr-10rpx" />
-              <view class="flex mt-16rpx mb-16rpx flex-justify-start bg-#ffffff color-#333333 max-w-80% border-rd-16rpx">
-                <view
-                  class="message-bubble  p-32rpx border-rd-16rpx w-100%"
-                  :class="[msg.streaming && !(msg.content && msg.content!.length) ? 'flex-center w-120rpx h-120rpx ' : '']"
-                >
-                  <view v-if="msg.content">
-                    <UaMarkdown :source="`${msg.content}`" :show-line="false" />
-
-                    <view class="h-2rpx  bg-black-3 my-10rpx" />
-
-                    <view class="flex items-center justify-end ">
-                      <view class="border-rd-16rpx size-60rpx bg-#e8ecf5 flex-center" @click="handleCopy(msg.content as string)">
-                        <icon-font name="copy" :color="COLOR_PRIMARY" :size="28" />
-                      </view>
-                      <view class="border-rd-16rpx size-60rpx  bg-#e8ecf5 flex-center  ml-20rpx" @click="handleRecorder(msg.content as string, index)">
-                        <audio-wave v-if="isStreamPlaying && currentIndex === index" :color="COLOR_PRIMARY" />
-                        <icon-font v-else name="sound" :color="COLOR_PRIMARY" :size="28" />
-                      </view>
-                    </view>
-                  </view>
+            <view v-for="(msg, index) in content" :key="index" class="py-16rpx">
+              <!-- 用户消息 -->
+              <view v-if="msg.role === 'user'" class=" flex  flex-justify-end opacity-60">
+                <view class="message-bubble p-32rpx border-rd-16rpx   bg-#07c160 color-white max-w-80%">
+                  <text selectable>
+                    <!-- 首先判断 用户消息临时加载状态 如果是则代表是语音识别消息 否则展示已经添加进去的消息 -->
+                    {{
+                      msg.isRecordingPlaceholder
+                        ? (textRes || '') + (isRunning && textRes ? animatedDots : '')
+                        : Array.isArray(msg.content)
+                          ? userMsgFormat(modelPrefix, (msg.content as any)[0].text, true)
+                          : userMsgFormat(modelPrefix, msg.content || '', true)
+                    }}
+                  </text>
                   <!-- 流式加载动画 -->
-                  <view v-if=" msg.streaming && !(msg.content && msg.content!.length)" class="flex-center">
+                  <view v-if="msg.isRecordingPlaceholder && !textRes" class="flex-center">
                     <uni-load-more icon-type="auto" status="loading" :show-text="false" />
                   </view>
                 </view>
               </view>
+
+              <!-- AI消息（含加载状态） -->
+              <view v-if="msg.role === 'assistant'" class="flex justify-start opacity-60">
+                <Icon-font name="zhipu" class="mt-20rpx mr-10rpx" />
+                <view class="flex mt-16rpx mb-16rpx flex-justify-start bg-#ffffff color-#333333 max-w-80% border-rd-16rpx">
+                  <view
+                    class="message-bubble  p-32rpx border-rd-16rpx w-100%"
+                    :class="[msg.streaming && !(msg.content && msg.content!.length) ? 'flex-center w-120rpx h-120rpx ' : '']"
+                  >
+                    <view v-if="msg.content">
+                      <UaMarkdown :source="`${msg.content}`" :show-line="false" />
+
+                      <view class="h-2rpx  bg-black-3 my-10rpx" />
+
+                      <view class="flex items-center justify-end ">
+                        <view class="border-rd-16rpx size-60rpx bg-#e8ecf5 flex-center" @click="handleCopy(msg.content as string)">
+                          <icon-font name="copy" :color="COLOR_PRIMARY" :size="28" />
+                        </view>
+                        <view class="border-rd-16rpx size-60rpx  bg-#e8ecf5 flex-center  ml-20rpx" @click="handleRecorder(msg.content as string, index)">
+                          <audio-wave v-if="isStreamPlaying && currentIndex === index" :color="COLOR_PRIMARY" />
+                          <icon-font v-else name="sound" :color="COLOR_PRIMARY" :size="28" />
+                        </view>
+                      </view>
+                    </view>
+                    <!-- 流式加载动画 -->
+                    <view v-if=" msg.streaming && !(msg.content && msg.content!.length)" class="flex-center">
+                      <uni-load-more icon-type="auto" status="loading" :show-text="false" />
+                    </view>
+                  </view>
+                </view>
+              </view>
             </view>
           </view>
-        </view>
-      </scroll-view>
+        </scroll-view>
+      </view>
     </view>
 
     <!-- 统一输入框 -->

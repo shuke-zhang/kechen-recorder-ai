@@ -165,8 +165,15 @@ const lastAiMsgEnd = ref(false)
  * ai内容自动播放音频
  */
 async function autoPlayAiMessage(_text: string, index: number) {
-  if (!isAutoPlayAiMessage.value || hasUserInterruptedAutoPlay.value)
+  //
+  // if (!isAutoPlayAiMessage.value || hasUserInterruptedAutoPlay.value)
+  if (!isAutoPlayAiMessage.value) {
+    console.log('不需要自动播放-----------------------')
+
+    streamPlayerRef.value?.onStreamStop()
+    isStreamPlaying.value = false
     return
+  }
 
   // if (!isApp)
   //   return

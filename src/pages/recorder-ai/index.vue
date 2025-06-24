@@ -168,10 +168,6 @@ async function autoPlayAiMessage(_text: string, index: number) {
   //
   // if (!isAutoPlayAiMessage.value || hasUserInterruptedAutoPlay.value)
   if (!isAutoPlayAiMessage.value) {
-    console.log('不需要自动播放-----------------------')
-
-    streamPlayerRef.value?.onStreamStop()
-    isStreamPlaying.value = false
     return
   }
 
@@ -223,6 +219,16 @@ async function autoPlayAiMessage(_text: string, index: number) {
     })
   }
   isStreamPlaying.value = true
+}
+
+function handleAutoPlayAiMessage() {
+  isAutoPlayAiMessage.value = !isAutoPlayAiMessage.value
+  if (!isAutoPlayAiMessage.value) {
+    hasUserInterruptedAutoPlay.value = false
+    // 直接停止播放音频
+    streamPlayerRef.value?.onStreamStop()
+    isStreamPlaying.value = false
+  }
 }
 
 function userMsgFormat(prefix: string, text: string, isFormat = true) {
@@ -540,7 +546,7 @@ router.ready(() => {
     <nav-bar :show-back="false">
       <template #left>
         <view>
-          <icon-font :name="isAutoPlayAiMessage ? 'sound' : 'mute'" :color="isAutoPlayAiMessage ? COLOR_PRIMARY : ''" size="40" class="ml-20rpx" @click="isAutoPlayAiMessage = !isAutoPlayAiMessage" />
+          <icon-font :name="isAutoPlayAiMessage ? 'sound' : 'mute'" :color="isAutoPlayAiMessage ? COLOR_PRIMARY : ''" size="40" class="ml-20rpx" @click="handleAutoPlayAiMessage" />
         </view>
       </template>
 

@@ -6,6 +6,27 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "22899518",
+      "name": "设置",
+      "font_class": "setup",
+      "unicode": "e656",
+      "unicode_decimal": 58966
+    },
+    {
+      "icon_id": "37692399",
+      "name": "设置",
+      "font_class": "setting",
+      "unicode": "e699",
+      "unicode_decimal": 59033
+    },
+    {
+      "icon_id": "7842029",
+      "name": "公卫-更新",
+      "font_class": "gongwei-gengxin",
+      "unicode": "e6dc",
+      "unicode_decimal": 59100
+    },
+    {
       "icon_id": "27734611",
       "name": "清空",
       "font_class": "clear",

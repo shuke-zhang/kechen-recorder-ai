@@ -12,6 +12,7 @@ export type IconFontType = 'account-code' |
 'doubao' |
 'edit' |
 'fasong' |
+'gongwei-gengxin' |
 'jump' |
 'keyboard' |
 'left' |
@@ -25,6 +26,8 @@ export type IconFontType = 'account-code' |
 'recorder' |
 'right' |
 'search' |
+'setting' |
+'setup' |
 'sound' |
 'time' |
 'user' |

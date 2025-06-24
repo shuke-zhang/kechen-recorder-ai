@@ -19,11 +19,28 @@ interface CacheType {
    * 用户信息
    */
   USER_INFO: UserInfoModel | null
+  /**
+   * 当前ai模型
+   */
+  AI_MODEL: string
 }
 /**
  * 缓存
  */
 const cache = new Cache<CacheType>(name, version)
+
+/** 通用缓存方案 */
+export function getCache<T>(key: keyof CacheType) {
+  return cache.get(key) as T
+}
+/** 通用缓存方案 */
+export function setCache<T>(key: keyof CacheType, value: T, expires?: number) {
+  return cache.set(key, value, expires)
+}
+
+export function removeCache(key: keyof CacheType) {
+  return cache.remove(key)
+}
 
 /** */
 export function getCacheToken() {

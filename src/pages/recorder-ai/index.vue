@@ -437,6 +437,10 @@ async function stopAll() {
   // 重置音频播放真正的状态
   isAudioPlaying.value = false
 }
+/** 跳转到设置页面 */
+function handleToSetting() {
+  router.replace('/pages/mine/index')
+}
 
 // 添加一个监听最后一条消息内容的变化（对于流式输出非常有用）
 watch(
@@ -520,20 +524,22 @@ onShow(() => {
 })
 
 router.ready(() => {
-  const { modelName } = router.query as any
-
-  if (modelName) {
-    handleChangeAiModel(modelName)
-  }
+  handleChangeAiModel()
 })
 </script>
 
 <template>
   <view>
-    <nav-bar>
+    <nav-bar :show-back="false">
+      <template #left>
+        <view>
+          <icon-font :name="isAutoPlayAiMessage ? 'sound' : 'mute'" :color="isAutoPlayAiMessage ? COLOR_PRIMARY : ''" size="40" class="ml-20rpx" @click="isAutoPlayAiMessage = !isAutoPlayAiMessage" />
+        </view>
+      </template>
+
       <template #right>
         <view class="flex  pr-50rpx">
-          <icon-font :name="isAutoPlayAiMessage ? 'sound' : 'mute'" :color="isAutoPlayAiMessage ? COLOR_PRIMARY : ''" size="40" class="ml-20rpx" @click="isAutoPlayAiMessage = !isAutoPlayAiMessage" />
+          <icon-font name="setting" color="#000" size="40" @click="handleToSetting" />
         </view>
       </template>
 
@@ -685,7 +691,7 @@ router.ready(() => {
 }
 </style>
 
-<route lang="json">
+<route lang="json" pages="home">
   {
        "style": { "navigationBarTitleText": "录音","navigationStyle": "custom" }
   }

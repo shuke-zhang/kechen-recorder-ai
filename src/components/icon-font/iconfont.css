@@ -10,6 +10,18 @@
   text-align: center;
 }
 
+.icon-setup:before {
+  content: "\e656";
+}
+
+.icon-setting:before {
+  content: "\e699";
+}
+
+.icon-gongwei-gengxin:before {
+  content: "\e6dc";
+}
+
 .icon-clear:before {
   content: "\e618";
 }

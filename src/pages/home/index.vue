@@ -1,4 +1,4 @@
-<route  lang="json" type="home">
+<route  lang="json" type="page">
   {
     "style": { "navigationBarTitleText": "柯臣" }
   }

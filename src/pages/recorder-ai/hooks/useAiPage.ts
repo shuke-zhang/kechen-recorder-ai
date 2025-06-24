@@ -1,11 +1,13 @@
 import { defaultSendMsgPre } from '../const'
 import type { AiMessage } from '@/hooks'
 import { aiModelList, setAiContent } from '@/pages/ai/const'
+import { useAiStore } from '@/store/modules/ai'
 
 export default function useAiPage(height: string) {
   const replyForm = ref({ content: '', role: 'user' })
   const popupVisible = ref(false)
   const popupRef = ref<any>(null)
+  const aiStore = useAiStore()
 
   const aiNameList = aiModelList.map(item => item.name || '')
   const aiModelInstanceList = aiModelList.map(item => ({ ...item, messages: [] }))
@@ -90,11 +92,14 @@ export default function useAiPage(height: string) {
   }
   watch(() => replyForm.value.content, (newVal) => {
   })
-  function handleChangeAiModel(model: string) {
-    const index = aiModelList.findIndex(item => item.name === model)
+  function handleChangeAiModel() {
+    const modelName: typeof aiModelList[number]['name'] = aiStore.currentAiModel
+    console.log('modelName^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^', modelName)
+
+    const index = aiModelList.findIndex(item => item.name === modelName)
 
     if (index === -1) {
-      console.warn(`找不到模型名 ${model}，handleChangeAiModel 被跳过`)
+      console.warn(`找不到模型名 ${modelName}，handleChangeAiModel 被跳过`)
       return
     }
 

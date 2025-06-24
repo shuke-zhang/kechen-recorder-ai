@@ -1,4 +1,4 @@
-// eslint-disable-next-line ts/no-wrapper-object-types, unused-imports/no-unused-vars
+// eslint-disable-next-line ts/no-wrapper-object-types
 export interface PageKey<T> extends Symbol { }
 
 export type PageIdentifier<T = AnyObject> = PageKey<T> | string | number

@@ -6,7 +6,6 @@
 
 <script setup lang="ts">
 import type { UniPopupType } from '@uni-helper/uni-ui-types'
-import { Button, Popup } from 'antd-mobile'
 
 const { visible, downloadUrl, currentVersion, nextVersion, updateList, downloadApp, checkNewVersion } = useCheckAppVersion()
 const router = useRouter()

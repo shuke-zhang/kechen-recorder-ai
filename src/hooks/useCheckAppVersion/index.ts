@@ -86,6 +86,10 @@ export function useCheckAppVersion() {
       console.error('检测新版本失败', e)
     }
   }
+
+  const onCheckNewVersion = debounce((isShowToast) => {
+    checkNewVersion(isShowToast)
+  }, 300)
   watch(
     () => visible.value,
     (v) => {
@@ -229,7 +233,10 @@ export function useCheckAppVersion() {
     nextVersion,
     downloadUrl,
     updateList,
+    /** 检查更新 */
     checkNewVersion,
+    /** 检查更新 - 防抖版 */
+    onCheckNewVersion,
     downloadApp,
   }
 }

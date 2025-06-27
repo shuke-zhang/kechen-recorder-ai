@@ -6,6 +6,9 @@ const APIKey = '287ae449056d33e0f4995f480737564a'
 const url = 'wss://iat-api.xfyun.cn/v2/iat'
 const host = 'iat-api.xfyun.cn'
 
+/**
+ * @description 讯飞语音识别配合pcm实时帧调用
+ */
 export default function useRecorder(options: AnyObject) {
   const isFirstVisit = ref(true)
   const {

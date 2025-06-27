@@ -3,6 +3,9 @@ import CryptoJS from 'crypto-js'
 import type { XunFeiRecorderOptions } from './types'
 import { WebSocket } from '@/store/modules/socket/webSocket'
 
+/**
+ * @description 讯飞语音识别class --- https://www.xfyun.cn/doc/asr/voicedictation/API.html#%E6%8E%A5%E5%8F%A3%E8%AF%B4%E6%98%8E
+ */
 export default class RecorderCoreManager extends EventEmitter {
   private APPID = ''
   private APISecret = ''

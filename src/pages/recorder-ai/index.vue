@@ -42,7 +42,6 @@ import RecorderInput from './recorder-input.vue'
 import useRecorder from './hooks/useRecorder'
 import useAiPage from './hooks/useAiPage'
 import useAutoScroll from './hooks/useAutoScroll'
-import { useMultiClickTrigger } from '@/hooks'
 import { doubaoSpeechSynthesisFormat } from '@/api/audio'
 import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
 /** 需要编译成微信小程序时，引入微信小程序支持文件 */
@@ -70,11 +69,11 @@ const router = useRouter<{
  * 音频播放组件实例
  */
 const streamPlayerRef = ref<InstanceType<typeof StreamPlayer>>()
-const { handleMultiClick } = useMultiClickTrigger({
-  onTrigger: () => {
-    router.push('/pages/test/index', { id: 123 })
-  },
-})
+// const { handleMultiClick } = useMultiClickTrigger({
+//   onTrigger: () => {
+//     router.push('/pages/test/index', { id: 123 })
+//   },
+// })
 
 const {
   chatSSEClientRef,
@@ -87,7 +86,6 @@ const {
   currentModel,
   replyForm,
   aiPageContent,
-  aiScrollView,
   onSuccess,
   onFinish,
   stopChat,
@@ -221,15 +219,15 @@ async function autoPlayAiMessage(_text: string, index: number) {
   isStreamPlaying.value = true
 }
 
-function handleAutoPlayAiMessage() {
-  isAutoPlayAiMessage.value = !isAutoPlayAiMessage.value
-  if (!isAutoPlayAiMessage.value) {
-    hasUserInterruptedAutoPlay.value = false
-    // 直接停止播放音频
-    streamPlayerRef.value?.onStreamStop()
-    isStreamPlaying.value = false
-  }
-}
+// function handleAutoPlayAiMessage() {
+//   isAutoPlayAiMessage.value = !isAutoPlayAiMessage.value
+//   if (!isAutoPlayAiMessage.value) {
+//     hasUserInterruptedAutoPlay.value = false
+//     // 直接停止播放音频
+//     streamPlayerRef.value?.onStreamStop()
+//     isStreamPlaying.value = false
+//   }
+// }
 
 function userMsgFormat(prefix: string, text: string, isFormat = true) {
   if (!isFormat)
@@ -451,9 +449,9 @@ async function stopAll() {
   isAudioPlaying.value = false
 }
 /** 跳转到设置页面 */
-function handleToSetting() {
-  router.replace('/pages/mine/index')
-}
+// function handleToSetting() {
+//   router.replace('/pages/mine/index')
+// }
 
 // 添加一个监听最后一条消息内容的变化（对于流式输出非常有用）
 watch(
@@ -543,7 +541,7 @@ router.ready(() => {
 
 <template>
   <view>
-    <nav-bar :show-back="false">
+    <!-- <nav-bar :show-back="false">
       <template #left>
         <view>
           <icon-font :name="isAutoPlayAiMessage ? 'sound' : 'mute'" :color="isAutoPlayAiMessage ? COLOR_PRIMARY : ''" size="40" class="ml-20rpx" @click="handleAutoPlayAiMessage" />
@@ -559,7 +557,7 @@ router.ready(() => {
       <text @click="handleMultiClick">
         柯仔AI
       </text>
-    </nav-bar>
+    </nav-bar> -->
 
     <!-- 流式流式ai消息 -->
     <GaoChatSSEClient
@@ -602,8 +600,6 @@ router.ready(() => {
           @scroll="handleScroll"
           @scrolltolower="scrolltolower"
         >
-          <!-- :style="aiScrollView" -->
-
           <view class="scroll-content">
             <view v-if=" content.length === 0" class="h-full flex justify-end flex-col items-center ">
               <view>

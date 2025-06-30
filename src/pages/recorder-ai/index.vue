@@ -42,6 +42,7 @@ import RecorderInput from './recorder-input.vue'
 import useRecorder from './hooks/useRecorder'
 import useAiPage from './hooks/useAiPage'
 import useAutoScroll from './hooks/useAutoScroll'
+import { useAiCall } from '@/store/modules/ai-call'
 import { doubaoSpeechSynthesisFormat } from '@/api/audio'
 import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
 /** 需要编译成微信小程序时，引入微信小程序支持文件 */
@@ -64,6 +65,8 @@ const isStreamPlaying = ref(false)
 const router = useRouter<{
   modelName: string
 }>()
+
+const aiCall = useAiCall()
 
 /**
  * 音频播放组件实例
@@ -518,8 +521,32 @@ onMounted(() => {
   (vueInstance as any).isMounted = true
   RecordAppInstance.UniPageOnShow(vueInstance)
   recReq().then((res) => {
-    console.log(res, '请求权限允许')
+    // console.log(res, '请求权限允许', aiCall.callAudioData.audioData)
     isFirstVisit.value = false
+    // 首次进入时，ai主动发送语音
+    // handleRecorder('你好呀，我是柯仔。有什么需要帮助的吗？', -1)
+    // if (aiCall.callAudioData.audioData) {
+    console.log('赋值数据')
+
+    streamData.value = {
+      buffer: aiCall.callAudioData.audioData,
+      text: aiCall.callAudioData.text,
+      id: aiCall.callAudioData.id,
+    }
+    // }
+    // console.log('开始请求-----------------')
+
+    // doubaoSpeechSynthesisFormat({
+    //   text: '你好呀，我是柯仔。请问有什么可以帮助你的吗？',
+    //   id: 0,
+    // })
+    //   .then((res) => {
+    //     streamData.value = {
+    //       buffer: res.audio_buffer,
+    //       text: res.text,
+    //       id: res.id,
+    //     }
+    //   })
   }).catch((err) => {
     showToastError(err)
     console.log(err, '请求权限拒绝')
@@ -581,7 +608,7 @@ router.ready(() => {
 
     <view :style="aiPageContent">
       <view
-        class="  w-full h-72%   pointer-events-none"
+        class="  w-full h-90%   pointer-events-none"
       >
         <image
           :src="(isStreamPlaying && isAudioPlaying) ? '/static/images/aiPageBg.gif' : '/static/images/aiPageBg-quiet.png'"
@@ -590,7 +617,7 @@ router.ready(() => {
         />
       </view>
 
-      <view class="h-28% ">
+      <view class="h-10% ">
         <scroll-view
           ref="scrollViewRef"
           scroll-y
@@ -601,7 +628,8 @@ router.ready(() => {
           @scrolltolower="scrolltolower"
         >
           <view class="scroll-content">
-            <view v-if=" content.length === 0" class="h-full flex justify-end flex-col items-center ">
+            <!--  content.length === 0 -->
+            <view v-if="false" class="h-full flex justify-end flex-col items-center ">
               <view>
                 <image
                   class="ai-img"

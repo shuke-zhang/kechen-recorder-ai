@@ -64,7 +64,13 @@ declare namespace AiModel{
    * @description ai请求时的内容
    */
   interface AiRequestMessagesModel {
-    role?: string
+    /**
+     * @description 角色
+     * - user 用户消息
+     * - assistant AI回复消息
+     * - custom 自定义消息，这儿只是方便做了某些事儿，目前并不确定
+     */
+    role?: 'user' | 'assistant'
     content?: string | AiMessage []
     text?: string
     /**

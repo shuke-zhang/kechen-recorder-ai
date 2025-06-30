@@ -1,5 +1,5 @@
 import { name, version } from '../../../package.json'
-import { Cache } from './cache'
+import { Cache, type CacheTime } from './cache'
 import type { UserInfoModel } from '@/model/user'
 
 interface CacheType {
@@ -23,6 +23,14 @@ interface CacheType {
    * 当前ai模型
    */
   AI_MODEL: string
+  /**
+   * ai 打招呼音频数据
+   */
+  AI_GREETING_AUDIO_DATA: {
+    audioData: string
+    text: string
+    id: number
+  }
 }
 /**
  * 缓存
@@ -34,7 +42,11 @@ export function getCache<T>(key: keyof CacheType) {
   return cache.get(key) as T
 }
 /** 通用缓存方案 */
-export function setCache<T>(key: keyof CacheType, value: T, expires?: number) {
+export function setCache<K extends keyof CacheType>(
+  key: K,
+  value: CacheType[K],
+  expires?: number | Partial<CacheTime>,
+) {
   return cache.set(key, value, expires)
 }
 

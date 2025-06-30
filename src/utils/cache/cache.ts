@@ -74,7 +74,7 @@ export class Cache<CacheType extends object> {
     return `${this.perfixKey}${String(key)}`
   }
 
-  set<K extends keyof CacheType>(key: K, value: CacheType[K], options = this.defaultExpires) {
+  set<K extends keyof CacheType>(key: K, value: CacheType[K], options: number | Partial<CacheTime> = this.defaultExpires) {
     const data = this.stringifyJson({
       value,
       expires: this.getExpires(options),

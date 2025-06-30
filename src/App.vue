@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import { onHide, onShow } from '@dcloudio/uni-app'
+import { useAiCall } from './store/modules/ai-call'
 
+const { getCallAudioData } = useAiCall()
 onShow(() => {
   console.log('App Show')
 })
 onHide(() => {
   console.log('App Hide')
+})
+
+onLaunch(() => {
+  getCallAudioData()
 })
 // onLaunch(async () => {
 //   nextTick(async () => {

@@ -33,6 +33,7 @@ export default {
   computed: {
 
   },
+
   methods: {
     // 接收renderjs发回的数据
     onStreamPlayStart(buffer: ArrayBuffer) {
@@ -71,6 +72,8 @@ export default {
   mounted() {
     // App的renderjs必须调用的函数，传入当前模块this
     player = new StreamAudioPlayer()
+      console.log('player准备完毕')
+
     player.onStart(() => {
       console.log('播放开始啦~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
       this.$ownerInstance?.callMethod('onStreamPlayStart', 1)
@@ -97,6 +100,7 @@ export default {
 
   try {
     const bytes = this.base64ToArrayBuffer(buffer)
+    console.log('开始添加音频数据')
     player.appendSmartChunk({
       buffer:bytes,
       text,

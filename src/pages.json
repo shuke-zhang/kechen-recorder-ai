@@ -12,12 +12,13 @@
       "^z-(.*)": "@zebra-ui/swiper/components/z-$1/z-$1.vue"
     }
   },
+  "__esModule": true,
   "pages": [
     {
-      "path": "pages/recorder-ai/index",
+      "path": "pages/screensaver/index",
       "type": "home",
       "style": {
-        "navigationBarTitleText": "录音",
+        "navigationBarTitleText": "柯臣",
         "navigationStyle": "custom"
       }
     },
@@ -52,6 +53,14 @@
       "type": "mine",
       "style": {
         "navigationBarTitleText": "柯臣",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/recorder-ai/index",
+      "type": "page",
+      "style": {
+        "navigationBarTitleText": "录音",
         "navigationStyle": "custom"
       }
     },

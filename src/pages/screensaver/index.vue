@@ -43,7 +43,7 @@ const videoLists = computed(() => {
 // 当前播放的视频索引
 const currentVideoIndex = ref(0)
 // 当前播放的视频路径
-const currentVideoSrc = ref('')
+const currentVideoSrc = ref(toRaw(videoLists.value[0]))
 // 视频播放器引用
 const videoRef = ref<Video | null>(null)
 
@@ -58,7 +58,7 @@ function getRandomVideo(excludeIndex: number): number {
 function playNextVideo() {
   const nextIndex = getRandomVideo(currentVideoIndex.value)
   currentVideoIndex.value = nextIndex
-  currentVideoSrc.value = videoLists.value[nextIndex]
+  // currentVideoSrc.value = videoLists.value[nextIndex]
 
   // 重新加载视频
   if (videoRef.value) {
@@ -71,7 +71,7 @@ function playNextVideo() {
 function initRandomVideo() {
   const randomIndex = Math.floor(Math.random() * videoLists.value.length)
   currentVideoIndex.value = randomIndex
-  currentVideoSrc.value = videoLists.value[randomIndex]
+  // currentVideoSrc.value = videoLists.value[randomIndex]
 }
 
 // 视频播放完成事件处理
@@ -104,7 +104,7 @@ onUnmounted(() => {
       :src="currentVideoSrc"
       class=" w-full h-60%"
       autoplay
-      :loop="false"
+      :loop="true"
       :controls="false"
       muted
       :show-center-play-btn="false"

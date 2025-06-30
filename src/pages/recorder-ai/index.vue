@@ -705,7 +705,7 @@ router.ready(() => {
 }
 </style>
 
-<route lang="json" pages="home">
+<route lang="json" pages="page">
   {
        "style": { "navigationBarTitleText": "录音","navigationStyle": "custom" }
   }

@@ -13,6 +13,9 @@ function containsPunctuation(text: string) {
   return { hasPunctuation: false, index: -1, punctuation: '' }
 }
 
+/**
+ * 文本格式化
+ */
 export function useTextFormatter() {
   const buffer = ref('')
   const lastProcessedText = ref('')

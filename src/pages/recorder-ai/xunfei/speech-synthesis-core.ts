@@ -3,6 +3,9 @@ import CryptoJS from 'crypto-js'
 import type { XunFeiSpeechSynthesisOptions } from './types'
 import { WebSocket } from '@/store/modules/socket/webSocket'
 
+/**
+ * 讯飞文本转语音
+ */
 export default class SpeechSynthesisCore extends EventEmitter {
   private APPID = ''
   private APISecret = ''

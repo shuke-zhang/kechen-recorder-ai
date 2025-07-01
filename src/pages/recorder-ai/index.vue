@@ -523,30 +523,14 @@ onMounted(() => {
   recReq().then((res) => {
     // console.log(res, '请求权限允许', aiCall.callAudioData.audioData)
     isFirstVisit.value = false
-    // 首次进入时，ai主动发送语音
-    // handleRecorder('你好呀，我是柯仔。有什么需要帮助的吗？', -1)
-    // if (aiCall.callAudioData.audioData) {
-    console.log('赋值数据')
-
-    streamData.value = {
-      buffer: aiCall.callAudioData.audioData,
-      text: aiCall.callAudioData.text,
-      id: aiCall.callAudioData.id,
-    }
-    // }
-    // console.log('开始请求-----------------')
-
-    // doubaoSpeechSynthesisFormat({
-    //   text: '你好呀，我是柯仔。请问有什么可以帮助你的吗？',
-    //   id: 0,
-    // })
-    //   .then((res) => {
-    //     streamData.value = {
-    //       buffer: res.audio_buffer,
-    //       text: res.text,
-    //       id: res.id,
-    //     }
-    //   })
+    // 首次进入时，ai主动发送语音  -
+    setTimeout(() => {
+      streamData.value = {
+        buffer: aiCall.callAudioData.audioData,
+        text: aiCall.callAudioData.text,
+        id: aiCall.callAudioData.id,
+      }
+    }, 1500)
   }).catch((err) => {
     showToastError(err)
     console.log(err, '请求权限拒绝')
@@ -608,7 +592,7 @@ router.ready(() => {
 
     <view :style="aiPageContent">
       <view
-        class="  w-full h-90%   pointer-events-none"
+        class="w-full h-90%   pointer-events-none"
       >
         <image
           :src="(isStreamPlaying && isAudioPlaying) ? '/static/images/aiPageBg.gif' : '/static/images/aiPageBg-quiet.png'"

@@ -26,7 +26,8 @@
                 "apikey" : "lu4jj0IP5MdGT5BPcpP7OWAI",
                 "secretkey" : "hqiK3X1RC6hsx7RdIwF5SM8BtlpywwGO"
             },
-            "Record" : {}
+            "Record" : {},
+            "VideoPlayer" : {}
         },
         "distribute" : {
             "android" : {
@@ -49,7 +50,8 @@
                     "<uses-feature android:name=\"android.hardware.camera\"/>",
                     "<uses-permission android:name=\"android.permission.WRITE_SETTINGS\"/>"
                 ],
-                "autoSuffix" : false
+                "autoSuffix" : false,
+                "minSdkVersion" : 21
             },
             "ios" : {
                 "dSYMs" : false,

@@ -15,10 +15,10 @@
   "__esModule": true,
   "pages": [
     {
-      "path": "pages/screensaver/index",
+      "path": "pages/recorder-ai/index",
       "type": "home",
       "style": {
-        "navigationBarTitleText": "柯臣",
+        "navigationBarTitleText": "录音",
         "navigationStyle": "custom"
       }
     },
@@ -57,14 +57,6 @@
       }
     },
     {
-      "path": "pages/recorder-ai/index",
-      "type": "page",
-      "style": {
-        "navigationBarTitleText": "录音",
-        "navigationStyle": "custom"
-      }
-    },
-    {
       "path": "pages/recorder-ai/recorder-input",
       "type": "page"
     },
@@ -74,6 +66,10 @@
       "style": {
         "navigationBarTitleText": "测试页面"
       }
+    },
+    {
+      "path": "pages/recorder-ai/components/screensaver",
+      "type": "page"
     }
   ],
   "subPackages": [

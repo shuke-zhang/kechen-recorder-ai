@@ -1,32 +1,22 @@
-<route  lang="json" type="home">
-  {
-    "style": { "navigationBarTitleText": "柯臣" ,"navigationStyle": "custom" }
-
-  }
-</route>
-
 <script setup lang="ts">
 import type { Video } from '@uni-helper/uni-app-types'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { defineEmits, onMounted, onUnmounted, ref } from 'vue'
 
-const router = useRouter()
+const emit = defineEmits(['onTrigger'])
 const { handleMultiClick } = useMultiClickTrigger({
   targetCount: 2,
   onTrigger: onRecorder,
 })
 
 function onRecorder() {
-  router.replace('/pages/recorder-ai/index')
+  // router.replace('/pages/recorder-ai/index')
+  emit('onTrigger')
 }
 /** 视频文件 */
 const videoLists = computed(() => {
   if (isApp) {
     return [
       '/static/video/screensaver-1.mp4',
-      '/static/video/screensaver-2.mp4',
-      '/static/video/screensaver-3.mp4',
-      '/static/video/screensaver-4.mp4',
-      '/static/video/screensaver-5.mp4',
     ]
   }
   else {

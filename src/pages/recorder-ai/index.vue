@@ -45,6 +45,7 @@ import useAutoScroll from './hooks/useAutoScroll'
 import { useAiCall } from '@/store/modules/ai-call'
 import { doubaoSpeechSynthesisFormat } from '@/api/audio'
 import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
+import screensaver from './components/screensaver.vue'
 /** 需要编译成微信小程序时，引入微信小程序支持文件 */
 // #ifdef MP-WEIXIN
 import 'recorder-core/src/app-support/app-miniProgram-wx-support.js'
@@ -151,7 +152,8 @@ const streamData = ref<{
 }>()
 // 是否切换到新的消息进行播放
 const isSwitchingNewMessage = ref(false)
-
+/** 控制屏保 */
+const isScreensaver = ref(true)
 /**
  * 是否自动播放
  */
@@ -222,15 +224,18 @@ async function autoPlayAiMessage(_text: string, index: number) {
   isStreamPlaying.value = true
 }
 
-// function handleAutoPlayAiMessage() {
-//   isAutoPlayAiMessage.value = !isAutoPlayAiMessage.value
-//   if (!isAutoPlayAiMessage.value) {
-//     hasUserInterruptedAutoPlay.value = false
-//     // 直接停止播放音频
-//     streamPlayerRef.value?.onStreamStop()
-//     isStreamPlaying.value = false
-//   }
-// }
+/**
+ * 屏保触发事件
+ */
+function onScreensaverTrigger() {
+  isScreensaver.value = false
+  // 让ai主动发送语音消息
+  streamData.value = {
+    buffer: aiCall.callAudioData.audioData,
+    text: aiCall.callAudioData.text,
+    id: aiCall.callAudioData.id,
+  }
+}
 
 function userMsgFormat(prefix: string, text: string, isFormat = true) {
   if (!isFormat)
@@ -524,13 +529,13 @@ onMounted(() => {
     // console.log(res, '请求权限允许', aiCall.callAudioData.audioData)
     isFirstVisit.value = false
     // 首次进入时，ai主动发送语音  -
-    setTimeout(() => {
-      streamData.value = {
-        buffer: aiCall.callAudioData.audioData,
-        text: aiCall.callAudioData.text,
-        id: aiCall.callAudioData.id,
-      }
-    }, 1500)
+    // setTimeout(() => {
+    //   streamData.value = {
+    //     buffer: aiCall.callAudioData.audioData,
+    //     text: aiCall.callAudioData.text,
+    //     id: aiCall.callAudioData.id,
+    //   }
+    // }, 1500)
   }).catch((err) => {
     showToastError(err)
     console.log(err, '请求权限拒绝')
@@ -590,116 +595,121 @@ router.ready(() => {
     />
     <!-- #endif -->
 
-    <view :style="aiPageContent">
-      <view
-        class="w-full h-90%   pointer-events-none"
-      >
-        <image
-          :src="(isStreamPlaying && isAudioPlaying) ? '/static/images/aiPageBg.gif' : '/static/images/aiPageBg-quiet.png'"
-          mode="aspectFit"
-          class="size-100%"
-        />
-      </view>
-
-      <view class="h-10% ">
-        <scroll-view
-          ref="scrollViewRef"
-          scroll-y
-          :scroll-top="scrollTop"
-          class=" scroll-view pr-20rpx pl-20rpx  h-full"
-          :scroll-with-animation="true"
-          @scroll="handleScroll"
-          @scrolltolower="scrolltolower"
+    <view v-show="!isScreensaver">
+      <view :style="aiPageContent">
+        <view
+          class="w-full h-90%   pointer-events-none"
         >
-          <view class="scroll-content">
-            <!--  content.length === 0 -->
-            <view v-if="false" class="h-full flex justify-end flex-col items-center ">
-              <view>
-                <image
-                  class="ai-img"
-                  :src="`/static/images/ai-logo/${currentModel?.icon}.png`"
-                  mode="aspectFill"
-                />
-              </view>
-              <view class="font-size-60rpx mt-20rpx">
-                我是{{ modelSubTitle }}
-              </view>
-              <view class="mt-20rpx w-80%">
-                我可以帮你搜索、答疑、写作、请在下方输入你的内容~
-              </view>
-            </view>
+          <image
+            :src="(isStreamPlaying && isAudioPlaying) ? '/static/images/aiPageBg.gif' : '/static/images/aiPageBg-quiet.png'"
+            mode="aspectFit"
+            class="size-100%"
+          />
+        </view>
 
-            <view v-for="(msg, index) in content" :key="index" class="py-16rpx">
-              <!-- 用户消息 -->
-              <view v-if="msg.role === 'user'" class=" flex  flex-justify-end opacity-60">
-                <view class="message-bubble p-32rpx border-rd-16rpx   bg-#07c160 color-white max-w-80%">
-                  <text selectable>
-                    <!-- 首先判断 用户消息临时加载状态 如果是则代表是语音识别消息 否则展示已经添加进去的消息 -->
-                    {{
-                      msg.isRecordingPlaceholder
-                        ? (textRes || '') + (isRunning && textRes ? animatedDots : '')
-                        : Array.isArray(msg.content)
-                          ? userMsgFormat(modelPrefix, (msg.content as any)[0].text, true)
-                          : userMsgFormat(modelPrefix, msg.content || '', true)
-                    }}
-                  </text>
-                  <!-- 流式加载动画 -->
-                  <view v-if="msg.isRecordingPlaceholder && !textRes" class="flex-center">
-                    <uni-load-more icon-type="auto" status="loading" :show-text="false" />
-                  </view>
+        <view class="h-10% ">
+          <scroll-view
+            ref="scrollViewRef"
+            scroll-y
+            :scroll-top="scrollTop"
+            class=" scroll-view pr-20rpx pl-20rpx  h-full"
+            :scroll-with-animation="true"
+            @scroll="handleScroll"
+            @scrolltolower="scrolltolower"
+          >
+            <view class="scroll-content">
+              <!--  content.length === 0 -->
+              <view v-if="false" class="h-full flex justify-end flex-col items-center ">
+                <view>
+                  <image
+                    class="ai-img"
+                    :src="`/static/images/ai-logo/${currentModel?.icon}.png`"
+                    mode="aspectFill"
+                  />
+                </view>
+                <view class="font-size-60rpx mt-20rpx">
+                  我是{{ modelSubTitle }}
+                </view>
+                <view class="mt-20rpx w-80%">
+                  我可以帮你搜索、答疑、写作、请在下方输入你的内容~
                 </view>
               </view>
 
-              <!-- AI消息（含加载状态） -->
-              <view v-if="msg.role === 'assistant'" class="flex justify-start opacity-60">
-                <Icon-font name="zhipu" class="mt-20rpx mr-10rpx" />
-                <view class="flex mt-16rpx mb-16rpx flex-justify-start bg-#ffffff color-#333333 max-w-80% border-rd-16rpx">
-                  <view
-                    class="message-bubble  p-32rpx border-rd-16rpx w-100%"
-                    :class="[msg.streaming && !(msg.content && msg.content!.length) ? 'flex-center w-120rpx h-120rpx ' : '']"
-                  >
-                    <view v-if="msg.content">
-                      <UaMarkdown :source="`${msg.content}`" :show-line="false" />
-
-                      <view class="h-2rpx  bg-black-3 my-10rpx" />
-
-                      <view class="flex items-center justify-end ">
-                        <view class="border-rd-16rpx size-60rpx bg-#e8ecf5 flex-center" @click="handleCopy(msg.content as string)">
-                          <icon-font name="copy" :color="COLOR_PRIMARY" :size="28" />
-                        </view>
-                        <view class="border-rd-16rpx size-60rpx  bg-#e8ecf5 flex-center  ml-20rpx" @click="handleRecorder(msg.content as string, index)">
-                          <audio-wave v-if="isStreamPlaying && currentIndex === index" :color="COLOR_PRIMARY" />
-                          <icon-font v-else name="sound" :color="COLOR_PRIMARY" :size="28" />
-                        </view>
-                      </view>
-                    </view>
+              <view v-for="(msg, index) in content" :key="index" class="py-16rpx">
+                <!-- 用户消息 -->
+                <view v-if="msg.role === 'user'" class=" flex  flex-justify-end opacity-60">
+                  <view class="message-bubble p-32rpx border-rd-16rpx   bg-#07c160 color-white max-w-80%">
+                    <text selectable>
+                      <!-- 首先判断 用户消息临时加载状态 如果是则代表是语音识别消息 否则展示已经添加进去的消息 -->
+                      {{
+                        msg.isRecordingPlaceholder
+                          ? (textRes || '') + (isRunning && textRes ? animatedDots : '')
+                          : Array.isArray(msg.content)
+                            ? userMsgFormat(modelPrefix, (msg.content as any)[0].text, true)
+                            : userMsgFormat(modelPrefix, msg.content || '', true)
+                      }}
+                    </text>
                     <!-- 流式加载动画 -->
-                    <view v-if=" msg.streaming && !(msg.content && msg.content!.length)" class="flex-center">
+                    <view v-if="msg.isRecordingPlaceholder && !textRes" class="flex-center">
                       <uni-load-more icon-type="auto" status="loading" :show-text="false" />
                     </view>
                   </view>
                 </view>
+
+                <!-- AI消息（含加载状态） -->
+                <view v-if="msg.role === 'assistant'" class="flex justify-start opacity-60">
+                  <Icon-font name="zhipu" class="mt-20rpx mr-10rpx" />
+                  <view class="flex mt-16rpx mb-16rpx flex-justify-start bg-#ffffff color-#333333 max-w-80% border-rd-16rpx">
+                    <view
+                      class="message-bubble  p-32rpx border-rd-16rpx w-100%"
+                      :class="[msg.streaming && !(msg.content && msg.content!.length) ? 'flex-center w-120rpx h-120rpx ' : '']"
+                    >
+                      <view v-if="msg.content">
+                        <UaMarkdown :source="`${msg.content}`" :show-line="false" />
+
+                        <view class="h-2rpx  bg-black-3 my-10rpx" />
+
+                        <view class="flex items-center justify-end ">
+                          <view class="border-rd-16rpx size-60rpx bg-#e8ecf5 flex-center" @click="handleCopy(msg.content as string)">
+                            <icon-font name="copy" :color="COLOR_PRIMARY" :size="28" />
+                          </view>
+                          <view class="border-rd-16rpx size-60rpx  bg-#e8ecf5 flex-center  ml-20rpx" @click="handleRecorder(msg.content as string, index)">
+                            <audio-wave v-if="isStreamPlaying && currentIndex === index" :color="COLOR_PRIMARY" />
+                            <icon-font v-else name="sound" :color="COLOR_PRIMARY" :size="28" />
+                          </view>
+                        </view>
+                      </view>
+                      <!-- 流式加载动画 -->
+                      <view v-if=" msg.streaming && !(msg.content && msg.content!.length)" class="flex-center">
+                        <uni-load-more icon-type="auto" status="loading" :show-text="false" />
+                      </view>
+                    </view>
+                  </view>
+                </view>
               </view>
             </view>
-          </view>
-        </scroll-view>
+          </scroll-view>
+        </view>
       </view>
+
+      <!-- 统一输入框 -->
+      <RecorderInput
+        v-model:model-value="replyForm.content"
+        v-model:focus="isFocus"
+        v-model:show-recording-button="showRecordingButton"
+        placeholder="请输入您的问题..."
+        btn-text="发送"
+        @recorder-close="handleRecorderClose"
+        @show-recorder="handleShowRecorder"
+        @recorder-touch-start="handleTouchStart"
+        @recorder-touch-end="handleTouchEnd"
+        @recorder-confirm="handleRecorderConfirm"
+        @confirm="handleConfirm "
+      />
     </view>
 
-    <!-- 统一输入框 -->
-    <RecorderInput
-      v-model:model-value="replyForm.content"
-      v-model:focus="isFocus"
-      v-model:show-recording-button="showRecordingButton"
-      placeholder="请输入您的问题..."
-      btn-text="发送"
-      @recorder-close="handleRecorderClose"
-      @show-recorder="handleShowRecorder"
-      @recorder-touch-start="handleTouchStart"
-      @recorder-touch-end="handleTouchEnd"
-      @recorder-confirm="handleRecorderConfirm"
-      @confirm="handleConfirm "
-    />
+    <!-- 屏保 -->
+    <screensaver v-show="isScreensaver" @on-trigger="onScreensaverTrigger" />
   </view>
 </template>
 
@@ -713,7 +723,7 @@ router.ready(() => {
 }
 </style>
 
-<route lang="json" pages="page">
+<route lang="json" pages="home">
   {
        "style": { "navigationBarTitleText": "录音","navigationStyle": "custom" }
   }

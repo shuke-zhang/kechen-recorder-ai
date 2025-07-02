@@ -19,8 +19,8 @@ export default function useAiPage(height: string) {
   const aiInited = ref(false)
 
   const aiPageContent = computed(() => ({
-    // 'min-height': `calc(100vh - ${height} - 120rpx)`,
-    height: `calc(100vh - ${height} - 120rpx)`,
+    // height: `calc(100vh - ${height} - 120rpx)`,
+    height: '100vh',
   }))
   const aiScrollView = computed(() => ({
     height: `calc(100vh - ${height} - 120rpx - 40rpx)`,

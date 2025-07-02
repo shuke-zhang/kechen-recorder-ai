@@ -598,7 +598,7 @@ router.ready(() => {
     <view v-show="!isScreensaver">
       <view :style="aiPageContent">
         <view
-          class="w-full h-90%   pointer-events-none"
+          class="w-full h-85%   pointer-events-none"
         >
           <image
             :src="(isStreamPlaying && isAudioPlaying) ? '/static/images/aiPageBg.gif' : '/static/images/aiPageBg-quiet.png'"
@@ -607,7 +607,7 @@ router.ready(() => {
           />
         </view>
 
-        <view class="h-10% ">
+        <view class="h-15% pb-120rpx">
           <scroll-view
             ref="scrollViewRef"
             scroll-y

@@ -14,6 +14,7 @@ declare module 'vue' {
     ChatWxApplet: typeof import('./../components/gao-ChatSSEClient/children/ChatWxApplet.vue')['default']
     CheckAppPage: typeof import('./../components/check-app-page/check-app-page.vue')['default']
     CommentInput: typeof import('./../components/comment-input/comment-input.vue')['default']
+    DomVideoPlayer: typeof import('./../components/DomVideoPlayer/DomVideoPlayer.vue')['default']
     Empty: typeof import('./../components/empty/empty.vue')['default']
     Form: typeof import('./../components/form/form.vue')['default']
     FormItem: typeof import('./../components/form-item/form-item.vue')['default']

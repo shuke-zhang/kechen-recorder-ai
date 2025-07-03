@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Video } from '@uni-helper/uni-app-types'
 import { defineEmits, onMounted, onUnmounted, ref } from 'vue'
+import type DomVideoPlayer from '@/components/DomVideoPlayer/DomVideoPlayer.vue'
 
 const emit = defineEmits(['onTrigger'])
 const { handleMultiClick } = useMultiClickTrigger({
@@ -36,7 +37,11 @@ const currentVideoIndex = ref(0)
 const currentVideoSrc = ref(toRaw(videoLists.value[0]))
 // 视频播放器引用
 const videoRef = ref<Video | null>(null)
-
+const DomVideoPlayerRef = ref<InstanceType<typeof DomVideoPlayer>>()
+const isScreensaver = defineModel('show', {
+  type: Boolean,
+  default: true,
+})
 // 随机选择视频（排除当前视频）
 function getRandomVideo(excludeIndex: number): number {
   const availableVideos = videoLists.value.filter((_, index) => index !== excludeIndex)
@@ -79,34 +84,32 @@ onMounted(() => {
   initRandomVideo()
 })
 
+watch(isScreensaver, (newVal) => {
+  if (!newVal) {
+    console.log('停止播放视频')
+    videoRef.value?.pause?.()
+  }
+})
+
 onUnmounted(() => {
   // 清理视频播放器
-  if (videoRef.value) {
-    videoRef.value.pause()
-  }
+  // if (videoRef.value) {
+  //   videoRef.value.pause()
+  // }
 })
 </script>
 
 <template>
-  <view class="w-[100vw] h-[100vh] flex-center bg-#f9f4f7">
-    <video
-      ref="videoRef"
-      :src="currentVideoSrc"
-      class=" w-full h-60%"
+  <view v-if="isScreensaver" class="w-[100vw] h-[100vh] flex-center bg-#f9f4f7 screensaver-wrapper" :class="{ 'off-screen': !isScreensaver }">
+    <DomVideoPlayer
+      ref="DomVideoPlayerRef"
+      :src="`${STATIC_URL}/kezai/video/screensaver-1.mp4`"
       autoplay
-      :loop="true"
-      :controls="false"
+      :is-loading="true"
+      loop
+      controls
+      poster="/static/images/aiPageBg-quiet.png"
       muted
-      :show-center-play-btn="false"
-      :show-loading="false"
-      :enable-progress-gesture="false"
-      :enable-play-gesture="false"
-      :show-play-btn="false"
-      :show-fullscreen-btn="false"
-      :show-progress="false"
-      object-fit="cover"
-      @ended="onVideoEnded"
-      @error="onVideoError"
     />
 
     <cover-view
@@ -119,5 +122,21 @@ onUnmounted(() => {
 </template>
 
 <style lang="scss">
+.screensaver-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 999; // 或适当值
+  transition: transform 0.4s ease;
+}
 
+.off-screen {
+  transform: translateX(-10000px); // 也可用 translateY(10000px)
+  position: absolute;
+  z-index: -9999;
+  pointer-events: none;
+  opacity: 0;
+}
 </style>

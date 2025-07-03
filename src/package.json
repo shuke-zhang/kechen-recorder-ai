@@ -1,0 +1,20 @@
+{
+    "id": "lius-DomVideoPlayer",
+    "name": "video-player 视频播放器 html5视频播放器-解决频层级、覆盖",
+    "displayName": "video-player 视频播放器 html5视频播放器-解决频层级、覆盖",
+    "version": "2.0.0",
+    "description": "APP 项目中，uniapp 提供的的 video 原生视频组件层级太高，难以遮挡；该视频播放器可以被其他元素进行覆盖、遮挡，页面具有更高的定制性。",
+    "keywords": [
+        "video-player",
+        "视频播放器",
+        "视频覆盖",
+        "视频层级",
+        "视频遮挡"
+    ],
+    "dcloudext": {
+        "category": [
+            "前端组件",
+            "通用组件"
+        ]
+    }
+}

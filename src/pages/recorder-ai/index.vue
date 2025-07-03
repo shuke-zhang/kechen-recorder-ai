@@ -709,7 +709,7 @@ router.ready(() => {
     </view>
 
     <!-- 屏保 -->
-    <screensaver v-show="isScreensaver" @on-trigger="onScreensaverTrigger" />
+    <screensaver v-model:show="isScreensaver" @on-trigger="onScreensaverTrigger" />
   </view>
 </template>
 

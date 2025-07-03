@@ -33,8 +33,6 @@ const videoLists = computed(() => {
 
 // 当前播放的视频索引
 const currentVideoIndex = ref(0)
-// 当前播放的视频路径
-const currentVideoSrc = ref(toRaw(videoLists.value[0]))
 // 视频播放器引用
 const videoRef = ref<Video | null>(null)
 const DomVideoPlayerRef = ref<InstanceType<typeof DomVideoPlayer>>()
@@ -42,42 +40,12 @@ const isScreensaver = defineModel('show', {
   type: Boolean,
   default: true,
 })
-// 随机选择视频（排除当前视频）
-function getRandomVideo(excludeIndex: number): number {
-  const availableVideos = videoLists.value.filter((_, index) => index !== excludeIndex)
-  const randomVideo = availableVideos[Math.floor(Math.random() * availableVideos.length)]
-  return videoLists.value.indexOf(randomVideo)
-}
-
-// 切换到下一个随机视频
-function playNextVideo() {
-  const nextIndex = getRandomVideo(currentVideoIndex.value)
-  currentVideoIndex.value = nextIndex
-  // currentVideoSrc.value = videoLists.value[nextIndex]
-
-  // 重新加载视频
-  if (videoRef.value) {
-    videoRef.value.onLoad?.()
-    videoRef.value.play?.()
-  }
-}
 
 // 初始化第一个随机视频
 function initRandomVideo() {
   const randomIndex = Math.floor(Math.random() * videoLists.value.length)
   currentVideoIndex.value = randomIndex
   // currentVideoSrc.value = videoLists.value[randomIndex]
-}
-
-// 视频播放完成事件处理
-function onVideoEnded() {
-  playNextVideo()
-}
-
-// 视频播放错误事件处理
-function onVideoError() {
-  console.error('视频播放出错，切换到下一个视频')
-  playNextVideo()
 }
 
 onMounted(() => {
@@ -107,7 +75,7 @@ onUnmounted(() => {
       autoplay
       :is-loading="true"
       loop
-      controls
+      :controls="false"
       poster="/static/images/aiPageBg-quiet.png"
       muted
     />

@@ -207,33 +207,6 @@ function resetIdleTimer() {
   }, IDLE_DELAY)
 }
 
-/** 录音按钮取消录音 */
-function onRecorderClose() {
-  console.log('取消录音')
-  resetIdleTimer()
-  handleRecorderClose()
-}
-
-/** 录音按钮切换 */
-function onShowRecorder() {
-  resetIdleTimer()
-  handleShowRecorder()
-}
-/** 录音按钮按下 */
-function onRecorderTouchStart() {
-  resetIdleTimer()
-  handleTouchStart()
-}
-/** 录音按钮抬起 */
-function onRecorderTouchEnd() {
-  resetIdleTimer()
-  handleTouchEnd()
-}
-/** 右侧录音按钮发送录音 */
-function onRecorderConfirm() {
-  resetIdleTimer()
-  handleRecorderConfirm()
-}
 /** 发送消息确认按钮 */
 function onConfirm() {
   resetIdleTimer()
@@ -331,6 +304,8 @@ async function onScreensaverTrigger() {
       console.error('等待 initialLoadPending 超时', e)
     }
   }
+
+  handleTouchStart()
 }
 
 function waitUntil(conditionFn: () => boolean, interval = 50, timeout = 5000): Promise<void> {
@@ -399,51 +374,6 @@ const handleTouchStart = debounce(() => {
     resetAndScrollToBottom()
   })
 }, 300)
-
-function onTouchEnd() {
-  console.log('🔴 录音按钮抬起')
-
-  handleRecorderTouchEnd().then(async () => {
-    const endTime = Date.now()
-    const duration = endTime - startTime.value
-
-    if (duration < 300) {
-      removeEmptyMessagesByRole('user')
-      showToastError('说话时间太短')
-      stopAll() // ✅ 强制关闭所有逻辑
-      return
-    }
-    if (isRecorderClose.value) {
-      // 用户上滑取消
-      removeEmptyMessagesByRole('user')
-      replyForm.value = { content: '', role: 'user' }
-    }
-    else {
-      // 用户正常抬起
-      if (textRes.value && textRes.value.trim() !== '') {
-        // 有识别结果才发送
-        const lastIndex = content.value.length - 1
-        if (content.value[lastIndex]?.role === 'user') {
-          content.value[lastIndex].content = textRes.value
-        }
-        handleConfirm()
-        await nextTick()
-        resetAndScrollToBottom() // 强制滚动到底部
-      }
-      else {
-        showToastError('未识别到内容')
-        replyForm.value = { content: '', role: 'user' }
-        removeEmptyMessagesByRole('user')
-      }
-    }
-  }).finally(() => {
-    iseRecorderTouchStart.value = false
-  })
-}
-
-const handleTouchEnd = debounce(() => {
-  onTouchEnd()
-}, 500)
 
 /**
  * ai消息点击语音
@@ -637,6 +567,7 @@ watch(() => isRunning.value, (val: boolean) => {
   }
 })
 
+/** 语音识别结果返回 - 可以添加识别  */
 watch(() => textRes.value, async (newVal) => {
   await nextTick() // 确保视图更新完成
   replyForm.value.content = modelPrefix.value + newVal as string
@@ -819,11 +750,6 @@ router.ready(() => {
         v-model:show-recording-button="showRecordingButton"
         placeholder="请输入您的问题..."
         btn-text="发送"
-        @recorder-close="onRecorderClose"
-        @show-recorder="onShowRecorder"
-        @recorder-touch-start="onRecorderTouchStart"
-        @recorder-touch-end="onRecorderTouchEnd"
-        @recorder-confirm="onRecorderConfirm"
         @confirm="onConfirm"
       />
     </view>

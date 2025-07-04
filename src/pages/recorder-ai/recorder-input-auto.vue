@@ -29,18 +29,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits<{
-  'update:focus': [boolean]
-
   /** 点击发送按钮 */
-  /** 点击发送按钮 */
-  'confirm': []
-  'recorderConfirm': []
-  'recorderClose': []
-  /** 录音按钮按下 */
-  'recorderTouchStart': []
-  'showRecorder': []
-  /** 录音按钮抬起 */
-  'recorderTouchEnd': []
+  confirm: []
 }>()
 /**
  * 输入框的值

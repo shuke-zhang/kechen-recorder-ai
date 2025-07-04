@@ -369,7 +369,7 @@ const handleRecorder = debounce((text: string, index: number) => {
   })
 
   longTexts.forEach((longText, i) => {
-    if (longText.length) {
+    if (longText.trim().length > 0) {
       doubaoSpeechSynthesisFormat({
         text: longText,
         id: i,
@@ -526,16 +526,7 @@ onMounted(() => {
   (vueInstance as any).isMounted = true
   RecordAppInstance.UniPageOnShow(vueInstance)
   recReq().then((res) => {
-    // console.log(res, '请求权限允许', aiCall.callAudioData.audioData)
     isFirstVisit.value = false
-    // 首次进入时，ai主动发送语音  -
-    // setTimeout(() => {
-    //   streamData.value = {
-    //     buffer: aiCall.callAudioData.audioData,
-    //     text: aiCall.callAudioData.text,
-    //     id: aiCall.callAudioData.id,
-    //   }
-    // }, 1500)
   }).catch((err) => {
     showToastError(err)
     console.log(err, '请求权限拒绝')

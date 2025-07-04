@@ -102,27 +102,27 @@ function handleConfirm() {
 
 <template>
   <view class="comment-input-container bg-#dcebfb flex flex-col items-center" :style="{ bottom: inputBottom }">
-    <view class="flex flex-col justify-center items-center">
-      <audio-wave :status="status" :color="COLOR_PRIMARY" />
-      <text>
-        你可以说话
-      </text>
-    </view>
-
     <!-- 正常模式 -->
     <view class="w-full flex items-center justify-between">
-      <button class="recorder-btn border-0!  bg-#edf6fd size-140rpx" @click="handleRecorderIconClick">
+      <button class="recorder-btn border-0! m-0!  bg-#edf6fd size-120rpx" @click="handleRecorderIconClick">
         <icon-font :name="!showRecordingButton ? 'recorder-fill' : 'keyboard'" size="80" color="#000" />
       </button>
 
-      <button v-if="showRecordingButton" class="recorder-btn border-0!  bg-#edf6fd size-140rpx">
+      <view v-if="showRecordingButton" class="flex flex-col justify-center items-center">
+        <audio-wave :status="status" :color="COLOR_PRIMARY" />
+        <text>
+          你可以说话
+        </text>
+      </view>
+
+      <button v-if="showRecordingButton" class="recorder-btn  m-0! border-0!  bg-#edf6fd size-120rpx">
         <icon-font name="close" size="80" color="red" />
       </button>
 
       <template v-else>
         <input
           v-model="inputValue"
-          class="comment-input bg-white"
+          class="comment-input bg-white h-120rpx"
           :placeholder="placeholder"
           :focus="isFocus"
           type="text"
@@ -134,7 +134,7 @@ function handleConfirm() {
         >
 
         <button
-          class="send-btn"
+          class=" recorder-btn size-120rpx"
           type="primary"
           :disabled="isDisabled || !inputValue"
           @click="handleConfirm"
@@ -154,7 +154,7 @@ function handleConfirm() {
   height: 260rpx;
   padding: 20rpx 20rpx 40rpx 20rpx;
   box-sizing: border-box;
-  height: 300rpx;
+  height: 200rpx;
   z-index: 50;
   right: 0;
   left: 0;
@@ -182,17 +182,6 @@ function handleConfirm() {
     justify-content: center;
   }
 
-  .send-btn {
-    width: 120rpx;
-    height: 80rpx;
-    border-radius: 40rpx;
-    font-size: 28rpx;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
   .send-btn:disabled {
     opacity: 0.5;
   }
@@ -211,18 +200,5 @@ function handleConfirm() {
   .press-record-btn:disabled {
     opacity: 0.5;
   }
-}
-
-.recording-tip {
-  position: absolute;
-  top: -300rpx;
-  left: 50%;
-  transform: translateX(-50%);
-  color: white;
-  padding: 10rpx 20rpx;
-  border-radius: 120rpx 120rpx 0 0;
-  font-size: 26rpx;
-  z-index: 99;
-  white-space: nowrap;
 }
 </style>

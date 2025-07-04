@@ -717,7 +717,8 @@ router.ready(() => {
     <view v-show="true">
       <view :style="aiPageContent">
         <view
-          class="w-full h-80%   pointer-events-none"
+          class="w-full  pointer-events-none"
+          :style="{ height: 'calc(100% - 200rpx)' }"
         >
           <image
             :src="(isStreamPlaying && isAudioPlaying) ? '/static/images/aiPageBg.gif' : '/static/images/aiPageBg-quiet.png'"

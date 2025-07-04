@@ -167,7 +167,7 @@ const hasUserInterruptedAutoPlay = ref(false)
 const lastAiMsgEnd = ref(false)
 /** 无操作逻辑 */
 const idleTimeout = ref< ReturnType<typeof setTimeout> | null>(null)
-const IDLE_DELAY = 5000 // 5秒
+const IDLE_DELAY = 10000 // 5秒
 const canStartIdleTimer = computed(() => {
   return !isStreamPlaying.value && !loading.value
 })

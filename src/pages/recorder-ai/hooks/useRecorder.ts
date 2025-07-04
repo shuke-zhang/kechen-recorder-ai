@@ -34,7 +34,7 @@ export default function useRecorder(options: AnyObject) {
   /** 是否触发焦点 */
   const isFocus = ref(false)
   /** 显示录音按钮 */
-  const showRecordingButton = ref(false)
+  const showRecordingButton = ref(true)
   /** 录音识别结果 */
   const textRes = ref<string | null>(null)
 

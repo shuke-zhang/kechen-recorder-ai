@@ -713,8 +713,7 @@ router.ready(() => {
     />
     <!-- #endif -->
 
-    <!-- <view v-show="!isScreensaver"> -->
-    <view v-show="true">
+    <view v-show="!isScreensaver">
       <view :style="aiPageContent">
         <view
           class="w-full h-80%   pointer-events-none"
@@ -793,7 +792,7 @@ router.ready(() => {
                             <icon-font name="copy" :color="COLOR_PRIMARY" :size="28" />
                           </view>
                           <view class="border-rd-16rpx size-60rpx  bg-#e8ecf5 flex-center  ml-20rpx" @click="handleRecorder(msg.content as string, index)">
-                            <audio-wave v-if="isStreamPlaying && currentIndex === index" status="playing" :color="COLOR_PRIMARY" />
+                            <audio-wave v-if="isStreamPlaying && currentIndex === index" :color="COLOR_PRIMARY" />
                             <icon-font v-else name="sound" :color="COLOR_PRIMARY" :size="28" />
                           </view>
                         </view>
@@ -828,7 +827,7 @@ router.ready(() => {
     </view>
 
     <!-- 屏保 -->
-    <!-- <screensaver v-model:show="isScreensaver" @on-trigger="onScreensaverTrigger" /> -->
+    <screensaver v-model:show="isScreensaver" @on-trigger="onScreensaverTrigger" />
   </view>
 </template>
 
@@ -842,7 +841,7 @@ router.ready(() => {
 }
 </style>
 
-<route lang="json" pages="home">
+<route lang="json" pages="page">
   {
        "style": { "navigationBarTitleText": "录音","navigationStyle": "custom" }
   }

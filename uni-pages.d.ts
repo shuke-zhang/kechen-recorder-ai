@@ -10,6 +10,8 @@ interface NavigateToOptions {
        "/pages/auth/index" |
        "/pages/home/index" |
        "/pages/mine/index" |
+       "/pages/recorder-ai/index-copy" |
+       "/pages/recorder-ai/recorder-input-auto" |
        "/pages/recorder-ai/recorder-input" |
        "/pages/test/index" |
        "/pages/recorder-ai/components/screensaver" |

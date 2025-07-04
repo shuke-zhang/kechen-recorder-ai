@@ -24,6 +24,7 @@ export type IconFontType = 'account-code' |
 'qwen' |
 'record' |
 'recorder' |
+'recorder-fill' |
 'right' |
 'search' |
 'setting' |

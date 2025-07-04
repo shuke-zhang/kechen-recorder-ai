@@ -6,6 +6,13 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "993873",
+      "name": "语音",
+      "font_class": "recorder-fill",
+      "unicode": "e6e1",
+      "unicode_decimal": 59105
+    },
+    {
       "icon_id": "22899518",
       "name": "设置",
       "font_class": "setup",

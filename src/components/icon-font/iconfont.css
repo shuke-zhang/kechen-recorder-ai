@@ -10,6 +10,10 @@
   text-align: center;
 }
 
+.icon-recorder-fill:before {
+  content: "\e6e1";
+}
+
 .icon-setup:before {
   content: "\e656";
 }

@@ -5,47 +5,19 @@
   </route>
 
 <script setup lang="ts">
-import screensaver from '@/pages/recorder-ai/components/screensaver.vue'
+import RecorderInputAuto from '@/pages/recorder-ai/recorder-input-auto.vue'
 
-const { visible, currentVersion, nextVersion, checkNewVersion } = useCheckAppVersion()
-const router = useRouter()
-function handleVersion() {
-  checkNewVersion(true)
-  // visible.value = true
-}
-/** 控制屏保 */
-const isScreensaver = ref(true)
-
-function onScreensaverTrigger() {
-  console.log('主动设置为false')
-  isScreensaver.value = false
-}
-router.ready(() => {
-  if (isApp) {
-    checkNewVersion(true)
-  }
-})
+const showRecordingButton = ref(false)
+const text = ref('')
 </script>
 
 <template>
-  <view class="audioPlay p-40rpx">
-    <view v-show="!isScreensaver">
-      <button type="primary" @click="handleVersion">
-        检查版本-{{ visible }}
-      </button>
-      <view class="mt-40rpx">
-        <text>本地版本：{{ currentVersion }}</text>
-        <text>线上最新版本：{{ nextVersion }}</text>
-      </view>
-    </view>
-
-    <!-- 屏保 -->
-    <screensaver v-model:show="isScreensaver" @on-trigger="onScreensaverTrigger" />
-  </view>
+  <button class="border-rd-50% border-color-#edf6fd  bg-#edf6fd size-140rpx flex-center">
+    <icon-font name="recorder-fill" size="80" color="#000" />
+  </button>
+  <RecorderInputAuto v-model:show-recorder-btn="showRecordingButton" v-model="text" />
 </template>
 
-<style scoped>
-  .color-gray {
-  color: #888;
-}
+<style>
+
 </style>

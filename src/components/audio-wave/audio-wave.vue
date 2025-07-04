@@ -1,24 +1,25 @@
 <script setup lang="ts">
-const props = defineProps({
-  color: {
-    type: String,
-    default: '#333',
-  },
-})
-const playing = ref(false)
-function togglePlay() {
-  playing.value = !playing.value
-}
-const style = computed(() => {
-  return {
-    backgroundColor: props.color,
-  }
-})
+import { computed } from 'vue'
+
+const props = defineProps<{
+  status: 'pending' | 'playing' | 'stopped'
+  color?: string
+}>()
+
+const color = computed(() => props.color || '#555')
 </script>
 
 <template>
-  <div class="audio-wave playing" @click="togglePlay">
-    <div v-for="i in 4" :key="i" class="bar" :style="style" />
+  <div class="audio-wave" :class="status">
+    <template v-if="status === 'pending'">
+      <div v-for="i in 3" :key="i" class="dot" :style="{ backgroundColor: color }" />
+    </template>
+    <template v-else-if="status === 'playing'">
+      <div v-for="i in 3" :key="i" class="bar" :style="{ backgroundColor: color }" />
+    </template>
+    <template v-else-if="status === 'stopped'">
+      <div class="square" :style="{ backgroundColor: color }" />
+    </template>
   </div>
 </template>
 
@@ -27,39 +28,57 @@ const style = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4rpx;
-  width: 60rpx;
-  height: 40rpx;
-}
-.bar {
-  width: 2rpx;
-  height: 10rpx;
-  background-color: #333;
-  animation: none;
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
+  height: 80rpx;
+  width: 100rpx;
+  gap: 8rpx;
 }
 
-.playing .bar:nth-child(1) {
-  animation: wave 1s 0s infinite;
+/* 图一：等待播放 - 三个圆点 */
+.dot {
+  width: 20rpx;
+  height: 20rpx;
+  border-radius: 50%;
+  background-color: #555;
 }
-.playing .bar:nth-child(2) {
-  animation: wave 1s 0.1s infinite;
+
+/* 图二：播放中 - 波动条 */
+.bar {
+  width: 16rpx;
+  height: 10rpx;
+  border-radius: 8rpx;
+  animation: wave 1.2s ease-in-out infinite;
 }
-.playing .bar:nth-child(3) {
-  animation: wave 1s 0.2s infinite;
+.bar:nth-child(1) {
+  animation-delay: 0s;
 }
-.playing .bar:nth-child(4) {
-  animation: wave 1s 0.3s infinite;
+.bar:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.bar:nth-child(3) {
+  animation-delay: 0.4s;
 }
 
 @keyframes wave {
   0%,
   100% {
-    height: 5rpx;
+    height: 10rpx;
+  }
+  25% {
+    height: 30rpx;
   }
   50% {
-    height: 20rpx;
+    height: 60rpx;
   }
+  75% {
+    height: 30rpx;
+  }
+}
+
+/* 图三：播放结束 - 中间一个小正方形 */
+.square {
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: 4rpx;
+  background-color: #555;
 }
 </style>

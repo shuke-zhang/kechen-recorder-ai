@@ -175,6 +175,11 @@ const canStartIdleTimer = computed(() => {
 /** 重置定时器 */
 function resetIdleTimer() {
   // 若不能启动 idleTimer（因为正在播放或AI正在回复），就清除定时器并返回
+  if (isScreensaver.value) {
+    console.log('屏保中，不重置定时器')
+
+    return
+  }
   console.log('监听到用户操作，重置定时器')
 
   if (!canStartIdleTimer.value) {
@@ -191,6 +196,11 @@ function resetIdleTimer() {
     stopAll()
     isScreensaver.value = true
     // 清空所有内容
+    streamData.value = {
+      text: '',
+      buffer: '',
+      id: 0,
+    }
     content.value = []
     resetAi.value()
     replyForm.value = { content: '', role: 'user' }
@@ -296,12 +306,15 @@ async function autoPlayAiMessage(_text: string, index: number) {
 async function onScreensaverTrigger() {
   isScreensaver.value = false
   resetIdleTimer()
+  console.log('进入操作页面')
+
   if (initialLoadPending.value) {
     streamData.value = {
       buffer: aiCall.callAudioData.audioData,
       text: aiCall.callAudioData.text,
       id: aiCall.callAudioData.id,
     }
+    console.log('初始化晚餐播放视频', streamData.value)
   }
   else {
     // 等待 initialLoadPending 为 true 再继续
@@ -312,6 +325,7 @@ async function onScreensaverTrigger() {
         text: aiCall.callAudioData.text,
         id: aiCall.callAudioData.id,
       }
+      console.log('等待初始化完成啦')
     }
     catch (e) {
       console.error('等待 initialLoadPending 超时', e)

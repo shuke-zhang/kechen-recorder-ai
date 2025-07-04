@@ -432,6 +432,7 @@ function onTouchEnd() {
       }
       else {
         showToastError('未识别到内容')
+        replyForm.value = { content: '', role: 'user' }
         removeEmptyMessagesByRole('user')
       }
     }
@@ -715,7 +716,7 @@ router.ready(() => {
     <view v-show="!isScreensaver">
       <view :style="aiPageContent">
         <view
-          class="w-full h-85%   pointer-events-none"
+          class="w-full h-80%   pointer-events-none"
         >
           <image
             :src="(isStreamPlaying && isAudioPlaying) ? '/static/images/aiPageBg.gif' : '/static/images/aiPageBg-quiet.png'"
@@ -724,7 +725,7 @@ router.ready(() => {
           />
         </view>
 
-        <view class="h-15% pb-120rpx">
+        <view class="h-20% pb-120rpx">
           <scroll-view
             ref="scrollViewRef"
             scroll-y

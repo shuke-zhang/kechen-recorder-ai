@@ -93,6 +93,7 @@ const {
   aiPageContent,
   onSuccess,
   onFinish,
+  resetAi,
   stopChat,
   onStart,
   onError,
@@ -164,6 +165,70 @@ let lastProcessedIndex: number | null = null
 /** 代表当点击了音频小图标时 ，如果此时ai消息还没回复完音频也在播放时为true 否则为false 主要是用于判断ai回复中点击了音频图标后不再需要自动播放 */
 const hasUserInterruptedAutoPlay = ref(false)
 const lastAiMsgEnd = ref(false)
+/** 无操作逻辑 */
+const idleTimeout = ref< ReturnType<typeof setTimeout> | null>(null)
+const IDLE_DELAY = 5000 // 5秒
+const canStartIdleTimer = computed(() => {
+  return !isStreamPlaying.value && !loading.value
+})
+
+/** 重置定时器 */
+function resetIdleTimer() {
+  // 若不能启动 idleTimer（因为正在播放或AI正在回复），就清除定时器并返回
+  console.log('监听到用户操作，重置定时器')
+
+  if (!canStartIdleTimer.value) {
+    if (idleTimeout.value)
+      clearTimeout(idleTimeout.value)
+    return
+  }
+
+  // 启动 idle timer
+  if (idleTimeout.value)
+    clearTimeout(idleTimeout.value)
+
+  idleTimeout.value = setTimeout(() => {
+    stopAll()
+    isScreensaver.value = true
+    // 清空所有内容
+    content.value = []
+    resetAi.value()
+    replyForm.value = { content: '', role: 'user' }
+  }, IDLE_DELAY)
+}
+
+/** 录音按钮取消录音 */
+function onRecorderClose() {
+  console.log('取消录音')
+  resetIdleTimer()
+  handleRecorderClose()
+}
+
+/** 录音按钮切换 */
+function onShowRecorder() {
+  resetIdleTimer()
+  handleShowRecorder()
+}
+/** 录音按钮按下 */
+function onRecorderTouchStart() {
+  resetIdleTimer()
+  handleTouchStart()
+}
+/** 录音按钮抬起 */
+function onRecorderTouchEnd() {
+  resetIdleTimer()
+  handleTouchEnd()
+}
+/** 右侧录音按钮发送录音 */
+function onRecorderConfirm() {
+  resetIdleTimer()
+  handleRecorderConfirm()
+}
+/** 发送消息确认按钮 */
+function onConfirm() {
+  resetIdleTimer()
+  handleConfirm()
+}
 
 /**
  * ai内容自动播放音频
@@ -230,8 +295,7 @@ async function autoPlayAiMessage(_text: string, index: number) {
  */
 async function onScreensaverTrigger() {
   isScreensaver.value = false
-  console.log('屏保触发事件', initialLoadPending.value)
-
+  resetIdleTimer()
   if (initialLoadPending.value) {
     streamData.value = {
       buffer: aiCall.callAudioData.audioData,
@@ -494,7 +558,17 @@ async function stopAll() {
 // function handleToSetting() {
 //   router.replace('/pages/mine/index')
 // }
-
+watch([isStreamPlaying, loading], ([isPlaying, isLoading]) => {
+  if (!isPlaying || !isLoading) {
+    // 都结束了才开始倒计时
+    resetIdleTimer()
+  }
+  else {
+    // 任意一个是true，就清掉已有定时器
+    if (idleTimeout.value)
+      clearTimeout(idleTimeout.value)
+  }
+})
 // 添加一个监听最后一条消息内容的变化（对于流式输出非常有用）
 watch(
   () => content.value[content.value.length - 1]?.content,
@@ -554,6 +628,7 @@ watch(() => textRes.value, async (newVal) => {
 })
 
 watch(() => replyForm.value.content, (newVal) => {
+  resetIdleTimer()
 })
 
 onMounted(() => {
@@ -583,7 +658,7 @@ router.ready(() => {
 </script>
 
 <template>
-  <view>
+  <view @touchstart="resetIdleTimer" @touchmove="resetIdleTimer" @touchend="resetIdleTimer" @click="resetIdleTimer" @scroll="resetIdleTimer">
     <!-- <nav-bar :show-back="false">
       <template #left>
         <view>
@@ -726,12 +801,12 @@ router.ready(() => {
         v-model:show-recording-button="showRecordingButton"
         placeholder="请输入您的问题..."
         btn-text="发送"
-        @recorder-close="handleRecorderClose"
-        @show-recorder="handleShowRecorder"
-        @recorder-touch-start="handleTouchStart"
-        @recorder-touch-end="handleTouchEnd"
-        @recorder-confirm="handleRecorderConfirm"
-        @confirm="handleConfirm "
+        @recorder-close="onRecorderClose"
+        @show-recorder="onShowRecorder"
+        @recorder-touch-start="onRecorderTouchStart"
+        @recorder-touch-end="onRecorderTouchEnd"
+        @recorder-confirm="onRecorderConfirm"
+        @confirm="onConfirm"
       />
     </view>
 

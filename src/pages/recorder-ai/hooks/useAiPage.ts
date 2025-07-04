@@ -43,6 +43,7 @@ export default function useAiPage(height: string) {
   const stopChat = ref<() => void>(() => {})
   const onSuccess = ref<(msg: string) => void>(() => {})
   const onFinish = ref<() => void>(() => {})
+  const resetAi = ref<() => void>(() => {})
   function init() {
     const model = aiModelList[aiCurrentIndex.value]
     if (!model)
@@ -57,6 +58,7 @@ export default function useAiPage(height: string) {
     stopChat.value = aiHooks.stopChat
     onSuccess.value = aiHooks.onSuccess
     onFinish.value = aiHooks.onFinish
+    resetAi.value = aiHooks.resetAi
     // content.value = aiHooks.content.value
     isAiMessageEnd.value = aiHooks.isAiMessageEnd.value
     isStreaming.value = aiHooks.isStreaming.value
@@ -96,6 +98,11 @@ export default function useAiPage(height: string) {
   }
   watch(() => replyForm.value.content, (newVal) => {
   })
+  // watch(() => content.value, (newVal) => {
+  //   if (newVal.length === 0) {
+  //     resetAi.value()
+  //   }
+  // })
   function handleChangeAiModel() {
     const modelName: typeof aiModelList[number]['name'] = aiStore.currentAiModel
     console.log('modelName^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^', modelName)
@@ -177,6 +184,7 @@ export default function useAiPage(height: string) {
     onError,
     onSuccess,
     onFinish,
+    resetAi,
     handleSendMsg,
     handleCopy,
     setAiContent,

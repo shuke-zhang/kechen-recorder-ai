@@ -103,7 +103,7 @@ function handleConfirm() {
 <template>
   <view class="comment-input-container bg-#dcebfb flex flex-col items-center" :style="{ bottom: inputBottom }">
     <!-- 正常模式 -->
-    <view class="w-full flex items-center justify-between">
+    <view class="w-full h-full flex items-center justify-between">
       <button class="recorder-btn border-0! m-0!  bg-#edf6fd size-120rpx" @click="handleRecorderIconClick">
         <icon-font :name="!showRecordingButton ? 'recorder-fill' : 'keyboard'" size="80" color="#000" />
       </button>
@@ -152,7 +152,7 @@ function handleConfirm() {
   bottom: 0;
   padding-bottom: env(safe-area-inset-bottom);
   height: 260rpx;
-  padding: 20rpx 20rpx 40rpx 20rpx;
+  padding: 20rpx;
   box-sizing: border-box;
   height: 200rpx;
   z-index: 50;

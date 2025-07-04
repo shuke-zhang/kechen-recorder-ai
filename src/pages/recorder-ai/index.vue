@@ -650,13 +650,14 @@ onMounted(() => {
   RecordAppInstance.UniPageOnShow(vueInstance)
   recReq().then((res) => {
     isFirstVisit.value = false
+    setTimeout(() => {
+      initialLoadPending.value = true
+    }, 1500)
   }).catch((err) => {
     showToastError(err)
     console.log(err, '请求权限拒绝')
   })
-  setTimeout(() => {
-    initialLoadPending.value = true
-  }, 3000)
+
   initHeights()
 })
 

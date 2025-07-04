@@ -68,7 +68,8 @@ const router = useRouter<{
 }>()
 
 const aiCall = useAiCall()
-
+/** 主要用于初进页面的语音播报 默认需要两秒后变为true 解决播放器需要初始化的2秒左右的bug */
+const initialLoadPending = ref(false)
 /**
  * 音频播放组件实例
  */
@@ -227,14 +228,47 @@ async function autoPlayAiMessage(_text: string, index: number) {
 /**
  * 屏保触发事件
  */
-function onScreensaverTrigger() {
+async function onScreensaverTrigger() {
   isScreensaver.value = false
-  // 让ai主动发送语音消息
-  streamData.value = {
-    buffer: aiCall.callAudioData.audioData,
-    text: aiCall.callAudioData.text,
-    id: aiCall.callAudioData.id,
+  console.log('屏保触发事件', initialLoadPending.value)
+
+  if (initialLoadPending.value) {
+    streamData.value = {
+      buffer: aiCall.callAudioData.audioData,
+      text: aiCall.callAudioData.text,
+      id: aiCall.callAudioData.id,
+    }
   }
+  else {
+    // 等待 initialLoadPending 为 true 再继续
+    try {
+      await waitUntil(() => initialLoadPending.value)
+      streamData.value = {
+        buffer: aiCall.callAudioData.audioData,
+        text: aiCall.callAudioData.text,
+        id: aiCall.callAudioData.id,
+      }
+    }
+    catch (e) {
+      console.error('等待 initialLoadPending 超时', e)
+    }
+  }
+}
+
+function waitUntil(conditionFn: () => boolean, interval = 50, timeout = 5000): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const start = Date.now()
+    const timer = setInterval(() => {
+      if (conditionFn()) {
+        clearInterval(timer)
+        resolve()
+      }
+      else if (Date.now() - start > timeout) {
+        clearInterval(timer)
+        reject(new Error('waitUntil 超时'))
+      }
+    }, interval)
+  })
 }
 
 function userMsgFormat(prefix: string, text: string, isFormat = true) {
@@ -531,7 +565,9 @@ onMounted(() => {
     showToastError(err)
     console.log(err, '请求权限拒绝')
   })
-
+  setTimeout(() => {
+    initialLoadPending.value = true
+  }, 3000)
   initHeights()
 })
 

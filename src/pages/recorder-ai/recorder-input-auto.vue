@@ -166,10 +166,11 @@ function handleConfirm() {
   .recorder-btn {
     border-radius: 50%;
     border: 2rpx solid;
-    font-size: 30rpx;
+    font-size: 28rpx;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex: no-wrap;
   }
 
   .send-btn:disabled {

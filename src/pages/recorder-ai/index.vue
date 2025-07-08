@@ -584,6 +584,8 @@ onMounted(() => {
     isFirstVisit.value = false
     setTimeout(() => {
       initialLoadPending.value = true
+      // 直接开始录音 - 模拟录音按钮按下操作
+      handleRecorderTouchStart()
     }, 1500)
   }).catch((err) => {
     showToastError(err)
@@ -647,7 +649,7 @@ router.ready(() => {
     <!-- <view v-show="!isScreensaver"> -->
     <view v-show="true">
       <view :style="aiPageContent">
-        <view
+        <!-- <view
           class="w-full  pointer-events-none"
           :style="{ height: 'calc(100% - 200rpx)' }"
         >
@@ -656,8 +658,8 @@ router.ready(() => {
             mode="aspectFit"
             class="size-100%"
           />
-        </view>
-
+        </view> -->
+        <text>识别内容===》{{ textRes }}</text>
         <view class="h-20% pb-120rpx">
           <scroll-view
             ref="scrollViewRef"

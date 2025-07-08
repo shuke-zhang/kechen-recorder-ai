@@ -189,6 +189,15 @@ export default class RecorderCoreManager extends EventEmitter {
   private handleResult(data: string) {
     try {
       const json = JSON.parse(data)
+      if (json.code === 10165) {
+        console.warn('暂无完整的音频内容--=10165')
+
+        // 停止录音识别并重新开始
+        this.stop().then(() => {
+          this.start()
+        })
+        return
+      }
       if (json.code !== 0) {
         console.error('❌ 识别错误:', json)
         return

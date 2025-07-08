@@ -37,6 +37,9 @@ export default function useRecorder(options: AnyObject) {
   const showRecordingButton = ref(true)
   /** 录音识别结果 */
   const textRes = ref<string | null>(null)
+  let silenceTimer: ReturnType<typeof setTimeout> | null = null
+  let restartTimer: ReturnType<typeof setTimeout> | null = null
+  const isAutoStop = ref(false) // 用于标记是否是自动停止
 
   /**
    * 请求录音权限
@@ -160,6 +163,10 @@ export default function useRecorder(options: AnyObject) {
    * 语音识别关闭操作
    */
   function handleStop() {
+    if (silenceTimer) {
+      clearTimeout(silenceTimer)
+      silenceTimer = null
+    }
     return RecorderCoreClass.stop()
   }
 
@@ -215,7 +222,27 @@ export default function useRecorder(options: AnyObject) {
   function handleRecorderClose() {
     // 是否是取消录音
     isRecorderClose.value = true
-    handleStop()
+    if (silenceTimer) {
+      clearTimeout(silenceTimer)
+      silenceTimer = null
+    }
+    if (restartTimer) {
+      clearTimeout(restartTimer)
+      restartTimer = null
+    }
+    handleStop().then(() => {
+      // 若是自动停止，则1秒后自动重启
+      if (isAutoStop.value) {
+        restartTimer = setTimeout(() => {
+          // 这一步主要是为了实现对话效果
+          // 同时在ai消息回复后立即开始语音识别
+          console.log('🔁 自动重启语音识别')
+
+          handleStart()
+        }, 1000)
+      }
+      isAutoStop.value = false // 重置标记
+    })
   }
   /**
    * 录音按钮发送录音
@@ -235,6 +262,29 @@ export default function useRecorder(options: AnyObject) {
     const buffer = pcmInt16.buffer
     RecorderCoreClass.pushAudioData(buffer)
   }
+
+  function normalizeText(text = '') {
+    return text.replace(/[，。？！、“”‘’…—【】《》]/g, '') // 去除常见中文标点
+  }
+
+  watch(() => textRes.value, (newVal, oldVal) => {
+  // 每次识别有新内容，就清除旧的定时器，重置2秒倒计时
+    if (silenceTimer) {
+      clearTimeout(silenceTimer)
+    }
+
+    const normNew = normalizeText(newVal || '')
+    const normOld = normalizeText(oldVal || '')
+
+    // 如果识别内容发生变化，说明是新内容，重新设置定时器
+    if (normNew !== normOld && normNew !== '') {
+      silenceTimer = setTimeout(() => {
+        console.warn('⏱️ 3秒内无新内容，自动停止录音', normNew, normOld)
+        isAutoStop.value = true // ⭐ 标记为自动停止
+        handleRecorderClose()
+      }, 3000)
+    }
+  })
   return {
     /** 是否按下录音按钮 */
     iseRecorderTouchStart,

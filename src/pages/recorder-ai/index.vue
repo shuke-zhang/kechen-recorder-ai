@@ -104,10 +104,10 @@ const {
 } = useAiPage(pageHeight.value)
 const startTime = ref(0)
 const handleTouchStart = debounce(() => {
-  console.log('🟢 触发发送消息')
   removeEmptyMessagesByRole('assistant')
   startTime.value = Date.now()
   stopAll()
+  console.log('🟢 触发发送消息', content.value)
   handleConfirm()
   nextTick(() => {
     resetAndScrollToBottom()
@@ -340,8 +340,10 @@ function userMsgFormat(prefix: string, text: string, isFormat = true) {
   if (!isFormat)
     return text
   const index = text.indexOf(prefix)
-  if (index === -1)
+
+  if (index === -1) {
     return text // 没有前缀就返回原内容
+  }
   return text.slice(index + prefix.length)
 }
 
@@ -477,8 +479,13 @@ function removeEmptyMessagesByRole(type: string) {
 /** 语音识别到内容的函数 */
 function recorderAddText(text: string) {
   // 开始录音，插入一个临时消息（占位）
-  console.warn('触发新增消息', content.value)
-
+  if (!text)
+    return
+  // 取出content.value的最后一项，如果isRecordingPlaceholder为true则直接返回
+  const last = content.value[content.value.length - 1]
+  if (last?.isRecordingPlaceholder)
+    return
+  stopAll()
   replyForm.value.content = modelPrefix.value + text
   const sendText = setAiContent({
     type: 'send',
@@ -487,6 +494,7 @@ function recorderAddText(text: string) {
   })
   sendText.isRecordingPlaceholder = true // ✅ 标记占位消息
   content.value?.push(sendText)
+  console.warn('触发新增消息', content.value)
 }
 
 async function stopAll() {

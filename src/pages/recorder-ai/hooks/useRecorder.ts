@@ -282,21 +282,30 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     }
     const normNew = normalizeText(newVal || '')
     const normOld = normalizeText(oldVal || '')
+    console.log('textRes变化了')
+
+    // 插入新消息，具体判断逻辑在 recorderAddText
+    options.recorderAddText(newVal || '')
 
     // 如果识别内容发生变化，说明是新内容，重新设置定时器
-    if (normNew !== normOld && normNew !== '') {
-      if (!hasInsertedPlaceholder.value && newVal) {
-        options.recorderAddText(newVal)
-        hasInsertedPlaceholder.value = true
-      }
+    if (normNew !== normOld) {
+      // if (!hasInsertedPlaceholder.value && newVal) {
+      //   console.log('触发新增占位消息', newVal)
+
+      //   options.recorderAddText(newVal)
+      //   hasInsertedPlaceholder.value = true
+      // }
+      console.log('进入判断有无内容', hasInsertedPlaceholder.value)
+
       silenceTimer = setTimeout(() => {
-        console.warn('⏱️ 1秒内无新内容，自动停止录音', normNew, normOld)
+        console.warn('⏱️ 2秒内无新内容，自动停止录音', normNew, normOld)
         isAutoStop.value = true // ⭐ 标记为自动停止
+
         options.sendMessage()
         handleRecorderClose()
         // 重置标志，允许下一轮识别重新插入占位
         hasInsertedPlaceholder.value = false
-      }, 1000)
+      }, 2000)
     }
   })
   return {

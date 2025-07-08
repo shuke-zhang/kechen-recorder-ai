@@ -41,6 +41,8 @@ export default class RecorderCoreManager extends EventEmitter {
 
   /** 初始化识别流程 */
   public start() {
+    console.log('recorder-core触发')
+
     this.reset()
     this.isRunning = true
     this.resultText = ''
@@ -80,8 +82,11 @@ export default class RecorderCoreManager extends EventEmitter {
 
   /** 推送一帧音频数据 */
   public pushAudioData(data: ArrayBuffer) {
+    // console.log(!this.isRunning, this.hasSentLastFrame, 'pushAudioData')
+
     if (!this.isRunning || this.hasSentLastFrame)
       return
+
     this.audioDataList.push(data)
   }
 
@@ -142,7 +147,8 @@ export default class RecorderCoreManager extends EventEmitter {
 
     this.socketTask.sendMessage(firstFrame)
 
-    this.emit('log', '📤 发送第一帧')
+    this.emit('log', `📤 发送第一帧 ${firstFrame}`)
+    console.warn(`📤 发送第一帧 ${firstFrame.data.status}`)
 
     this.handlerInterval = setInterval(() => {
       if (!this.socketTask?.isConnect || this.hasSentLastFrame) {
@@ -181,7 +187,9 @@ export default class RecorderCoreManager extends EventEmitter {
       },
     }
     this.socketTask.sendMessage(lastFrame)
-    this.emit('log', '📤 发送最后一帧')
+    // this.emit('log', '📤 发送最后一帧')
+    console.log(`📤 发送最后一帧 `)
+
     this.hasSentLastFrame = true
   }
 

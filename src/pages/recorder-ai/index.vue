@@ -102,7 +102,17 @@ const {
   handleCopy,
   setAiContent,
 } = useAiPage(pageHeight.value)
-
+const startTime = ref(0)
+const handleTouchStart = debounce(() => {
+  console.log('🟢 触发发送消息')
+  removeEmptyMessagesByRole('assistant')
+  startTime.value = Date.now()
+  stopAll()
+  handleConfirm()
+  nextTick(() => {
+    resetAndScrollToBottom()
+  })
+}, 300)
 const {
   textRes,
   isFocus,
@@ -121,6 +131,8 @@ const {
   RecordApp: RecordAppInstance,
   Recorder: RecorderInstance,
   vueInstance,
+  sendMessage: handleTouchStart,
+  recorderAddText,
 })
 
 const {
@@ -175,36 +187,36 @@ const canStartIdleTimer = computed(() => {
 /** 重置定时器 */
 function resetIdleTimer() {
   // 若不能启动 idleTimer（因为正在播放或AI正在回复），就清除定时器并返回
-  if (isScreensaver.value) {
-    console.log('屏保中，不重置定时器')
+  // if (isScreensaver.value) {
+  //   console.log('屏保中，不重置定时器')
 
-    return
-  }
-  console.log('监听到用户操作，重置定时器')
+  //   return
+  // }
+  // console.log('监听到用户操作，重置定时器')
 
-  if (!canStartIdleTimer.value) {
-    if (idleTimeout.value)
-      clearTimeout(idleTimeout.value)
-    return
-  }
+  // if (!canStartIdleTimer.value) {
+  //   if (idleTimeout.value)
+  //     clearTimeout(idleTimeout.value)
+  //   return
+  // }
 
-  // 启动 idle timer
-  if (idleTimeout.value)
-    clearTimeout(idleTimeout.value)
+  // // 启动 idle timer
+  // if (idleTimeout.value)
+  //   clearTimeout(idleTimeout.value)
 
-  idleTimeout.value = setTimeout(() => {
-    stopAll()
-    isScreensaver.value = true
-    // 清空所有内容
-    streamData.value = {
-      text: '',
-      buffer: '',
-      id: 0,
-    }
-    content.value = []
-    resetAi.value()
-    replyForm.value = { content: '', role: 'user' }
-  }, IDLE_DELAY)
+  // idleTimeout.value = setTimeout(() => {
+  //   stopAll()
+  //   isScreensaver.value = true
+  //   // 清空所有内容
+  //   streamData.value = {
+  //     text: '',
+  //     buffer: '',
+  //     id: 0,
+  //   }
+  //   content.value = []
+  //   resetAi.value()
+  //   replyForm.value = { content: '', role: 'user' }
+  // }, IDLE_DELAY)
 }
 
 /** 发送消息确认按钮 */
@@ -353,28 +365,6 @@ async function handleConfirm() {
   handleSendMsg()
 }
 
-const startTime = ref(0)
-const handleTouchStart = debounce(() => {
-  console.log('🟢 开始录音')
-  removeEmptyMessagesByRole('assistant')
-  startTime.value = Date.now()
-  stopAll()
-  textRes.value = ''
-  handleRecorderTouchStart()
-  // 开始录音，插入一个临时消息（占位）
-  const sendText = setAiContent({
-    type: 'send',
-    msg: '', // 空消息作为占位
-    modeName: modelName.value || '',
-  })
-  sendText.isRecordingPlaceholder = true // ✅ 标记占位消息
-
-  content.value?.push(sendText)
-  nextTick(() => {
-    resetAndScrollToBottom()
-  })
-}, 300)
-
 /**
  * ai消息点击语音
  * @warning 由于语音点击之后播放音频会有延迟， 所以在这儿直接设置状态
@@ -483,6 +473,20 @@ function removeEmptyMessagesByRole(type: string) {
       content.value.splice(i, 1)
     }
   }
+}
+/** 语音识别到内容的函数 */
+function recorderAddText(text: string) {
+  // 开始录音，插入一个临时消息（占位）
+  console.warn('触发新增消息', content.value)
+
+  replyForm.value.content = modelPrefix.value + text
+  const sendText = setAiContent({
+    type: 'send',
+    msg: replyForm.value.content, // 空消息作为占位
+    modeName: modelName.value || '',
+  })
+  sendText.isRecordingPlaceholder = true // ✅ 标记占位消息
+  content.value?.push(sendText)
 }
 
 async function stopAll() {
@@ -648,19 +652,17 @@ router.ready(() => {
 
     <!-- <view v-show="!isScreensaver"> -->
     <view v-show="true">
-      <view :style="aiPageContent">
-        <!-- <view
-          class="w-full  pointer-events-none"
-          :style="{ height: 'calc(100% - 200rpx)' }"
+      <view :style="{ height: 'calc(100vh - 200rpx)' }">
+        <view
+          class="w-full h-70%  pointer-events-none"
         >
           <image
             :src="(isStreamPlaying && isAudioPlaying) ? '/static/images/aiPageBg.gif' : '/static/images/aiPageBg-quiet.png'"
             mode="aspectFit"
             class="size-100%"
           />
-        </view> -->
-        <text>识别内容===》{{ textRes }}</text>
-        <view class="h-20% pb-120rpx">
+        </view>
+        <view class="h-30% pb-120rpx">
           <scroll-view
             ref="scrollViewRef"
             scroll-y

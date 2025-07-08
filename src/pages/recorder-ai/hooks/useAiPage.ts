@@ -134,6 +134,8 @@ export default function useAiPage(height: string) {
     }
 
     if (last?.isRecordingPlaceholder) {
+      console.log('检测到isRecordingPlaceholder')
+
       last.content = replyForm.value.content
       delete last.isRecordingPlaceholder
     }

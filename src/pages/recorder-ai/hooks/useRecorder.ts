@@ -6,7 +6,15 @@ const APIKey = '287ae449056d33e0f4995f480737564a'
 const url = 'wss://iat-api.xfyun.cn/v2/iat'
 const host = 'iat-api.xfyun.cn'
 
-export default function useRecorder(options: AnyObject) {
+/**
+ * 发送消息的逻辑
+ */
+interface RecorderVoid {
+  sendMessage: () => void
+  recorderAddText: (text: string) => void
+}
+
+export default function useRecorder(options: AnyObject & RecorderVoid) {
   const isFirstVisit = ref(true)
   const {
     RecordApp,
@@ -40,7 +48,7 @@ export default function useRecorder(options: AnyObject) {
   let silenceTimer: ReturnType<typeof setTimeout> | null = null
   let restartTimer: ReturnType<typeof setTimeout> | null = null
   const isAutoStop = ref(false) // 用于标记是否是自动停止
-
+  const hasInsertedPlaceholder = ref(false)
   /**
    * 请求录音权限
    */
@@ -272,17 +280,23 @@ export default function useRecorder(options: AnyObject) {
     if (silenceTimer) {
       clearTimeout(silenceTimer)
     }
-
     const normNew = normalizeText(newVal || '')
     const normOld = normalizeText(oldVal || '')
 
     // 如果识别内容发生变化，说明是新内容，重新设置定时器
     if (normNew !== normOld && normNew !== '') {
+      if (!hasInsertedPlaceholder.value && newVal) {
+        options.recorderAddText(newVal)
+        hasInsertedPlaceholder.value = true
+      }
       silenceTimer = setTimeout(() => {
-        console.warn('⏱️ 3秒内无新内容，自动停止录音', normNew, normOld)
+        console.warn('⏱️ 1秒内无新内容，自动停止录音', normNew, normOld)
         isAutoStop.value = true // ⭐ 标记为自动停止
+        options.sendMessage()
         handleRecorderClose()
-      }, 3000)
+        // 重置标志，允许下一轮识别重新插入占位
+        hasInsertedPlaceholder.value = false
+      }, 1000)
     }
   })
   return {

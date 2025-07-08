@@ -141,10 +141,9 @@ function handleConfirm() {
   position: fixed;
   bottom: 0;
   padding-bottom: env(safe-area-inset-bottom);
-  height: 260rpx;
+  height: 200rpx;
   padding: 20rpx;
   box-sizing: border-box;
-  height: 200rpx;
   z-index: 50;
   right: 0;
   left: 0;

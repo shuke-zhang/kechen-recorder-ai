@@ -34,7 +34,7 @@ export default {
 <!-- eslint-disable import/first, import/order, import/no-named-default,import/no-duplicates -->
 <script setup lang='ts'>
 import type StreamPlayer from '@/components/StreamPlayer/StreamPlayer.vue'
-import { NAV_BAR_HEIGHT, getStatusBarHeight } from '@/components/nav-bar/nav-bar'
+import { NAV_BAR_HEIGHT, getNavBarHeight, getStatusBarHeight } from '@/components/nav-bar/nav-bar'
 import { default as RecorderInstance } from 'recorder-core'
 import { default as RecordAppInstance } from 'recorder-core/src/app-support/app'
 import { useTextFormatter } from './hooks/useTextFormatter'
@@ -82,11 +82,28 @@ const recorderStatus = ref<StatusModel >('pending')
  * 音频播放组件实例
  */
 const streamPlayerRef = ref<InstanceType<typeof StreamPlayer>>()
-// const { handleMultiClick } = useMultiClickTrigger({
-//   onTrigger: () => {
-//     router.push('/pages/test/index', { id: 123 })
-//   },
-// })
+/**
+ * 状态栏高度
+ */
+const navbarHeight = computed(() => '45px')
+
+const isAutoPlaying = ref(false)
+const { handleMultiClick } = useMultiClickTrigger({
+  onTrigger: () => {
+    // router.push('/pages/test/index', { id: 123 })
+    isAutoPlaying.value = !isAutoPlaying.value
+    if (isAutoPlaying.value) {
+      showToastSuccess('开启自动识别').then(() => {
+        handleRecorderTouchStart()
+      })
+    }
+    else {
+      showToastSuccess('关闭自动识别').then(() => {
+        isAutoRecognize.value = false
+      })
+    }
+  },
+})
 
 const {
   chatSSEClientRef,
@@ -128,6 +145,7 @@ const {
   isRecorderClose,
   isRunning,
   isFirstVisit,
+  isAutoRecognize,
   showRecordingButton,
   recReq,
   handleRecorderClose,
@@ -616,7 +634,9 @@ onMounted(() => {
     setTimeout(() => {
       initialLoadPending.value = true
       // 直接开始录音 - 模拟录音按钮按下操作
-      handleRecorderTouchStart()
+      if (isAutoPlaying.value) {
+        handleRecorderTouchStart()
+      }
     }, 1500)
   }).catch((err) => {
     showToastError(err)
@@ -639,23 +659,24 @@ router.ready(() => {
 
 <template>
   <view @touchstart="resetIdleTimer" @touchmove="resetIdleTimer" @touchend="resetIdleTimer" @click="resetIdleTimer" @scroll="resetIdleTimer">
-    <!-- <nav-bar :show-back="false">
-      <template #left>
+    <nav-bar :show-back="false" transparent>
+      <!-- <template #left>
         <view>
           <icon-font :name="isAutoPlayAiMessage ? 'sound' : 'mute'" :color="isAutoPlayAiMessage ? COLOR_PRIMARY : ''" size="40" class="ml-20rpx" @click="handleAutoPlayAiMessage" />
         </view>
-      </template>
+      </template> -->
 
       <template #right>
-        <view class="flex  pr-50rpx">
+        <!-- <view class="flex  pr-50rpx">
           <icon-font name="setting" color="#000" size="40" @click="handleToSetting" />
-        </view>
+        </view> -->
+        <icon-font name="history" color="#000" size="40" />
       </template>
 
-      <text @click="handleMultiClick">
+      <text class="opacity-0" @click="handleMultiClick">
         柯仔AI
       </text>
-    </nav-bar> -->
+    </nav-bar>
 
     <!-- 流式流式ai消息 -->
     <GaoChatSSEClient
@@ -679,7 +700,7 @@ router.ready(() => {
 
     <!-- <view v-show="!isScreensaver"> -->
     <view v-show="true">
-      <view :style="{ height: 'calc(100vh - 200rpx)' }">
+      <view :style="{ height: `calc(100vh - 200rpx - ${navbarHeight})` }">
         <view
           class="w-full h-70%  pointer-events-none"
         >

@@ -51,6 +51,8 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
   let silenceTimer: ReturnType<typeof setTimeout> | null = null
   let restartTimer: ReturnType<typeof setTimeout> | null = null
   const isAutoStop = ref(false) // 用于标记是否是自动停止
+  /** 是否开启自动识别 */
+  const isAutoRecognize = ref(false)
   const hasInsertedPlaceholder = ref(false)
   /** 存储流式响应数据 */
   const recorderBufferList = ref<ArrayBuffer[]>([])
@@ -210,7 +212,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     try {
       iseRecorderTouchStart.value = true
       isRecorderClose.value = false
-
+      isAutoRecognize.value = true
       recStart()
     }
     catch (error: any) {
@@ -230,6 +232,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
           pcmBuffers: recorderBufferList.value,
           isAutoPlay: false,
         })
+        isAutoRecognize.value = false
       }
     })
   }
@@ -290,6 +293,9 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     if (silenceTimer) {
       clearTimeout(silenceTimer)
     }
+    if (!isAutoRecognize.value) {
+      return
+    }
     const normNew = normalizeText(newVal || '')
     const normOld = normalizeText(oldVal || '')
     console.log('textRes变化了')
@@ -299,12 +305,6 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
 
     // 如果识别内容发生变化，说明是新内容，重新设置定时器
     if (normNew !== normOld) {
-      // if (!hasInsertedPlaceholder.value && newVal) {
-      //   console.log('触发新增占位消息', newVal)
-
-      //   options.recorderAddText(newVal)
-      //   hasInsertedPlaceholder.value = true
-      // }
       console.log('进入判断有无内容', hasInsertedPlaceholder.value)
 
       silenceTimer = setTimeout(() => {
@@ -337,6 +337,8 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     isRunning,
     /** 是否第一次访问 */
     isFirstVisit,
+    /** 是否开启自动识别功能 */
+    isAutoRecognize,
     /** 录音权限函数 */
     recReq,
     /** 开始录音函数 */

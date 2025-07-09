@@ -34,6 +34,13 @@
       }
     },
     {
+      "path": "pages/ai-history/index",
+      "type": "page",
+      "style": {
+        "navigationBarTitleText": "历史记录"
+      }
+    },
+    {
       "path": "pages/auth/index",
       "type": "auth",
       "style": {

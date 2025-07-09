@@ -245,6 +245,11 @@ function resetIdleTimer() {
   // }, IDLE_DELAY)
 }
 
+/** 点击跳转到历史页面 */
+function handleAiHistory() {
+  router.push('/pages/ai-history/index')
+}
+
 /** 发送消息确认按钮 */
 function onConfirm() {
   resetIdleTimer()
@@ -670,7 +675,9 @@ router.ready(() => {
         <!-- <view class="flex  pr-50rpx">
           <icon-font name="setting" color="#000" size="40" @click="handleToSetting" />
         </view> -->
-        <icon-font name="history" color="#000" size="40" />
+        <view @click="handleAiHistory">
+          <icon-font name="history" color="#000" size="40" />
+        </view>
       </template>
 
       <text class="opacity-0" @click="handleMultiClick">
@@ -823,7 +830,7 @@ router.ready(() => {
 }
 </style>
 
-<route lang="json" pages="home">
+<route lang="json" pages="page">
   {
        "style": { "navigationBarTitleText": "录音","navigationStyle": "custom" }
   }

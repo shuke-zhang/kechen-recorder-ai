@@ -7,6 +7,7 @@ interface NavigateToOptions {
   url: "/pages/recorder-ai/index" |
        "/pages/ai/deepseek" |
        "/pages/ai/index" |
+       "/pages/ai-history/index" |
        "/pages/auth/index" |
        "/pages/home/index" |
        "/pages/mine/index" |

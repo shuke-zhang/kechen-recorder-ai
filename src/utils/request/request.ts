@@ -88,7 +88,8 @@ export const request = new UniRequest<HttpRequestUserConfig>({
 
   requestError(e) {
     if (e.message === 'no token') {
-      toAuth()
+      // toAuth()
+      console.log(e, 'no token')
     }
   },
 
@@ -118,7 +119,9 @@ export const request = new UniRequest<HttpRequestUserConfig>({
     }
 
     if (responseData.code === 401) {
-      toAuth()
+      console.log(responseData, '401报错')
+
+      // toAuth()
     }
 
     const msg = responseData.msg || getSystemErrorMessage(responseData.code)

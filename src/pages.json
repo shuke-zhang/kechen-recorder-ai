@@ -12,7 +12,6 @@
       "^z-(.*)": "@zebra-ui/swiper/components/z-$1/z-$1.vue"
     }
   },
-  "__esModule": true,
   "pages": [
     {
       "path": "pages/recorder-ai/index",

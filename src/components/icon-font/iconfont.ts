@@ -13,10 +13,12 @@ export type IconFontType = 'account-code' |
 'edit' |
 'fasong' |
 'gongwei-gengxin' |
+'history' |
 'jump' |
 'keyboard' |
 'left' |
 'loop' |
+'more' |
 'mute' |
 'play' |
 'plus' |

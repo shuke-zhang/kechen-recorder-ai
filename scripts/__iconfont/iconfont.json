@@ -6,6 +6,20 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "4198410",
+      "name": "历史记录",
+      "font_class": "history",
+      "unicode": "e603",
+      "unicode_decimal": 58883
+    },
+    {
+      "icon_id": "7596589",
+      "name": "24gf-ellipsis",
+      "font_class": "more",
+      "unicode": "eb10",
+      "unicode_decimal": 60176
+    },
+    {
       "icon_id": "993873",
       "name": "语音",
       "font_class": "recorder-fill",

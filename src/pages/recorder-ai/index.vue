@@ -54,6 +54,7 @@ import 'recorder-core/src/app-support/app-miniProgram-wx-support.js'
 // #ifdef H5 || MP-WEIXIN
 import 'recorder-core/src/engine/pcm'
 import 'recorder-core/src/extensions/waveview'
+import type { StatusModel } from '@/components/audio-wave/audio-wave'
 // #endif
 const vueInstance = getCurrentInstance()?.proxy as any // 必须定义到最外面，getCurrentInstance得到的就是当前实例this
 const pageHeight = computed(() => {
@@ -70,6 +71,13 @@ const router = useRouter<{
 const aiCall = useAiCall()
 /** 主要用于初进页面的语音播报 默认需要两秒后变为true 解决播放器需要初始化的2秒左右的bug */
 const initialLoadPending = ref(false)
+/**
+ * 用来表述当前的播放状态
+ * - 当自己没有开始说话时使用 pending 表示可以 你可以开始说话
+ * - 当自己说话中的时候 playing  表示 正在识别...
+ * - 当ai在回复并且自己已经说话完成的时候 stopped   表示说话或者点击打断ai回复
+ */
+const recorderStatus = ref<StatusModel >('pending')
 /**
  * 音频播放组件实例
  */
@@ -265,6 +273,8 @@ async function autoPlayAiMessage(_text: string, index: number) {
       text: longText,
       id: tempFormattedTexts.value.findIndex(t => t === longText) || 0,
     }, tempFormattedTexts.value.findIndex(t => t === longText) === 0).then((res) => {
+      console.log('resdoubaoSpeechSynthesisFormat', res)
+
       const { audio_buffer, text, id } = res
       streamData.value = {
         buffer: audio_buffer,
@@ -431,6 +441,7 @@ function onStreamPlayStart() {
   isAudioPlaying.value = true
   // 防止由于播放器停止时触发延迟，所以这儿也要设置状态
   isStreamPlaying.value = true
+  recorderStatus.value = 'stopped'
 }
 
 /**
@@ -451,6 +462,7 @@ function onStreamPlayEnd() {
     currentIndex.value = null
   }
   isAudioPlaying.value = false
+  recorderStatus.value = 'pending'
 }
 /**
  * 语音播放停止
@@ -481,11 +493,15 @@ function recorderAddText(text: string) {
   // 开始录音，插入一个临时消息（占位）
   if (!text)
     return
+  recorderStatus.value = 'playing'
+
   // 取出content.value的最后一项，如果isRecordingPlaceholder为true则直接返回
   const last = content.value[content.value.length - 1]
   if (last?.isRecordingPlaceholder)
     return
   stopAll()
+  console.log('关闭逻辑调用最后结束')
+
   replyForm.value.content = modelPrefix.value + text
   const sendText = setAiContent({
     type: 'send',
@@ -494,14 +510,15 @@ function recorderAddText(text: string) {
   })
   sendText.isRecordingPlaceholder = true // ✅ 标记占位消息
   content.value?.push(sendText)
-  console.warn('触发新增消息', content.value)
+  recorderStatus.value = 'playing'
+  console.warn('触发新增消息', recorderStatus.value)
 }
 
 async function stopAll() {
   console.log('🚫 强制关闭所有逻辑')
   // 停止ai回复的消息
   await stopChat.value()
-  // 停止音频播放
+  // 停止音频播放 实际上这儿并不是同步的，只是触发了stop方法
   await streamPlayerRef.value?.onStreamStop()
   currentIndex.value = null
   // 重置格式化器
@@ -510,6 +527,7 @@ async function stopAll() {
   isStreamPlaying.value = false
   // 重置音频播放真正的状态
   isAudioPlaying.value = false
+  console.log('关闭逻辑函数结束-----')
 }
 /** 跳转到设置页面 */
 // function handleToSetting() {
@@ -538,6 +556,7 @@ watch(
       // 检查最后一条消息是否是AI的回复
       const lastMessage = content.value[content.value.length - 1]
       if (lastMessage?.role === 'assistant' && lastMessage?.streaming) {
+        recorderStatus.value = 'stopped'
         // 自动播放
         autoPlayAiMessage(lastMessage.content as string || ' ', content.value.length - 1)
       }
@@ -760,9 +779,11 @@ router.ready(() => {
         v-model:model-value="replyForm.content"
         v-model:focus="isFocus"
         v-model:show-recording-button="showRecordingButton"
+        v-model:status="recorderStatus"
         placeholder="请输入您的问题..."
         btn-text="发送"
         @confirm="onConfirm"
+        @click-stopped="stopAll, recorderStatus = 'pending'"
       />
     </view>
 

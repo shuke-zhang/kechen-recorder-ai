@@ -1,12 +1,19 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import type { StatusModel } from './audio-wave.ts'
 
 const props = defineProps<{
-  status: 'pending' | 'playing' | 'stopped'
+  status: StatusModel
   color?: string
+}>()
+const emit = defineEmits<{
+  clickStopped: []
 }>()
 
 const color = computed(() => props.color || '#555')
+function onClickStopped() {
+  emit('clickStopped')
+}
 </script>
 
 <template>
@@ -18,7 +25,7 @@ const color = computed(() => props.color || '#555')
       <div v-for="i in 3" :key="i" class="bar" :style="{ backgroundColor: color }" />
     </template>
     <template v-else-if="status === 'stopped'">
-      <div class="square" :style="{ backgroundColor: color }" />
+      <div class="square" :style="{ backgroundColor: color }" @click="onClickStopped" />
     </template>
   </div>
 </template>
@@ -76,8 +83,8 @@ const color = computed(() => props.color || '#555')
 
 /* 图三：播放结束 - 中间一个小正方形 */
 .square {
-  width: 24rpx;
-  height: 24rpx;
+  width: 48rpx;
+  height: 48rpx;
   border-radius: 4rpx;
   background-color: #555;
 }

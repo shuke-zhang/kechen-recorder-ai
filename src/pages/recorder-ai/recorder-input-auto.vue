@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { ref } from 'vue'
+import type { StatusModel } from '@/components/audio-wave/audio-wave'
 
 const props = defineProps({
   modelValue: String,
@@ -31,6 +32,8 @@ const props = defineProps({
 const emit = defineEmits<{
   /** 点击发送按钮 */
   confirm: []
+  /** 当状态为 stopped 时点击触发的函数 */
+  clickStopped: []
 }>()
 /**
  * 输入框的值
@@ -45,18 +48,36 @@ const isFocus = useVModel(props, 'focus', emit)
  */
 const showRecordingButton = defineModel('showRecorderBtn', { type: Boolean, default: true })
 
+const status = defineModel<StatusModel>('status', {
+  default: 'pending',
+})
+
 /**
  * 输入框底部的偏移量（键盘高度）
  */
 const inputBottom = ref('0px')
-const status = ref<'pending' | 'playing' | 'stopped'>('playing')
 
-/**
- * - 0 - 你可以开始说话（还没有说话的逻辑）
- * - 1 - 正在识别...
- * - 2 - 说话或者点击打断（语音播放中需要打断或者不用点击直接说话）
- */
-const speakStatus = ref(0)
+const speakStatusList = [
+  {
+    statusCode: 0,
+    status: 'pending',
+    text: '你可以开始说话',
+  },
+  {
+    statusCode: 1,
+    status: 'playing',
+    text: '正在识别...',
+  },
+  {
+    statusCode: 2,
+    status: 'stopped',
+    text: '说话或者点击打断',
+  },
+]
+const statusText = computed(() => {
+  const item = speakStatusList.find(item => item.status === status.value)
+  return item?.text || ''
+})
 
 function handleRecorderIconClick() {
   showRecordingButton.value = !showRecordingButton.value
@@ -69,6 +90,11 @@ function handleFocus() {
 function handleBlur() {
   isFocus.value = false
 }
+
+function clickStopped() {
+  emit('clickStopped')
+}
+
 onShow(() => {
   // 添加小程序条件编译
   uni.onKeyboardHeightChange((event) => {
@@ -99,9 +125,9 @@ function handleConfirm() {
       </button>
 
       <view v-if="showRecordingButton" class="flex flex-col justify-center items-center">
-        <audio-wave :status="status" :color="COLOR_PRIMARY" />
+        <audio-wave :status="status" :color="COLOR_PRIMARY" @click-stopped="clickStopped" />
         <text>
-          你可以说话
+          {{ statusText }}
         </text>
       </view>
 

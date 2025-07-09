@@ -1,4 +1,5 @@
 import RecorderCoreManager from '../xunfei/recorder-core'
+import { usePlayAudio } from './usePlayAudio'
 
 const APPID = 'f9b52f87'
 const APISecret = 'ZDVkYzU5YmFhZmNlODVkM2RlNDMyNDhl'
@@ -31,6 +32,8 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     url,
     host,
   }, onTextChanged)
+
+  const { playAudioInit } = usePlayAudio(RecordApp)
   /** 识别是否关闭 */
   const isRunning = ref(false)
   /** 输入框内容 */
@@ -49,6 +52,9 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
   let restartTimer: ReturnType<typeof setTimeout> | null = null
   const isAutoStop = ref(false) // 用于标记是否是自动停止
   const hasInsertedPlaceholder = ref(false)
+  /** 存储流式响应数据 */
+  const recorderBufferList = ref<ArrayBuffer[]>([])
+
   /**
    * 请求录音权限
    */
@@ -90,7 +96,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
         const arrayBuffer = pcmInt16.buffer // ✅ 得到最终的 ArrayBuffer
         // 在这儿可以进行语音识别的操作，如果更换语音识别，那么可以把这个arrayBuffer发送给语音识别的接口
         arrayBuffer ? RecorderCoreClass.pushAudioData(arrayBuffer) : null
-
+        recorderBufferList.value.push(arrayBuffer)
         // #ifdef H5 || MP-WEIXIN
         if (vueInstance?.waveView)
           vueInstance.waveView.input(buffers[buffers.length - 1], powerLevel, sampleRate)
@@ -220,6 +226,10 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
       if (!RecorderCoreClass.isRunning) {
         isRunning.value = false
         recStop()
+        playAudioInit({
+          pcmBuffers: recorderBufferList.value,
+          isAutoPlay: false,
+        })
       }
     })
   }

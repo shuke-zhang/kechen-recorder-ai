@@ -74,6 +74,31 @@ declare namespace AiModel{
     content?: string | AiMessage []
     text?: string
     /**
+     * @description 消息id
+     */
+    id?: number
+    /**
+     * 用户输入的音频文件地址
+     */
+    userAudioUrl?: string
+    /**
+     * 用户音频的输入时间 - 具体表现为音频接口上传成功的时间
+     */
+    userAudioTime?: string
+    /**
+     * 用户文本输入时间 - 用户输入文本的时间
+     */
+    userInputTime?: string
+    /**
+     * @description 助手回复的音频文件地址
+     */
+    assistantAudioUrl?: string
+    /**
+     * @description 助手回复音频的输入时间 - 具体表现为音频接口上传成功的时间
+     */
+    assistantAudioTime?: number
+
+    /**
      * 是否开启继续对话功能
      */
     prefix?: boolean

@@ -34,7 +34,7 @@ export default {
 <!-- eslint-disable import/first, import/order, import/no-named-default,import/no-duplicates -->
 <script setup lang='ts'>
 import type StreamPlayer from '@/components/StreamPlayer/StreamPlayer.vue'
-import { NAV_BAR_HEIGHT, getNavBarHeight, getStatusBarHeight } from '@/components/nav-bar/nav-bar'
+import { NAV_BAR_HEIGHT, getStatusBarHeight } from '@/components/nav-bar/nav-bar'
 import { default as RecorderInstance } from 'recorder-core'
 import { default as RecordAppInstance } from 'recorder-core/src/app-support/app'
 import { useTextFormatter } from './hooks/useTextFormatter'
@@ -42,10 +42,10 @@ import RecorderInputAuto from './recorder-input-auto.vue'
 import useRecorder from './hooks/useRecorder'
 import useAiPage from './hooks/useAiPage'
 import useAutoScroll from './hooks/useAutoScroll'
-import { useAiCall } from '@/store/modules/ai-call'
+// import { useAiCall } from '@/store/modules/ai-call'
 import { doubaoSpeechSynthesisFormat } from '@/api/audio'
 import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
-import screensaver from './components/screensaver.vue'
+// import screensaver from './components/screensaver.vue'
 /** 需要编译成微信小程序时，引入微信小程序支持文件 */
 // #ifdef MP-WEIXIN
 import 'recorder-core/src/app-support/app-miniProgram-wx-support.js'
@@ -55,6 +55,9 @@ import 'recorder-core/src/app-support/app-miniProgram-wx-support.js'
 import 'recorder-core/src/engine/pcm'
 import 'recorder-core/src/extensions/waveview'
 import type { StatusModel } from '@/components/audio-wave/audio-wave'
+// import type { AiMessage } from '@/hooks'
+import type { UploadFileModel } from '@/model/chat'
+// import usePlayAudio from './hooks/usePlayAudio'
 // #endif
 const vueInstance = getCurrentInstance()?.proxy as any // 必须定义到最外面，getCurrentInstance得到的就是当前实例this
 const pageHeight = computed(() => {
@@ -68,7 +71,7 @@ const router = useRouter<{
   modelName: string
 }>()
 
-const aiCall = useAiCall()
+// const aiCall = useAiCall()
 /** 主要用于初进页面的语音播报 默认需要两秒后变为true 解决播放器需要初始化的2秒左右的bug */
 const initialLoadPending = ref(false)
 /**
@@ -105,6 +108,8 @@ const { handleMultiClick } = useMultiClickTrigger({
   },
 })
 
+// const { base64ToArrayBuffer } = usePlayAudio(RecordAppInstance)
+
 const {
   chatSSEClientRef,
   content,
@@ -115,7 +120,6 @@ const {
   modelPrefix,
   currentModel,
   replyForm,
-  aiPageContent,
   onSuccess,
   onFinish,
   resetAi,
@@ -141,24 +145,19 @@ const handleTouchStart = debounce(() => {
 const {
   textRes,
   isFocus,
-  iseRecorderTouchStart,
-  isRecorderClose,
   isRunning,
   isFirstVisit,
   isAutoRecognize,
   showRecordingButton,
   recReq,
-  handleRecorderClose,
-  handleShowRecorder,
   handleRecorderTouchStart,
-  handleRecorderTouchEnd,
-  handleRecorderConfirm,
 } = useRecorder({
   RecordApp: RecordAppInstance,
   Recorder: RecorderInstance,
   vueInstance,
   sendMessage: handleTouchStart,
   recorderAddText,
+  userAudioUploadSuccess,
 })
 
 const {
@@ -194,10 +193,8 @@ const streamData = ref<{
 const isSwitchingNewMessage = ref(false)
 /** 控制屏保 */
 const isScreensaver = ref(true)
-/**
- * 是否自动播放
- */
-const isAutoPlayAiMessage = ref(true)
+/** ai回复的音频数据 */
+const assistantAudioBuffers: ArrayBuffer[] = []
 // 全局变量存储格式化器实例和当前处理的消息索引
 let lastProcessedIndex: number | null = null
 /** 代表当点击了音频小图标时 ，如果此时ai消息还没回复完音频也在播放时为true 否则为false 主要是用于判断ai回复中点击了音频图标后不再需要自动播放 */
@@ -213,36 +210,36 @@ const canStartIdleTimer = computed(() => {
 /** 重置定时器 */
 function resetIdleTimer() {
   // 若不能启动 idleTimer（因为正在播放或AI正在回复），就清除定时器并返回
-  // if (isScreensaver.value) {
-  //   console.log('屏保中，不重置定时器')
+  if (isScreensaver.value) {
+    // console.log('屏保中，不重置定时器')
 
-  //   return
-  // }
-  // console.log('监听到用户操作，重置定时器')
+    return
+  }
+  console.log('监听到用户操作，重置定时器')
 
-  // if (!canStartIdleTimer.value) {
-  //   if (idleTimeout.value)
-  //     clearTimeout(idleTimeout.value)
-  //   return
-  // }
+  if (!canStartIdleTimer.value) {
+    if (idleTimeout.value)
+      clearTimeout(idleTimeout.value)
+    return
+  }
 
-  // // 启动 idle timer
-  // if (idleTimeout.value)
-  //   clearTimeout(idleTimeout.value)
+  // 启动 idle timer
+  if (idleTimeout.value)
+    clearTimeout(idleTimeout.value)
 
-  // idleTimeout.value = setTimeout(() => {
-  //   stopAll()
-  //   isScreensaver.value = true
-  //   // 清空所有内容
-  //   streamData.value = {
-  //     text: '',
-  //     buffer: '',
-  //     id: 0,
-  //   }
-  //   content.value = []
-  //   resetAi.value()
-  //   replyForm.value = { content: '', role: 'user' }
-  // }, IDLE_DELAY)
+  idleTimeout.value = setTimeout(() => {
+    stopAll()
+    isScreensaver.value = true
+    // 清空所有内容
+    streamData.value = {
+      text: '',
+      buffer: '',
+      id: 0,
+    }
+    content.value = []
+    resetAi.value()
+    replyForm.value = { content: '', role: 'user' }
+  }, IDLE_DELAY)
 }
 
 /** 点击跳转到历史页面 */
@@ -260,14 +257,6 @@ function onConfirm() {
  * ai内容自动播放音频
  */
 async function autoPlayAiMessage(_text: string, index: number) {
-  //
-  // if (!isAutoPlayAiMessage.value || hasUserInterruptedAutoPlay.value)
-  if (!isAutoPlayAiMessage.value) {
-    return
-  }
-
-  // if (!isApp)
-  //   return
   // 设置当前播放的消息索引
   currentIndex.value = index
 
@@ -296,14 +285,15 @@ async function autoPlayAiMessage(_text: string, index: number) {
       text: longText,
       id: tempFormattedTexts.value.findIndex(t => t === longText) || 0,
     }, tempFormattedTexts.value.findIndex(t => t === longText) === 0).then((res) => {
-      console.log('resdoubaoSpeechSynthesisFormat', res)
-
-      const { audio_buffer, text, id } = res
+      const { audio_base64, text, id } = res
       streamData.value = {
-        buffer: audio_buffer,
+        buffer: audio_base64,
         text,
         id,
       }
+      // const audio_buffer = base64ToArrayBuffer(audio_base64)
+
+      // assistantAudioBuffers.push(audio_buffer)
       // ai返回的消息结束了
       if (isAiMessageEnd.value) {
         tempFormattedTexts.value = []
@@ -321,53 +311,53 @@ async function autoPlayAiMessage(_text: string, index: number) {
 /**
  * 屏保触发事件
  */
-async function onScreensaverTrigger() {
-  isScreensaver.value = false
-  resetIdleTimer()
-  console.log('进入操作页面')
+// async function onScreensaverTrigger() {
+//   isScreensaver.value = false
+//   resetIdleTimer()
+//   console.log('进入操作页面')
 
-  if (initialLoadPending.value) {
-    streamData.value = {
-      buffer: aiCall.callAudioData.audioData,
-      text: aiCall.callAudioData.text,
-      id: aiCall.callAudioData.id,
-    }
-    console.log('初始化晚餐播放视频', streamData.value)
-  }
-  else {
-    // 等待 initialLoadPending 为 true 再继续
-    try {
-      await waitUntil(() => initialLoadPending.value)
-      streamData.value = {
-        buffer: aiCall.callAudioData.audioData,
-        text: aiCall.callAudioData.text,
-        id: aiCall.callAudioData.id,
-      }
-      console.log('等待初始化完成啦')
-    }
-    catch (e) {
-      console.error('等待 initialLoadPending 超时', e)
-    }
-  }
+//   if (initialLoadPending.value) {
+//     streamData.value = {
+//       buffer: aiCall.callAudioData.audioData,
+//       text: aiCall.callAudioData.text,
+//       id: aiCall.callAudioData.id,
+//     }
+//     console.log('初始化晚餐播放视频', streamData.value)
+//   }
+//   else {
+//     // 等待 initialLoadPending 为 true 再继续
+//     try {
+//       await waitUntil(() => initialLoadPending.value)
+//       streamData.value = {
+//         buffer: aiCall.callAudioData.audioData,
+//         text: aiCall.callAudioData.text,
+//         id: aiCall.callAudioData.id,
+//       }
+//       console.log('等待初始化完成啦')
+//     }
+//     catch (e) {
+//       console.error('等待 initialLoadPending 超时', e)
+//     }
+//   }
 
-  handleTouchStart()
-}
+//   handleTouchStart()
+// }
 
-function waitUntil(conditionFn: () => boolean, interval = 50, timeout = 5000): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const start = Date.now()
-    const timer = setInterval(() => {
-      if (conditionFn()) {
-        clearInterval(timer)
-        resolve()
-      }
-      else if (Date.now() - start > timeout) {
-        clearInterval(timer)
-        reject(new Error('waitUntil 超时'))
-      }
-    }, interval)
-  })
-}
+// function waitUntil(conditionFn: () => boolean, interval = 50, timeout = 5000): Promise<void> {
+//   return new Promise((resolve, reject) => {
+//     const start = Date.now()
+//     const timer = setInterval(() => {
+//       if (conditionFn()) {
+//         clearInterval(timer)
+//         resolve()
+//       }
+//       else if (Date.now() - start > timeout) {
+//         clearInterval(timer)
+//         reject(new Error('waitUntil 超时'))
+//       }
+//     }, interval)
+//   })
+// }
 
 function userMsgFormat(prefix: string, text: string, isFormat = true) {
   if (!isFormat)
@@ -442,9 +432,9 @@ const handleRecorder = debounce((text: string, index: number) => {
         text: longText,
         id: i,
       }).then((res) => {
-        const { audio_buffer, text, id } = res
+        const { audio_base64, text, id } = res
         streamData.value = {
-          buffer: audio_buffer,
+          buffer: audio_base64,
           text,
           id,
         }
@@ -515,13 +505,13 @@ function removeEmptyMessagesByRole(type: string) {
 function recorderAddText(text: string) {
   // 开始录音，插入一个临时消息（占位）
   if (!text)
-    return
+    return { id: -1 }
   recorderStatus.value = 'playing'
 
-  // 取出content.value的最后一项，如果isRecordingPlaceholder为true则直接返回
+  // 取出content.value的最后一项，如果 isRecordingPlaceholder为true则直接返回
   const last = content.value[content.value.length - 1]
   if (last?.isRecordingPlaceholder)
-    return
+    return { id: last.id || -2 }
   stopAll()
   console.log('关闭逻辑调用最后结束')
 
@@ -530,11 +520,28 @@ function recorderAddText(text: string) {
     type: 'send',
     msg: replyForm.value.content, // 空消息作为占位
     modeName: modelName.value || '',
+    id: content.value.length,
   })
   sendText.isRecordingPlaceholder = true // ✅ 标记占位消息
   content.value?.push(sendText)
   recorderStatus.value = 'playing'
   console.warn('触发新增消息', recorderStatus.value)
+  return {
+    id: sendText.id!,
+  }
+}
+
+/**
+ * 用户语音上传成功的回调函数
+ */
+function userAudioUploadSuccess(res: UploadFileModel & { id: number, userInputTime: string }) {
+  //  通过id来查询content.value中相匹配的数据，并且赋值
+  const item = content.value.find(item => item.id === res.id && item.role === 'user')
+  if (item) {
+    item.userAudioUrl = res.url
+    item.userAudioTime = formatTime({ type: 'YYYY-MM-DD HH:mm:ss' })
+    item.userInputTime = res.userInputTime
+  }
 }
 
 async function stopAll() {
@@ -552,10 +559,26 @@ async function stopAll() {
   isAudioPlaying.value = false
   console.log('关闭逻辑函数结束-----')
 }
-/** 跳转到设置页面 */
-// function handleToSetting() {
-//   router.replace('/pages/mine/index')
+
+/**
+ * 新增ai聊天历史记录
+ */
+// function submitChatHistory() {
+//   const assistantOutput = findLastAssistantMessage('assistant')?.content as string
+//   const userInput = findLastAssistantMessage('user')?.content as string
+//   console.log(assistantOutput, userInput)
 // }
+
+// function findLastAssistantMessage(type: AiMessage['role']) {
+//   for (let i = content.value.length - 1; i >= 0; i--) {
+//     const item = content.value[i]
+//     if (item.role === type) {
+//       return item
+//     }
+//   }
+//   return null
+// }
+
 watch([isStreamPlaying, loading], ([isPlaying, isLoading]) => {
   if (!isPlaying || !isLoading) {
     // 都结束了才开始倒计时
@@ -605,7 +628,7 @@ watch(
   { deep: true },
 )
 
-// 监听语音识别开始和结束
+// 监听语音识别开始和结束 添加省略号动画
 watch(() => isRunning.value, (val: boolean) => {
   if (val) {
     animatedDots.value = '.'

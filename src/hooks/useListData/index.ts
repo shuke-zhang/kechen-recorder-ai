@@ -100,7 +100,7 @@ export function useListData<T extends AnyObject = AnyObject>(
   } = {},
 ) {
   const {
-    params: { pageNum = 1, pageSize = 20 } = {},
+    params: { current = 1, size = 20 } = {},
     empty: _Empty = list => list.length === 0,
     filter = () => ({}),
     flush = 'onload',
@@ -112,8 +112,8 @@ export function useListData<T extends AnyObject = AnyObject>(
    * 查询调节
    */
   const paramsRef = ref({
-    pageNum,
-    pageSize,
+    current,
+    size,
   }) as Ref<ListParamsBase>
   /**
    *  过滤参数
@@ -250,7 +250,7 @@ export function useListData<T extends AnyObject = AnyObject>(
      */
     if (isRestPageNumber.value) {
       console.log('@isRestPageNumber paramsRef.value.pageNum = 1')
-      paramsRef.value.pageNum = 1
+      paramsRef.value.current = 1
       return getData()
     }
 
@@ -266,8 +266,8 @@ export function useListData<T extends AnyObject = AnyObject>(
      * 还有更多
      */
     if (status.value === 'more') {
-      paramsRef.value.pageNum++
-      console.log('@status more', paramsRef.value.pageNum)
+      paramsRef.value.current++
+      console.log('@status more', paramsRef.value.current)
       return getData()
     }
 
@@ -308,13 +308,13 @@ export function useListData<T extends AnyObject = AnyObject>(
   function forceUpdate() {
     const listLength = list.value.length
     isRestPageNumber.value = true
-    const pageSize = Math.ceil(listLength / paramsRef.value.pageSize) * paramsRef.value.pageSize
+    const size = Math.ceil(listLength / paramsRef.value.size) * paramsRef.value.size
     const query = {
       /**
        * 处理列表长度为0的情况
        */
-      pageSize: pageSize || paramsRef.value.pageSize,
-      pageNum: 1,
+      size: size || paramsRef.value.size,
+      current: 1,
       ...filterRef.value,
     } as ListParamsWrapper<T>
     console.log('$$ onPageShowFresh hack')

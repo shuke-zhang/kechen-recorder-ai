@@ -61,7 +61,15 @@ export const aiModelList: AiOptionsModel[] = [
 
 ]
 
-export function setAiContent(options: { modeName: string, type: 'send' | 'accept', msg: string, streaming?: boolean },
+export function setAiContent(
+  options:
+  {
+    modeName: string
+    type: 'send' | 'accept'
+    msg: string
+    streaming?: boolean
+    id: number
+  },
 
 ): AiMessage {
   const targetModel = aiModelList.find(item => item.name === options.modeName)
@@ -73,8 +81,9 @@ export function setAiContent(options: { modeName: string, type: 'send' | 'accept
   const message = options.modeName === '通义千问' ? [{ type: 'text', text: options.msg }] : options.msg
 
   return {
-    role: options.type === 'send' ? 'user' : targetModel.resultName || 'assistant',
+    role: options.type === 'send' ? 'user' : 'assistant',
     [targetModel.sendParamsName || 'content']: message,
     streaming: options.streaming,
+    id: options.id,
   }
 }

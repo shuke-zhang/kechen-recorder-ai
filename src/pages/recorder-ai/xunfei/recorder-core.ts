@@ -56,6 +56,8 @@ export default class RecorderCoreManager extends EventEmitter {
   public stop() {
     return new Promise((resolve, reject) => {
       try {
+        console.log('触发class关闭')
+
         // ❗ 无论如何都尝试停止识别（不要依赖 isRunning 判断）
         this.isRunning = false
         this.sendLastFrame()
@@ -65,6 +67,8 @@ export default class RecorderCoreManager extends EventEmitter {
         setTimeout(() => {
           this.socketTask?.closeSocket('手动关闭')
           this.socketTask = null
+          console.log('延迟关闭成功')
+
           resolve('stop')
         }, 300) // 可以减到 300ms 提升响应
       }

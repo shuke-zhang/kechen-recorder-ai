@@ -27,14 +27,15 @@ declare interface ResponseData<T> {
 }
 
 /**
- * @description 基础分页参数 pageNum pageSize
+ * @description 基础分页参数 current size
  */
 declare interface ListParamsBase {
-  pageNum: number
-  pageSize: number
+  current: number
+  size: number
   orderByColumn?: string
   isAsc?: string
 }
+
 /**
  * @description 基础分页参数查询
  */
@@ -46,5 +47,5 @@ declare type listParams<T extends object = object> = ListParamsWrapper<T>
 
 declare type ListAllParams<T extends object = object> = Omit<
   ListParamsWrapper<T>,
-  'pageNum' | 'pageSize'
+  'current' | 'size'
 >

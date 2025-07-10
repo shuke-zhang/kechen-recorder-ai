@@ -18,10 +18,6 @@ export default function useAiPage(height: string) {
   const aiCurrentIndex = ref(0)
   const aiInited = ref(false)
 
-  const aiPageContent = computed(() => ({
-    // height: `calc(100vh - ${height} - 120rpx)`,
-    height: '100vh',
-  }))
   const aiScrollView = computed(() => ({
     height: `calc(100vh - ${height} - 120rpx - 40rpx)`,
   }))
@@ -105,7 +101,6 @@ export default function useAiPage(height: string) {
   // })
   function handleChangeAiModel() {
     const modelName: typeof aiModelList[number]['name'] = aiStore.currentAiModel
-    console.log('modelName^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^', modelName)
 
     const index = aiModelList.findIndex(item => item.name === modelName)
 
@@ -142,6 +137,7 @@ export default function useAiPage(height: string) {
     else {
       const sendText = setAiContent({
         type: 'send',
+        id: content.value[content.value.length - 1].id || 0,
         msg: modelPrefix.value + replyForm.value.content,
         modeName: modelName.value || '',
       })
@@ -151,6 +147,7 @@ export default function useAiPage(height: string) {
 
     replyForm.value.content = ''
     content.value.push({
+      id: content.value.length,
       role: 'assistant',
       content: '',
       streaming: true,
@@ -165,7 +162,6 @@ export default function useAiPage(height: string) {
     aiNameList,
     aiModelInstanceList,
     popupVisible,
-    aiPageContent,
     aiScrollView,
     aiCurrentIndex,
     chatSSEClientRef,

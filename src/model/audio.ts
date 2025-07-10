@@ -60,7 +60,7 @@ export interface DoubaoAudioFormatModel {
 /**
  * 音频数据，base64编码
  */
-  audio_buffer: string
+  audio_base64: string
   /**
    * id - 自己传入的id
    */

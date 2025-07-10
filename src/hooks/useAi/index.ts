@@ -205,6 +205,7 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
         type: 'accept',
         msg: acceptMsg,
         streaming: true,
+        id: content.value.length,
       })
 
       content.value.push(text)

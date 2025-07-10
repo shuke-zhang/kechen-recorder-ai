@@ -1,5 +1,6 @@
 import RecorderCoreManager from '../xunfei/recorder-core'
-import { usePlayAudio } from './usePlayAudio'
+import usePlayAudio from './usePlayAudio'
+import type { UploadFileModel } from '@/model/chat'
 
 const APPID = 'f9b52f87'
 const APISecret = 'ZDVkYzU5YmFhZmNlODVkM2RlNDMyNDhl'
@@ -12,7 +13,9 @@ const host = 'iat-api.xfyun.cn'
  */
 interface RecorderVoid {
   sendMessage: () => void
-  recorderAddText: (text: string) => void
+  recorderAddText: (text: string) => { id: number }
+  userAudioUploadSuccess: (res: UploadFileModel & { id: number, userInputTime: string }) => void
+
 }
 
 export default function useRecorder(options: AnyObject & RecorderVoid) {
@@ -33,21 +36,19 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     host,
   }, onTextChanged)
 
-  const { playAudioInit } = usePlayAudio(RecordApp)
+  const { playAudioInit, uploadFileAudio } = usePlayAudio(RecordApp)
   /** 识别是否关闭 */
   const isRunning = ref(false)
   /** 输入框内容 */
   const content = ref('')
-  /** 是否已经按下了录音按钮 */
-  const iseRecorderTouchStart = ref(false)
-  /** 是否是取消操作 */
-  const isRecorderClose = ref(false)
+
   /** 是否触发焦点 */
   const isFocus = ref(false)
   /** 显示录音按钮 */
   const showRecordingButton = ref(true)
   /** 录音识别结果 */
   const textRes = ref<string | null>(null)
+
   let silenceTimer: ReturnType<typeof setTimeout> | null = null
   let restartTimer: ReturnType<typeof setTimeout> | null = null
   const isAutoStop = ref(false) // 用于标记是否是自动停止
@@ -179,30 +180,19 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
    * 语音识别关闭操作
    */
   function handleStop() {
+    console.log('handleStop11111111')
+
     if (silenceTimer) {
+      console.log('handleStop222222')
+
       clearTimeout(silenceTimer)
       silenceTimer = null
     }
-    return RecorderCoreClass.stop()
-  }
+    console.log('333333')
 
-  /**
-   * 录音按钮切换 主要用于获取录音权限
-   */
-  function handleShowRecorder() {
-    if (isFirstVisit.value) {
-      recReq().then(() => {
-        showRecordingButton.value = true
-        isFirstVisit.value = false // 更新标志，后续不再请求录音权限
-      }).catch((err: any) => {
-        showRecordingButton.value = false
-        showToastError(err)
-      })
-    }
-    else {
-      // 直接显示录音按钮
-      showRecordingButton.value = true
-    }
+    return RecorderCoreClass.stop().then(() => {
+      console.log('关闭成功666666666666666')
+    })
   }
 
   /**
@@ -210,8 +200,6 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
    */
   function handleRecorderTouchStart() {
     try {
-      iseRecorderTouchStart.value = true
-      isRecorderClose.value = false
       isAutoRecognize.value = true
       recStart()
     }
@@ -221,28 +209,10 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
   }
 
   /**
-   * 录音按钮松开
+   * 取消录音
    */
-  function handleRecorderTouchEnd() {
-    return RecorderCoreClass.stop().then(() => {
-      if (!RecorderCoreClass.isRunning) {
-        isRunning.value = false
-        recStop()
-        playAudioInit({
-          pcmBuffers: recorderBufferList.value,
-          isAutoPlay: false,
-        })
-        isAutoRecognize.value = false
-      }
-    })
-  }
-
-  /**
-   * 录音按钮取消录音
-   */
-  function handleRecorderClose() {
+  function handleRecorderClose(id: number, userInputTime: string) {
     // 是否是取消录音
-    isRecorderClose.value = true
     if (silenceTimer) {
       clearTimeout(silenceTimer)
       silenceTimer = null
@@ -252,6 +222,18 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
       restartTimer = null
     }
     handleStop().then(() => {
+      const { wavBuffer } = playAudioInit({
+        pcmBuffers: recorderBufferList.value,
+        isAutoPlay: false,
+      })
+      uploadFileAudio({
+        wavBuffer,
+        fileType: 'wav',
+        fileNamePre: 'user-audio',
+      }).then((res) => {
+        options.userAudioUploadSuccess({ ...res, id, userInputTime })
+      })
+
       // 若是自动停止，则1秒后自动重启
       if (isAutoStop.value) {
         restartTimer = setTimeout(() => {
@@ -264,11 +246,6 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
       }
       isAutoStop.value = false // 重置标记
     })
-  }
-  /**
-   * 录音按钮发送录音
-   */
-  function handleRecorderConfirm() {
   }
 
   /**
@@ -301,28 +278,25 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     console.log('textRes变化了')
 
     // 插入新消息，具体判断逻辑在 recorderAddText
-    options.recorderAddText(newVal || '')
+    const { id } = options.recorderAddText(newVal || '')
 
     // 如果识别内容发生变化，说明是新内容，重新设置定时器
     if (normNew !== normOld) {
       console.log('进入判断有无内容', hasInsertedPlaceholder.value)
-
+      const userInputTime = formatTime({ type: 'YYYY-MM-DD HH:mm:ss' })
       silenceTimer = setTimeout(() => {
         console.warn('⏱️ 2秒内无新内容，自动停止录音', normNew, normOld)
         isAutoStop.value = true // ⭐ 标记为自动停止
 
         options.sendMessage()
-        handleRecorderClose()
+        handleRecorderClose(id, userInputTime)
         // 重置标志，允许下一轮识别重新插入占位
         hasInsertedPlaceholder.value = false
       }, 2000)
     }
   })
   return {
-    /** 是否按下录音按钮 */
-    iseRecorderTouchStart,
-    /** 是否是取消操作 */
-    isRecorderClose,
+
     /** 语音识别的class */
     RecorderCoreClass,
     /** 输入框内容 */
@@ -349,16 +323,8 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     handleStart,
     /** 语音识别关闭操作 */
     handleStop,
-    /** 录音按钮切换 主要用于获取录音权限 */
-    handleShowRecorder,
     /** 录音按钮按下 */
     handleRecorderTouchStart,
-    /** 录音按钮松开 */
-    handleRecorderTouchEnd,
-    /** 录音按钮取消录音 */
-    handleRecorderClose,
-    /** 右侧录音按钮发送录音 */
-    handleRecorderConfirm,
     /** pcm */
     pushPcmData,
   }

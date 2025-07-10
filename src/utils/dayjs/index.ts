@@ -5,6 +5,13 @@ import dayjs from 'dayjs'
  * @param time
  * @param type 默认值 YYYY-MM-DD
  */
-export function formatTime(time: string, type: string = 'YYYY-MM-DD') {
-  return dayjs(time).format(type)
+export function formatTime(options: {
+  _time?: string | number | Date
+  type: string
+} = {
+  _time: new Date(),
+  type: 'YYYY-MM-DD',
+}) {
+  const time = options._time || new Date()
+  return dayjs(time).format(options.type)
 }

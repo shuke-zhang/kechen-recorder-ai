@@ -1,4 +1,4 @@
-export function usePlayAudio(RecordApp: any) {
+export default function usePlayAudio(RecordApp: any) {
   /**
    * @description 播放初始化
    * @options
@@ -18,10 +18,20 @@ export function usePlayAudio(RecordApp: any) {
     isAutoPlay?: boolean
     isSave?: boolean
   }) {
+    console.log('playAudioInit1111')
+
     const pcmBuffer = mergeArrayBuffers(options.pcmBuffers)
+    console.log('playAudioInit2222')
     const wavBuffer = encodePCMToWav(pcmBuffer, 16000)
-    options.isSave ?? saveThenDoAndDelete(wavBuffer, options._fileName, options.isAutoPlay)
+    console.log('playAudioInit3333')
+    if (options.isSave) {
+      saveThenDoAndDelete(wavBuffer, options._fileName, options.isAutoPlay)
+    }
+
+    console.log('playAudioInit4444')
     const pcmBase64 = arrayBufferToBase64(pcmBuffer)
+    console.log('playAudioInit555')
+
     const wavBase64 = arrayBufferToBase64(wavBuffer)
     return {
       pcmBuffer,
@@ -35,7 +45,7 @@ export function usePlayAudio(RecordApp: any) {
    * 合并多个ArrayBuffer
    */
   function mergeArrayBuffers(buffers: ArrayBuffer[]): ArrayBuffer {
-    console.log('mergeArrayBuffers')
+    console.log('mergeArrayBuffers1111')
 
     const totalLength = buffers.reduce((sum, buf) => sum + buf.byteLength, 0)
     const merged = new Uint8Array(totalLength)
@@ -45,6 +55,7 @@ export function usePlayAudio(RecordApp: any) {
       merged.set(new Uint8Array(buf), offset)
       offset += buf.byteLength
     }
+    console.log('mergeArrayBuffers2222')
 
     return merged.buffer
   }
@@ -100,7 +111,7 @@ export function usePlayAudio(RecordApp: any) {
    */
   async function saveThenDoAndDelete(sBuffer: ArrayBuffer, _fileName?: string, isPlay = true) {
     return new Promise<void>((resolve, reject) => {
-      const fileName = _fileName || __LocalFileName('wav')
+      const fileName = _fileName || getFileName('wav')
       RecordApp.UniSaveLocalFile(
         fileName,
         sBuffer,
@@ -155,16 +166,17 @@ export function usePlayAudio(RecordApp: any) {
    * @description 生成文件名
    * - type 文件类型
    */
-  function __LocalFileName(type: string) {
+  function getFileName(type: string, prefix = 'local') {
     const now = new Date()
-    const fileName = `local-${now.getFullYear()
-    }${(`0${now.getMonth() + 1}`).substr(-2)
-    }${(`0${now.getDate()}`).substr(-2)
-    }${(`0${now.getHours()}`).substr(-2)
-    }${(`0${now.getMinutes()}`).substr(-2)
-    }${(`0${now.getSeconds()}`).substr(-2)
-    }${(`00${now.getMilliseconds()}`).substr(-3)
-    }${(`${Math.random()}`).substr(2, 6)
+    const fileName = `${prefix}-${
+      now.getFullYear()}${
+      String(now.getMonth() + 1).padStart(2, '0')}${
+      String(now.getDate()).padStart(2, '0')}${
+      String(now.getHours()).padStart(2, '0')}${
+      String(now.getMinutes()).padStart(2, '0')}${
+      String(now.getSeconds()).padStart(2, '0')}${
+      String(now.getMilliseconds()).padStart(3, '0')}-${
+      Math.random().toString().slice(2, 8)
     }.${type || 'bin'}`
     return fileName
   }
@@ -194,6 +206,69 @@ export function usePlayAudio(RecordApp: any) {
     }
     return bytes.buffer
   }
+
+  /**
+   * 统一上传文件的接口
+   */
+  function uploadFileAudio(options: {
+    wavBuffer: ArrayBuffer
+    /** 文件类型 */
+    fileType: string
+    /** 文件名前缀 */
+    fileNamePre: string
+    /** 文件名字 */
+    _fileName?: string
+  }): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const fileName = options._fileName || getFileName(options.fileType, options.fileNamePre)
+      RecordApp.UniSaveLocalFile(
+        fileName,
+        options.wavBuffer,
+        (savedPath: string) => {
+          console.log(`✅ 文件已保存到本地: ${savedPath}`)
+          uni.uploadFile({
+            url: `${API_URL}/common/upload/v1`,
+            filePath: savedPath,
+            name: 'file',
+            header: {
+              'Content-Type': 'multipart/form-data',
+            },
+            success: (res) => {
+              try {
+                const data = JSON.parse(res.data)
+                console.log('✅ 文件上传成功:', data)
+
+                // 删除本地临时文件
+                uni.removeSavedFile({
+                  filePath: savedPath,
+                  success: () => {
+                    console.log(`🗑️ 文件已删除: ${savedPath}`)
+                    resolve(data)
+                  },
+                  fail: (err) => {
+                    console.warn('⚠️ 文件删除失败:', err)
+                    resolve(data) // 删除失败不影响上传成功
+                  },
+                })
+              }
+              catch (e) {
+                throw new Error (`文件上传响应解析失败: ${e}`)
+              }
+            },
+            fail: (err) => {
+              console.warn('❌ 文件上传失败:', err)
+              reject(err)
+            },
+          })
+        },
+        (err: Error) => {
+          console.error('❌ 保存失败:', err)
+          reject(err)
+        },
+      )
+    })
+  }
+
   return {
     /** 合并多个ArrayBuffer */
     mergeArrayBuffers,
@@ -218,5 +293,9 @@ export function usePlayAudio(RecordApp: any) {
      * @description base64 转 ArrayBuffer
      */
     base64ToArrayBuffer,
+    /**
+     * @description 上传文件 仅限于传入 Buffer
+     */
+    uploadFileAudio,
   }
 }

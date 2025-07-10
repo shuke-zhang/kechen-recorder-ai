@@ -29,7 +29,7 @@ export async function doubaoSpeechSynthesisFormat(params: { text: string, id: nu
     const audioRes: DoubaoAudioFormatModel = {
       id: msg.id,
       text: msg.text,
-      audio_buffer: audioData.data,
+      audio_base64: audioData.data,
       reqid: audioData.reqid,
       code: audioData.code,
       operation: audioData.operation,

@@ -29,7 +29,7 @@ export const useAiCall = defineStore('aiCall', () => {
     })
       .then((res) => {
         const result = {
-          audioData: res.audio_buffer,
+          audioData: res.audio_base64,
           text: res.text,
           id: res.id,
         }

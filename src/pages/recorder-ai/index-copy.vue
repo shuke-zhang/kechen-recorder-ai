@@ -280,9 +280,9 @@ async function autoPlayAiMessage(_text: string, index: number) {
       text: longText,
       id: tempFormattedTexts.value.findIndex(t => t === longText) || 0,
     }, tempFormattedTexts.value.findIndex(t => t === longText) === 0).then((res) => {
-      const { audio_buffer, text, id } = res
+      const { audio_base64, text, id } = res
       streamData.value = {
-        buffer: audio_buffer,
+        buffer: audio_base64,
         text,
         id,
       }
@@ -487,9 +487,9 @@ const handleRecorder = debounce((text: string, index: number) => {
         text: longText,
         id: i,
       }).then((res) => {
-        const { audio_buffer, text, id } = res
+        const { audio_base64, text, id } = res
         streamData.value = {
-          buffer: audio_buffer,
+          buffer: audio_base64,
           text,
           id,
         }

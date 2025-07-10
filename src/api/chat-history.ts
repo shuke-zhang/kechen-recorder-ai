@@ -4,11 +4,13 @@ import { request } from '@/utils/request'
 /**
  * 获取ai聊天记录列表
  */
-export function listChatHistory(params?: listParams<ChatHistoryModel>) {
+export function listChatHistory(data?: listParams<ChatHistoryModel>) {
   return request.post<ResponseList<ChatHistoryModel>>(
     {
       url: `/chatHistory/list/v1`,
-      params,
+      data: {
+        page: data,
+      },
       withToken: false,
     },
   )
@@ -30,7 +32,7 @@ export function getChatHistory(id: number) {
 /**
  * 新增ai聊天记录
  */
-export function createChatHistory(data: ChatHistoryModel) {
+export function addChatHistory(data: ChatHistoryModel) {
   return request.post<ResponseList<ChatHistoryModel>>(
     {
       url: `/chatHistory/add/v1`,

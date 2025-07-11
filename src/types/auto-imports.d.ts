@@ -200,6 +200,7 @@ declare global {
   const useToggle: typeof import('../hooks/useToggle/index')['useToggle']
   const useUserStore: typeof import('../store/modules/user/index')['useUserStore']
   const useVModel: typeof import('../hooks/useVModel/index')['useVModel']
+  const userMsgFormat: typeof import('../utils/helpers/format')['userMsgFormat']
   const validate: typeof import('../utils/validate/index')['validate']
   const validateField: typeof import('../utils/validate/index')['validateField']
   const validateIdCard: typeof import('../utils/validate/validate')['validateIdCard']

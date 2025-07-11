@@ -359,7 +359,7 @@ function resetIdleTimer() {
 
 /** 点击跳转到历史页面 */
 function handleAiHistory() {
-  router.push('/pages/ai-history/index')
+  router.push('/pages/ai-history/detail')
 }
 
 /** 发送消息确认按钮 */

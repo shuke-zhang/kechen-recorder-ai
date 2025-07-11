@@ -33,6 +33,7 @@ export const request = new UniRequest<HttpRequestUserConfig>({
     const config = Object.assign({
       ..._config,
     }) as UniRequestConfig<HttpRequestUserConfig>
+    console.log('config.url', config.url)
 
     // 1. 处理 url 不是 http 或者 https 开头则加上 baseUrl
     if (!isLink(config.url))

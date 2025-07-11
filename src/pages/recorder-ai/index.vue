@@ -52,14 +52,15 @@ import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
 import 'recorder-core/src/app-support/app-miniProgram-wx-support.js'
 // #endif
 
-// #ifdef H5 || MP-WEIXIN
 import 'recorder-core/src/engine/pcm'
 import 'recorder-core/src/extensions/waveview'
 import type { StatusModel } from '@/components/audio-wave/audio-wave'
 // import type { AiMessage } from '@/hooks'
+import type { ChatHistoryModel } from '@/model/chat'
 import type { UploadFileModel } from '@/model/chat'
+import { addChatHistory, addChatHistory2 } from '@/api/chat-history'
+import { request } from '@/utils/request'
 // import usePlayAudio from './hooks/usePlayAudio'
-// #endif
 const vueInstance = getCurrentInstance()?.proxy as any // 必须定义到最外面，getCurrentInstance得到的就是当前实例this
 const pageHeight = computed(() => {
   return `${getStatusBarHeight() + NAV_BAR_HEIGHT + 1}px`
@@ -212,6 +213,14 @@ const canStartIdleTimer = computed(() => {
   return !isStreamPlaying.value && !loading.value
 })
 /**
+ * 临时存储新增历史记录的数组
+ */
+const addChatHistoryForm = ref<ChatHistoryModel>({})
+/**
+ * ai回复的最新时间
+ */
+const assistantAudioTime = ref('')
+/**
  * 全局计数器 主要是用于判断ai返回的请求音频的接口是否全部请求完成
  */
 const ttsPendingCount = ref(0)
@@ -242,23 +251,76 @@ function doPrepare() {
     return
   const last = content.value[content.value.length - 1]
   const isAssistant = last.role === 'assistant'
+  console.log('查看到新内容', last)
+
   if (!hasPrepared.value && isAssistant) {
     hasPrepared.value = true
     // 这里是你的“准备完成”操作
     console.log('ai音频准备完成准备完成（只执行一次）')
     const _buffers = assistantAudioBuffers.value.sort((a, b) => a.id - b.id).map(item => item.buffers)
     const { wavBuffer } = playAudioInit(_buffers)
+    let url = ''
+    const content = last.content as string
     uploadFileAudio({
       wavBuffer,
       fileType: 'wav',
       fileNamePre: 'assistant-audio',
     }).then((res) => {
       console.log(res, 'ai音频成功啦')
+      url = res.url
     }).finally(() => {
+      addChatHistoryForm.value.assistantAudio = url || '' // 音频地址
+      addChatHistoryForm.value.assistantAudioTime = formatTime({ type: 'YYYY-MM-DD HH:mm:ss' }) // 音频时间
+      addChatHistoryForm.value.assistantOutput = content // 文本 这儿直接用last 因为这儿总是在下次发送之前有
+      addChatHistoryForm.value.assistantOutputTime = assistantAudioTime.value // 文本时间
       assistantAudioBuffers.value = []
+      submitChatHistory()
     })
     // ...其他操作
   }
+}
+/**
+ * 新增ai聊天历史对话
+ */
+function submitChatHistory() {
+  try {
+    const data: ChatHistoryModel = {
+      userAudio: addChatHistoryForm.value.userAudio,
+      userAudioTime: addChatHistoryForm.value.userAudioTime,
+      userInput: addChatHistoryForm.value.userInput,
+      userInputTime: addChatHistoryForm.value.userInputTime,
+
+      assistantAudio: addChatHistoryForm.value.assistantAudio,
+      assistantAudioTime: addChatHistoryForm.value.assistantAudioTime,
+      assistantOutput: addChatHistoryForm.value.assistantOutput,
+      assistantOutputTime: addChatHistoryForm.value.assistantOutputTime,
+    }
+    console.log('新增历史记录', data)
+
+    // addChatHistory(data).then((res) => {
+    //   console.log('新增历史记录成功——————————', res)
+    // })
+  }
+  catch (error) {
+    console.log('新增失败', error)
+  }
+  // return addChatHistory(data).then((res) => {
+  //   console.log('新增历史记录成功——————————', res)
+  // }).catch((err) => {
+  //   console.log('新增历史记录失败——————————', err)
+  // }).finally(() => {
+  //   console.log('新增历史记录finally')
+  // })
+}
+function addChatHistory3(data: ChatHistoryModel) {
+  console.log('触发 addChatHistory3', data)
+  request.post<ResponseList<ChatHistoryModel>>(
+    {
+      url: `/chatHistory/add/v1`,
+      data,
+      withToken: false,
+    },
+  )
 }
 /** 重置定时器 */
 function resetIdleTimer() {
@@ -310,6 +372,8 @@ function onConfirm() {
  * ai内容自动播放音频
  */
 async function autoPlayAiMessage(_text: string, index: number) {
+  assistantAudioTime.value = formatTime({ type: 'YYYY-MM-DD HH:mm:ss' })
+
   // 设置当前播放的消息索引
   currentIndex.value = index
 
@@ -598,8 +662,9 @@ function recorderAddText(text: string) {
 
   // 取出content.value的最后一项，如果 isRecordingPlaceholder为true则直接返回
   const last = content.value[content.value.length - 1]
+
   if (last?.isRecordingPlaceholder)
-    return { id: last.id || -2 }
+    return last.id === 0 ? { id: last.id } : { id: last.id || -2 }
   stopAll()
   console.log('关闭逻辑调用最后结束')
 
@@ -630,6 +695,12 @@ function userAudioUploadSuccess(res: UploadFileModel & { id: number, userInputTi
     item.userAudioTime = formatTime({ type: 'YYYY-MM-DD HH:mm:ss' })
     item.userInputTime = res.userInputTime
   }
+  console.log('用户上传成功的回调', res)
+
+  addChatHistoryForm.value.userAudio = res.url // 音频地址
+  addChatHistoryForm.value.userAudioTime = formatTime({ type: 'YYYY-MM-DD HH:mm:ss' }) // 音频上传时间
+  addChatHistoryForm.value.userInput = userMsgFormat(modelPrefix.value, (item?.content as string) || '', true)// 文本
+  addChatHistoryForm.value.userInputTime = res.userInputTime // 文本时间
 }
 
 async function stopAll() {

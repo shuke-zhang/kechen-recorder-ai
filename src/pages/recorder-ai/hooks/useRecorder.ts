@@ -238,7 +238,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
           // 同时在ai消息回复后立即开始语音识别
           console.log('🔁 自动重启语音识别')
 
-          handleStart()
+          // handleStart()
         }, 1000)
       }
       isAutoStop.value = false // 重置标记
@@ -272,14 +272,12 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     }
     const normNew = normalizeText(newVal || '')
     const normOld = normalizeText(oldVal || '')
-    console.log('textRes变化了')
 
     // 插入新消息，具体判断逻辑在 recorderAddText
     const { id } = options.recorderAddText(newVal || '')
 
     // 如果识别内容发生变化，说明是新内容，重新设置定时器
     if (normNew !== normOld) {
-      console.log('进入判断有无内容', hasInsertedPlaceholder.value)
       const userInputTime = formatTime({ type: 'YYYY-MM-DD HH:mm:ss' })
       silenceTimer = setTimeout(() => {
         console.warn('⏱️ 2秒内无新内容，自动停止录音', normNew, normOld)

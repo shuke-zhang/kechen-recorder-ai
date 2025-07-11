@@ -5,56 +5,57 @@ export interface ChatHistoryModel {
   /**
    * 用户语音音频地址 - 用户上传的音频地址
    */
-  userAudio: string
+  userAudio?: string
 
   /**
    * 用户语音上传时间 - 用户上传音频的时间
    */
-  userAudioTime: string
+  userAudioTime?: string
 
   /**
    * 用户文本输入内容 - 用户输入的文本
    */
-  userInput: string
+  userInput?: string
 
   /**
    * 用户文本输入时间 - 用户输入文本的时间
    */
-  userInputTime: string
+  userInputTime?: string
+
   /**
    * AI 语音输出音频地址 - 将ai音频上传的地址
    */
-  assistantAudio: string
+  assistantAudio?: string
 
   /**
    * AI 输出音频生成时间 - 最后一次音频生成的时间
    */
-  assistantAudioTime: string
+  assistantAudioTime?: string
 
   /**
    * AI 文本输出内容 - 流式文本
    */
-  assistantOutput: string
+  assistantOutput?: string
 
   /**
    * AI 输出文本生成时间 - 记录文本返回的第一帧的时间
    */
-  assistantOutputTime: string
+  assistantOutputTime?: string
 
   /**
    * 提示创建时间
    */
-  createdTime: string
+  createdTime?: string
 
   /**
    * 提示记录主键 ID
    */
-  id: number
+  id?: number
 
   /**
    * 记录更新时间
    */
-  updatedTime: string
+  updatedTime?: string
 
 }
 

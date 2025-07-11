@@ -33,14 +33,19 @@ export function getChatHistory(id: number) {
  * 新增ai聊天记录
  */
 export function addChatHistory(data: ChatHistoryModel) {
+  console.log('触发addChatHistory', data)
+
   return request.post<ResponseList<ChatHistoryModel>>(
     {
       url: `/chatHistory/add/v1`,
       data,
       withToken: false,
-
     },
   )
+}
+
+export function addChatHistory2(data: ChatHistoryModel) {
+  console.log('触发 addChatHistory2', data)
 }
 
 /**

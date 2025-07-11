@@ -152,6 +152,7 @@ const {
   isFirstVisit,
   isAutoRecognize,
   showRecordingButton,
+  isFirstRecorderText,
   recReq,
   handleRecorderTouchStart,
 } = useRecorder({
@@ -201,6 +202,8 @@ const assistantAudioBuffers = ref<{
   buffers: ArrayBuffer
   id: number
 }[]>([])
+const isFirstText = ref(true)
+const delayTimer: ReturnType<typeof setTimeout> | null = null
 // 全局变量存储格式化器实例和当前处理的消息索引
 let lastProcessedIndex: number | null = null
 /** 代表当点击了音频小图标时 ，如果此时ai消息还没回复完音频也在播放时为true 否则为false 主要是用于判断ai回复中点击了音频图标后不再需要自动播放 */
@@ -212,6 +215,10 @@ const IDLE_DELAY = 10000 // 5秒
 const canStartIdleTimer = computed(() => {
   return !isStreamPlaying.value && !loading.value
 })
+/**
+ * 用于缓存新识别到的内容的变量
+ */
+const isCatchText = ref(true)
 /**
  * 临时存储新增历史记录的数组
  */
@@ -241,8 +248,8 @@ function checkIfAllReady() {
   // AI回复已经结束，且音频全部返回
   if (isAiMessageEnd.value && ttsPendingCount.value === 0) {
     console.log('准备完成（AI流式和所有音频接口全部完成）')
-    // 你可以在这里做任何想做的事，比如执行回调、重置状态等
-    doPrepare()
+    // 上传历史记录到服务器
+    // doPrepare()
   }
 }
 
@@ -537,7 +544,6 @@ async function handleConfirm() {
     handleSendMsg()
     return
   }
-  // 在这儿直接获取全部的ai返回音频数据并且上传
 
   handleSendMsg()
 }
@@ -653,6 +659,8 @@ function removeEmptyMessagesByRole(type: string) {
     }
   }
 }
+let incrementTimer: ReturnType<typeof setTimeout> | null = null
+let incrementCacheText = ''
 /** 语音识别到内容的函数 */
 function recorderAddText(text: string) {
   // 开始录音，插入一个临时消息（占位）
@@ -660,7 +668,57 @@ function recorderAddText(text: string) {
     return { id: -1 }
   recorderStatus.value = 'playing'
 
+  console.log('recorderAddText', isFirstRecorderText.value)
+  if (content.value.filter(it => it.role === 'assistant').length >= 1) {
+    isFirstRecorderText.value = false
+  }
+  // 第一次直接插入
+  if (isFirstRecorderText.value) {
+    console.log('第一次进入，直接初始化')
+
+    return addText(text)
+  }
+  else {
+    console.log('不是第一次进入系统,缓存两秒增量文本', incrementTimer)
+    // 非第一次，每次缓存并重置2秒定时器，2秒后只插入最后缓存的内容
+    // 只在第一次缓存并启动定时器
+    // 项目初始化的第一次不用缓存
+    if (!incrementTimer) {
+      incrementCacheText = text
+      incrementTimer = setTimeout(() => {
+        addText(incrementCacheText)
+        incrementTimer = null
+        incrementCacheText = ''
+      // 后续如需支持多轮，再次触发时记得重置isFirstRecorderText.value = true
+      }, 2000)
+    }
+    else {
+      if(isCatchText.value){
+         incrementCacheText = text
+        //  这儿只启动一次定时器，后续的增量文本都会被缓存
+        // 但是这儿会出现一个问题，!incrementTimer 确认只进行一次么，是增量文本所以会在2s内触发很多次。所以这儿只会触发一次定时器么？？？？ 
+        if(!incrementTimer){
+          incrementTimer = setTimeout(() => {
+            addText(incrementCacheText)
+            incrementTimer = null
+            incrementCacheText = ''
+            isCatchText.value = false
+          }, 1500)
+      }else{
+        addText(incrementCacheText)
+        incrementTimer = null
+        incrementCacheText = ''
+      }
+   
+    return { id: -1 }
+  }
+
+  // 增量期间，不插入任何内容
+
   // 取出content.value的最后一项，如果 isRecordingPlaceholder为true则直接返回
+}
+
+function addText(text: string) {
   const last = content.value[content.value.length - 1]
 
   if (last?.isRecordingPlaceholder)

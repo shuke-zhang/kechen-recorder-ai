@@ -96,7 +96,7 @@ declare namespace AiModel{
     /**
      * @description 助手回复音频的输入时间 - 具体表现为音频接口上传成功的时间
      */
-    assistantAudioTime?: number
+    assistantAudioTime?: string
 
     /**
      * 是否开启继续对话功能

@@ -27,6 +27,19 @@ declare interface ResponseData<T> {
 }
 
 /**
+ * @description 分页列表数据类型 包含在 ResponseRecords 里面
+ */
+declare interface ResponseRecords<T> {
+  records: T[]
+  /** 当前页码 */
+  current: number
+  /** 当前页条数 */
+  size: number
+  /** 当前总数 */
+  total: number
+}
+
+/**
  * @description 基础分页参数 current size
  */
 declare interface ListParamsBase {

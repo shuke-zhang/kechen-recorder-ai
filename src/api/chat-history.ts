@@ -5,7 +5,7 @@ import { request } from '@/utils/request'
  * 获取ai聊天记录列表
  */
 export function listChatHistory(data?: listParams<ChatHistoryModel>) {
-  return request.post<ResponseList<ChatHistoryModel>>(
+  return request.post<ResponseData<ResponseRecords<ChatHistoryModel>> >(
     {
       url: `/chatHistory/list/v1`,
       data: {

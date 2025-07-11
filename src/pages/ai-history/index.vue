@@ -24,7 +24,7 @@ const search = ref('')
     with-search-bar
   >
     <view v-for="(item, index) in state.list" :key="index" class="card list-data-item ">
-      ss
+      {{ item.assistantOutputTime }}
     </view>
   </list-data>
 </template>

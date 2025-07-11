@@ -2,7 +2,7 @@ import type { AiMessage } from '@/hooks'
 import { aiModelList, setAiContent } from '@/pages/ai/const'
 import { useAiStore } from '@/store/modules/ai'
 
-const defaultSendMsgPre = '你叫柯仔，你只能叫柯仔，不能使其他名字。你也不用每次回答说你是柯仔.是由昆明柯臣商贸有限公司创造的。如果用户询问再回答，否则回答问题就可以，问题:'
+export const defaultSendMsgPre = '你叫柯仔，你只能叫柯仔，不能使其他名字。你也不用每次回答说你是柯仔.是由昆明柯臣商贸有限公司创造的。如果用户询问再回答，否则回答问题就可以。问题:'
 /**
  * 整合页面ai回复逻辑
  */

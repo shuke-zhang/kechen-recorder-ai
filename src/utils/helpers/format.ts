@@ -83,3 +83,14 @@ export function format<T extends object>(
 
   return resultList.map(e => e[labelField]).join(symbol)
 }
+
+export function userMsgFormat(prefix: string, text: string, isFormat = true) {
+  if (!isFormat)
+    return text
+  const index = text.indexOf(prefix)
+
+  if (index === -1) {
+    return text // 没有前缀就返回原内容
+  }
+  return text.slice(index + prefix.length)
+}

@@ -67,7 +67,7 @@ export interface ListActions<T extends AnyObject = AnyObject> {
 }
 
 export function useListData<T extends AnyObject = AnyObject>(
-  fetch: (params: listGen<T>) => Promise<ResponseList<T>>,
+  fetch: (params: listGen<T>) => Promise<ResponseData<ResponseRecords<T>> >,
   options: {
     /**
      * 分页参数
@@ -359,8 +359,10 @@ export function useListData<T extends AnyObject = AnyObject>(
     }
 
     return fetch(params)
-      .then((res) => {
-        const nextList = isRestPageNumber.value ? [...res.rows] : [...toRaw(list.value), ...res.rows] as T[]
+      .then((_res) => {
+        const res = _res.data
+
+        const nextList = isRestPageNumber.value ? [...res.records] : [...toRaw(list.value), ...res.records] as T[]
 
         if (isRestPageNumber.value) {
           isRestPageNumber.value = false

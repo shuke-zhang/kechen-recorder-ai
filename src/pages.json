@@ -12,7 +12,6 @@
       "^z-(.*)": "@zebra-ui/swiper/components/z-$1/z-$1.vue"
     }
   },
-  "__esModule": true,
   "pages": [
     {
       "path": "pages/recorder-ai/index",
@@ -31,6 +30,13 @@
       "type": "page",
       "style": {
         "navigationBarTitleText": "AI对话"
+      }
+    },
+    {
+      "path": "pages/ai-history/detail",
+      "type": "page",
+      "style": {
+        "navigationBarTitleText": "历史记录"
       }
     },
     {

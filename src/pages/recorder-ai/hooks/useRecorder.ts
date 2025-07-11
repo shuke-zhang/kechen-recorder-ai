@@ -222,10 +222,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
       restartTimer = null
     }
     handleStop().then(() => {
-      const { wavBuffer } = playAudioInit({
-        pcmBuffers: recorderBufferList.value,
-        isAutoPlay: false,
-      })
+      const { wavBuffer } = playAudioInit(recorderBufferList.value)
       uploadFileAudio({
         wavBuffer,
         fileType: 'wav',

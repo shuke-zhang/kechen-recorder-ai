@@ -40,6 +40,7 @@ import { default as RecordAppInstance } from 'recorder-core/src/app-support/app'
 import { useTextFormatter } from './hooks/useTextFormatter'
 import RecorderInputAuto from './recorder-input-auto.vue'
 import useRecorder from './hooks/useRecorder'
+import usePlayAudio from './hooks/usePlayAudio'
 import useAiPage from './hooks/useAiPage'
 import useAutoScroll from './hooks/useAutoScroll'
 // import { useAiCall } from '@/store/modules/ai-call'
@@ -108,7 +109,7 @@ const { handleMultiClick } = useMultiClickTrigger({
   },
 })
 
-// const { base64ToArrayBuffer } = usePlayAudio(RecordAppInstance)
+const { base64ToArrayBuffer, playAudioInit, uploadFileAudio } = usePlayAudio(RecordAppInstance)
 
 const {
   chatSSEClientRef,
@@ -136,6 +137,7 @@ const handleTouchStart = debounce(() => {
   removeEmptyMessagesByRole('assistant')
   startTime.value = Date.now()
   stopAll()
+
   console.log('🟢 触发发送消息', content.value)
   handleConfirm()
   nextTick(() => {
@@ -194,7 +196,10 @@ const isSwitchingNewMessage = ref(false)
 /** 控制屏保 */
 const isScreensaver = ref(true)
 /** ai回复的音频数据 */
-const assistantAudioBuffers: ArrayBuffer[] = []
+const assistantAudioBuffers = ref<{
+  buffers: ArrayBuffer
+  id: number
+}[]>([])
 // 全局变量存储格式化器实例和当前处理的消息索引
 let lastProcessedIndex: number | null = null
 /** 代表当点击了音频小图标时 ，如果此时ai消息还没回复完音频也在播放时为true 否则为false 主要是用于判断ai回复中点击了音频图标后不再需要自动播放 */
@@ -206,7 +211,55 @@ const IDLE_DELAY = 10000 // 5秒
 const canStartIdleTimer = computed(() => {
   return !isStreamPlaying.value && !loading.value
 })
+/**
+ * 全局计数器 主要是用于判断ai返回的请求音频的接口是否全部请求完成
+ */
+const ttsPendingCount = ref(0)
+const hasPrepared = ref(false)
+// 每次发送 TTS（音频）接口时，+1
+function ttsRequestStart() {
+  ttsPendingCount.value++
+}
 
+// 每次 TTS 请求结束（无论成功失败），-1
+function ttsRequestEnd() {
+  ttsPendingCount.value--
+  checkIfAllReady()
+}
+
+// 检查“准备完成”逻辑
+function checkIfAllReady() {
+  // AI回复已经结束，且音频全部返回
+  if (isAiMessageEnd.value && ttsPendingCount.value === 0) {
+    console.log('准备完成（AI流式和所有音频接口全部完成）')
+    // 你可以在这里做任何想做的事，比如执行回调、重置状态等
+    doPrepare()
+  }
+}
+
+function doPrepare() {
+  if (!content.value.length)
+    return
+  const last = content.value[content.value.length - 1]
+  const isAssistant = last.role === 'assistant'
+  if (!hasPrepared.value && isAssistant) {
+    hasPrepared.value = true
+    // 这里是你的“准备完成”操作
+    console.log('ai音频准备完成准备完成（只执行一次）')
+    const _buffers = assistantAudioBuffers.value.sort((a, b) => a.id - b.id).map(item => item.buffers)
+    const { wavBuffer } = playAudioInit(_buffers)
+    uploadFileAudio({
+      wavBuffer,
+      fileType: 'wav',
+      fileNamePre: 'assistant-audio',
+    }).then((res) => {
+      console.log(res, 'ai音频成功啦')
+    }).finally(() => {
+      assistantAudioBuffers.value = []
+    })
+    // ...其他操作
+  }
+}
 /** 重置定时器 */
 function resetIdleTimer() {
   // 若不能启动 idleTimer（因为正在播放或AI正在回复），就清除定时器并返回
@@ -272,15 +325,18 @@ async function autoPlayAiMessage(_text: string, index: number) {
     forceFlush: isAiMessageEnd.value,
   })
 
+  console.log('longText', longText)
   // 处理文本 下面是对接后端的音频 采用接口的方式
   if (longText.length > 0) {
     tempFormattedTexts.value.push(longText)
-
     //  判断是不是新的ai消息
     if (tempFormattedTexts.value.findIndex(t => t === longText) === 0 && !isAiMessageEnd.value) {
       streamPlayerRef.value?.onStreamStop()
+      assistantAudioBuffers.value = []
     }
 
+    console.log('请求的顺序', longText)
+    ttsRequestStart()
     doubaoSpeechSynthesisFormat({
       text: longText,
       id: tempFormattedTexts.value.findIndex(t => t === longText) || 0,
@@ -291,18 +347,49 @@ async function autoPlayAiMessage(_text: string, index: number) {
         text,
         id,
       }
-      // const audio_buffer = base64ToArrayBuffer(audio_base64)
+      const audio_buffer = base64ToArrayBuffer(audio_base64)
+      assistantAudioBuffers.value.push({
+        buffers: audio_buffer,
+        id,
+      })
 
-      // assistantAudioBuffers.push(audio_buffer)
+      /**
+       * 在这儿用来判断是否完整的上传文件，但是可能还是会有问题，比如序号10可能在序号9之前请求完成。那么就会造成数据确实
+       */
+      // if (assistantAudioBuffers.value.length === id) {
+      //   const _buffers = assistantAudioBuffers.value.sort((a, b) => a.id - b.id).map(item => item.buffers)
+      //   const { wavBuffer } = playAudioInit(_buffers)
+      //   uploadFileAudio({
+      //     wavBuffer,
+      //     fileType: 'wav',
+      //     fileNamePre: 'assistant-audio',
+      //   }).then((res) => {
+      //     console.log(res, 'ai音频成功啦')
+      //   }).finally(() => {
+      //     assistantAudioBuffers.value = []
+      //   })
+      // }
+
       // ai返回的消息结束了
       if (isAiMessageEnd.value) {
         tempFormattedTexts.value = []
         hasUserInterruptedAutoPlay.value = false
+        // const _buffers = assistantAudioBuffers.value.sort((a, b) => a.id - b.id).map(item => item.buffers)
+        // const { wavBuffer } = playAudioInit(_buffers)
+        // uploadFileAudio({
+        //   wavBuffer,
+        //   fileType: 'wav',
+        //   fileNamePre: 'assistant-audio',
+        // }).then((res) => {
+        //   console.log(res, 'ai音频成功啦')
+        // })
       }
     }).catch((error) => {
       isStreamPlaying.value = false
       isAudioPlaying.value = false
       console.log(error, '错误')
+    }).finally(() => {
+      ttsRequestEnd()
     })
   }
   isStreamPlaying.value = true
@@ -386,6 +473,7 @@ async function handleConfirm() {
     handleSendMsg()
     return
   }
+  // 在这儿直接获取全部的ai返回音频数据并且上传
 
   handleSendMsg()
 }
@@ -557,6 +645,8 @@ async function stopAll() {
   isStreamPlaying.value = false
   // 重置音频播放真正的状态
   isAudioPlaying.value = false
+  hasPrepared.value = false
+  ttsPendingCount.value = 0
   console.log('关闭逻辑函数结束-----')
 }
 
@@ -613,9 +703,15 @@ watch(
 watch(() => isAiMessageEnd.value, (newVal) => {
   if (newVal) {
     lastAiMsgEnd.value = true
+
     tempFormattedTexts.value = []
     hasUserInterruptedAutoPlay.value = false
+    checkIfAllReady()
   }
+})
+
+watch(ttsPendingCount, () => {
+  checkIfAllReady()
 })
 
 watch(

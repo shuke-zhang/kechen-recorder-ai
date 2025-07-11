@@ -2,42 +2,20 @@ export default function usePlayAudio(RecordApp: any) {
   /**
    * @description 播放初始化
    * @options
-   * - pcmBuffers 传入pcm数据流数组
-   * - _fileName 文件名 可选
-   * - isAutoPlay 是否自动播放
-   * - isSave 是否保存文件
+   * - _buffers 传入的buffers数组
    * @returns
-   * - pcmBuffer pcm数据格式
-   * - wavBuffer wav数据格式
-   * - pcmBase64 pcm数据格式base64
-   * - wavBase64 wav数据格式base64
+   * - audioBuffers 将多个buffer组成的列表组合成一个
+   * - wavBuffer wav数据格式 通过这个来保存数据 民命为wav主要是我生成的是wav文件没有其他意思
+   * - audioBase64 wav数据格式base64
    */
-  function playAudioInit(options: {
-    pcmBuffers: ArrayBuffer[]
-    _fileName?: string
-    isAutoPlay?: boolean
-    isSave?: boolean
-  }) {
-    console.log('playAudioInit1111')
-
-    const pcmBuffer = mergeArrayBuffers(options.pcmBuffers)
-    console.log('playAudioInit2222')
-    const wavBuffer = encodePCMToWav(pcmBuffer, 16000)
-    console.log('playAudioInit3333')
-    if (options.isSave) {
-      saveThenDoAndDelete(wavBuffer, options._fileName, options.isAutoPlay)
-    }
-
-    console.log('playAudioInit4444')
-    const pcmBase64 = arrayBufferToBase64(pcmBuffer)
-    console.log('playAudioInit555')
-
-    const wavBase64 = arrayBufferToBase64(wavBuffer)
+  function playAudioInit(_buffers: ArrayBuffer[]) {
+    const audioBuffers = mergeArrayBuffers(_buffers)
+    const wavBuffer = encodeBufferToWav(audioBuffers, 16000)
+    const audioBase64 = arrayBufferToBase64(wavBuffer)
     return {
-      pcmBuffer,
+      audioBuffers,
       wavBuffer,
-      pcmBase64,
-      wavBase64,
+      audioBase64,
     }
   }
 
@@ -66,7 +44,7 @@ export default function usePlayAudio(RecordApp: any) {
    *  - sampleRate - 采样率
    *  - numChannels - 声道数
    */
-  function encodePCMToWav(pcmBuffer: ArrayBuffer, sampleRate = 16000, numChannels = 1): ArrayBuffer {
+  function encodeBufferToWav(pcmBuffer: ArrayBuffer, sampleRate = 16000, numChannels = 1): ArrayBuffer {
     const pcm = new Int16Array(pcmBuffer)
     const wavBuffer = new ArrayBuffer(44 + pcm.length * 2)
     const view = new DataView(wavBuffer)
@@ -100,52 +78,6 @@ export default function usePlayAudio(RecordApp: any) {
     }
 
     return wavBuffer
-  }
-
-  /**
-   * @description 保存文件 并播放
-   * - sBuffer 数据
-   * - _fileName 可选 文件名
-   * - isPlay 可选 是否直接播放
-   * @warn 默认直接播放
-   */
-  async function saveThenDoAndDelete(sBuffer: ArrayBuffer, _fileName?: string, isPlay = true) {
-    return new Promise<void>((resolve, reject) => {
-      const fileName = _fileName || getFileName('wav')
-      RecordApp.UniSaveLocalFile(
-        fileName,
-        sBuffer,
-        async (savedPath: string) => {
-          console.log(`✅ 文件已保存到本地: ${savedPath}`)
-          try {
-            // 在这儿执行播放
-            if (isPlay) {
-              playAudio(savedPath)
-            }
-            // 执行完后删除文件
-            uni.removeSavedFile({
-              filePath: savedPath,
-              success: () => {
-                console.log(` 🗑️ 文件已删除: ${savedPath}`)
-                resolve()
-              },
-              fail: (err) => {
-                console.warn(` ⚠️ 文件删除失败:`, err)
-                resolve() // 删除失败也不影响流程
-              },
-            })
-          }
-          catch (e) {
-            console.error(`❌ afterSave 执行失败:`, e)
-            reject(e)
-          }
-        },
-        (err: Error) => {
-          console.error(`❌ 保存失败:`, err)
-          reject(err)
-        },
-      )
-    })
   }
 
   /**
@@ -198,13 +130,16 @@ export default function usePlayAudio(RecordApp: any) {
    * 将 base64 转回 ArrayBuffer
    */
   function base64ToArrayBuffer(base64: string): ArrayBuffer {
+    // 1. 解码Base64为二进制字符串
     const binaryString = atob(base64)
-    const len = binaryString.length
-    const bytes = new Uint8Array(len)
-    for (let i = 0; i < len; i++) {
-      bytes[i] = binaryString.charCodeAt(i)
+    // 2. 创建一个新的Uint8Array来保存解码后的数据
+    const arrayBuffer = new ArrayBuffer(binaryString.length)
+    const uint8Array = new Uint8Array(arrayBuffer)
+    // 3. 将二进制字符串中的每个字符转换为Uint8Array的相应值
+    for (let i = 0; i < binaryString.length; i++) {
+      uint8Array[i] = binaryString.charCodeAt(i)
     }
-    return bytes.buffer
+    return arrayBuffer
   }
 
   /**
@@ -273,9 +208,9 @@ export default function usePlayAudio(RecordApp: any) {
     /** 合并多个ArrayBuffer */
     mergeArrayBuffers,
     /** 将PCM数据编码为WAV格式 */
-    encodePCMToWav,
-    /** 保存文件 并播放 */
-    saveThenDoAndDelete,
+    encodeBufferToWav,
+    /** 播放 */
+    playAudio,
     /**
      * @description 播放初始化 options
      * - pcmBuffers 传入pcm数据流数组

@@ -223,6 +223,9 @@ const isCatchText = ref(true)
  * 临时存储新增历史记录的数组
  */
 const addChatHistoryForm = ref<ChatHistoryModel>({})
+const chatHistoryMap = new Map<number, ChatHistoryModel>()
+const chatOrder = ref<number[]>([])
+const addChatHistoryId = ref(0)
 /**
  * ai回复的最新时间
  */
@@ -252,41 +255,36 @@ function ttsRequestEnd() {
 // 检查“准备完成”逻辑
 function checkIfAllReady() {
   // AI回复已经结束，且音频全部返回
-  console.log(ttsPendingCount.value, isAiMessageEnd.value, 'ttsPendingCount.value')
   if (ttsPendingCount.value < 0)
     ttsPendingCount.value = 0
   if (isAiMessageEnd.value && ttsPendingCount.value === 0) {
-    console.log('准备完成（AI流式和所有音频接口全部完成）', content.value)
     // 上传历史记录到服务器
-    doPrepare()
+    assistantReplySuccess()
   }
 }
 
-function doPrepare() {
+function assistantReplySuccess() {
+  const id = chatOrder.value?.length ? chatOrder.value[addChatHistoryId.value] : 0
+
   if (!content.value.length)
     return
-  console.log(content.value, '查看内容')
 
   const assistants = content.value.filter(item => item.role === 'assistant')
   const last = assistants[assistants.length - 1]
-  console.log('查看到assistants', last)
 
   if (!hasPrepared.value && last) {
     hasPrepared.value = true
     // 这里是你的“准备完成”操作
-    console.log('ai音频准备完成准备完成（只执行一次）')
     const _buffers = assistantAudioBuffers.value.sort((a, b) => a.id - b.id).map(item => item.buffers)
     const { wavBuffer } = playAudioInit(_buffers)
     let url = ''
     const content = last.content as string
-    console.log('ai音频开始上传')
 
     uploadFileAudio({
       wavBuffer,
       fileType: 'wav',
       fileNamePre: 'assistant-audio',
     }).then((res) => {
-      console.log(res, 'ai音频成功啦')
       url = res.url
     }).finally(() => {
       addChatHistoryForm.value.assistantAudio = url || '' // 音频地址
@@ -294,7 +292,16 @@ function doPrepare() {
       addChatHistoryForm.value.assistantOutput = content // 文本 这儿直接用last 因为这儿总是在下次发送之前有
       addChatHistoryForm.value.assistantOutputTime = assistantAudioTime.value // 文本时间
       assistantAudioBuffers.value = []
-      submitChatHistory()
+
+      const oldData = chatHistoryMap.get(id) || {}
+      chatHistoryMap.set(id, {
+        ...oldData,
+        assistantAudio: url,
+        assistantAudioTime: formatTime({ type: 'YYYY-MM-DD HH:mm:ss' }),
+        assistantOutput: content,
+        assistantOutputTime: assistantAudioTime.value,
+      })
+      submitChatHistory(id)
     })
     // ...其他操作
   }
@@ -302,48 +309,37 @@ function doPrepare() {
 /**
  * 新增ai聊天历史对话
  */
-function submitChatHistory() {
+function submitChatHistory(id: number) {
+  // const id = addChatHistoryId.value
+
   try {
-    const data: ChatHistoryModel = {
-      userAudio: addChatHistoryForm.value.userAudio,
-      userAudioTime: addChatHistoryForm.value.userAudioTime,
-      userInput: addChatHistoryForm.value.userInput,
-      userInputTime: addChatHistoryForm.value.userInputTime,
+    console.error('使用了user内容')
+    const dataByMap = chatHistoryMap.get(id) || {}
 
-      assistantAudio: addChatHistoryForm.value.assistantAudio,
-      assistantAudioTime: addChatHistoryForm.value.assistantAudioTime,
-      assistantOutput: addChatHistoryForm.value.assistantOutput,
-      assistantOutputTime: addChatHistoryForm.value.assistantOutputTime,
-    }
-    console.log('新增历史记录', data)
+    // const data: ChatHistoryModel = {
+    //   userAudio: addChatHistoryForm.value.userAudio,
+    //   userAudioTime: addChatHistoryForm.value.userAudioTime,
+    //   userInput: addChatHistoryForm.value.userInput,
+    //   userInputTime: addChatHistoryForm.value.userInputTime,
 
-    addChatHistory(data).then((res) => {
+    //   assistantAudio: addChatHistoryForm.value.assistantAudio,
+    //   assistantAudioTime: addChatHistoryForm.value.assistantAudioTime,
+    //   assistantOutput: addChatHistoryForm.value.assistantOutput,
+    //   assistantOutputTime: addChatHistoryForm.value.assistantOutputTime,
+    // }
+
+    addChatHistory(dataByMap).then((res) => {
       console.log('新增历史记录成功——————————', res)
     }).finally(() => {
+      addChatHistoryId.value++
       addChatHistoryForm.value = {}
     })
   }
   catch (error) {
     console.log('新增失败', error)
   }
-  // return addChatHistory(data).then((res) => {
-  //   console.log('新增历史记录成功——————————', res)
-  // }).catch((err) => {
-  //   console.log('新增历史记录失败——————————', err)
-  // }).finally(() => {
-  //   console.log('新增历史记录finally')
-  // })
 }
-function addChatHistory3(data: ChatHistoryModel) {
-  console.log('触发 addChatHistory3', data)
-  request.post<ResponseList<ChatHistoryModel>>(
-    {
-      url: `/chatHistory/add/v1`,
-      data,
-      withToken: false,
-    },
-  )
-}
+
 /** 重置定时器 */
 function resetIdleTimer() {
   // 若不能启动 idleTimer（因为正在播放或AI正在回复），就清除定时器并返回
@@ -395,7 +391,6 @@ function onConfirm() {
  */
 async function autoPlayAiMessage(_text: string, index: number) {
   assistantAudioTime.value = formatTime({ type: 'YYYY-MM-DD HH:mm:ss' })
-  console.log('autoPlayAiMessage触发了')
 
   // 设置当前播放的消息索引
   currentIndex.value = index
@@ -731,11 +726,28 @@ function userAudioUploadSuccess(res: UploadFileModel & { id: number, userInputTi
   addChatHistoryForm.value.userAudioTime = formatTime({ type: 'YYYY-MM-DD HH:mm:ss' }) // 音频上传时间
   addChatHistoryForm.value.userInput = userMsgFormat(modelPrefix.value, (item?.content as string) || '', true)// 文本
   addChatHistoryForm.value.userInputTime = res.userInputTime // 文本时间
-  console.log('语音识别结束了', addChatHistoryForm.value)
+
+  console.error('user内容注入了')
+
+  // 1. 保存内容到 Map
+  chatHistoryMap.set(res.id, {
+    userAudio: res.url,
+    userAudioTime: formatTime({ type: 'YYYY-MM-DD HH:mm:ss' }),
+    userInput: userMsgFormat(modelPrefix.value, (item?.content as string) || '', true),
+    userInputTime: res.userInputTime,
+    // assistant 相关字段可先为空
+  })
+
+  // 2. id 进顺序队列（如果没加过）
+  if (!chatOrder.value?.includes(res.id)) {
+    chatOrder.value?.push(res.id)
+  }
+
+  console.log('语音识别结束了', chatOrder.value)
 }
 
 async function stopAll() {
-  console.log('🚫 强制关闭所有逻辑')
+  console.warn('🚫 强制关闭所有逻辑')
   // 停止ai回复的消息
   await stopChat.value()
   // 停止音频播放 实际上这儿并不是同步的，只是触发了stop方法
@@ -749,6 +761,7 @@ async function stopAll() {
   isAudioPlaying.value = false
   hasPrepared.value = false
   ttsPendingCount.value = 0
+  console.error('清空user和助手内容')
   addChatHistoryForm.value = {}
 
   console.log('关闭逻辑函数结束-----')
@@ -854,7 +867,7 @@ onMounted(() => {
     showToastError(err)
     console.log(err, '请求权限拒绝')
   })
-
+  addChatHistoryId.value = 0
   initHeights()
 })
 

@@ -235,32 +235,43 @@ const hasPrepared = ref(false)
 // 每次发送 TTS（音频）接口时，+1
 function ttsRequestStart() {
   ttsPendingCount.value++
+  if (ttsPendingCount.value < 0)
+    ttsPendingCount.value = 0
 }
 
 // 每次 TTS 请求结束（无论成功失败），-1
 function ttsRequestEnd() {
-  ttsPendingCount.value--
+  if (ttsPendingCount.value > 0) {
+    ttsPendingCount.value--
+  }
+  if (ttsPendingCount.value < 0)
+    ttsPendingCount.value = 0
   checkIfAllReady()
 }
 
 // 检查“准备完成”逻辑
 function checkIfAllReady() {
   // AI回复已经结束，且音频全部返回
+  console.log(ttsPendingCount.value, isAiMessageEnd.value, 'ttsPendingCount.value')
+  if (ttsPendingCount.value < 0)
+    ttsPendingCount.value = 0
   if (isAiMessageEnd.value && ttsPendingCount.value === 0) {
-    console.log('准备完成（AI流式和所有音频接口全部完成）')
+    console.log('准备完成（AI流式和所有音频接口全部完成）', content.value)
     // 上传历史记录到服务器
-    // doPrepare()
+    doPrepare()
   }
 }
 
 function doPrepare() {
   if (!content.value.length)
     return
-  const last = content.value[content.value.length - 1]
-  const isAssistant = last.role === 'assistant'
-  console.log('查看到新内容', last)
+  console.log(content.value, '查看内容')
 
-  if (!hasPrepared.value && isAssistant) {
+  const assistants = content.value.filter(item => item.role === 'assistant')
+  const last = assistants[assistants.length - 1]
+  console.log('查看到assistants', last)
+
+  if (!hasPrepared.value && last) {
     hasPrepared.value = true
     // 这里是你的“准备完成”操作
     console.log('ai音频准备完成准备完成（只执行一次）')
@@ -268,6 +279,8 @@ function doPrepare() {
     const { wavBuffer } = playAudioInit(_buffers)
     let url = ''
     const content = last.content as string
+    console.log('ai音频开始上传')
+
     uploadFileAudio({
       wavBuffer,
       fileType: 'wav',
@@ -304,9 +317,11 @@ function submitChatHistory() {
     }
     console.log('新增历史记录', data)
 
-    // addChatHistory(data).then((res) => {
-    //   console.log('新增历史记录成功——————————', res)
-    // })
+    addChatHistory(data).then((res) => {
+      console.log('新增历史记录成功——————————', res)
+    }).finally(() => {
+      addChatHistoryForm.value = {}
+    })
   }
   catch (error) {
     console.log('新增失败', error)
@@ -380,6 +395,7 @@ function onConfirm() {
  */
 async function autoPlayAiMessage(_text: string, index: number) {
   assistantAudioTime.value = formatTime({ type: 'YYYY-MM-DD HH:mm:ss' })
+  console.log('autoPlayAiMessage触发了')
 
   // 设置当前播放的消息索引
   currentIndex.value = index
@@ -396,7 +412,6 @@ async function autoPlayAiMessage(_text: string, index: number) {
     forceFlush: isAiMessageEnd.value,
   })
 
-  console.log('longText', longText)
   // 处理文本 下面是对接后端的音频 采用接口的方式
   if (longText.length > 0) {
     tempFormattedTexts.value.push(longText)
@@ -406,7 +421,6 @@ async function autoPlayAiMessage(_text: string, index: number) {
       assistantAudioBuffers.value = []
     }
 
-    console.log('请求的顺序', longText)
     ttsRequestStart()
     doubaoSpeechSynthesisFormat({
       text: longText,
@@ -424,36 +438,10 @@ async function autoPlayAiMessage(_text: string, index: number) {
         id,
       })
 
-      /**
-       * 在这儿用来判断是否完整的上传文件，但是可能还是会有问题，比如序号10可能在序号9之前请求完成。那么就会造成数据确实
-       */
-      // if (assistantAudioBuffers.value.length === id) {
-      //   const _buffers = assistantAudioBuffers.value.sort((a, b) => a.id - b.id).map(item => item.buffers)
-      //   const { wavBuffer } = playAudioInit(_buffers)
-      //   uploadFileAudio({
-      //     wavBuffer,
-      //     fileType: 'wav',
-      //     fileNamePre: 'assistant-audio',
-      //   }).then((res) => {
-      //     console.log(res, 'ai音频成功啦')
-      //   }).finally(() => {
-      //     assistantAudioBuffers.value = []
-      //   })
-      // }
-
       // ai返回的消息结束了
       if (isAiMessageEnd.value) {
         tempFormattedTexts.value = []
         hasUserInterruptedAutoPlay.value = false
-        // const _buffers = assistantAudioBuffers.value.sort((a, b) => a.id - b.id).map(item => item.buffers)
-        // const { wavBuffer } = playAudioInit(_buffers)
-        // uploadFileAudio({
-        //   wavBuffer,
-        //   fileType: 'wav',
-        //   fileNamePre: 'assistant-audio',
-        // }).then((res) => {
-        //   console.log(res, 'ai音频成功啦')
-        // })
       }
     }).catch((error) => {
       isStreamPlaying.value = false
@@ -660,62 +648,41 @@ function removeEmptyMessagesByRole(type: string) {
   }
 }
 let incrementTimer: ReturnType<typeof setTimeout> | null = null
-let incrementCacheText = ''
-/** 语音识别到内容的函数 */
-function recorderAddText(text: string) {
-  // 开始录音，插入一个临时消息（占位）
-  if (!text)
+const incrementCacheText = ref('')
+const hasInsertedPlaceholder = ref(false)
+const lastInsertResult = ref<{ id: number } | null>(null)
+
+function recorderAddText(text: string): { id: number } {
+  if (!text) {
     return { id: -1 }
+  }
+  ttsPendingCount.value = 0
+
   recorderStatus.value = 'playing'
 
-  console.log('recorderAddText', isFirstRecorderText.value)
-  if (content.value.filter(it => it.role === 'assistant').length >= 1) {
-    isFirstRecorderText.value = false
+  if (!hasInsertedPlaceholder.value) {
+    hasInsertedPlaceholder.value = true
+    // 调用addText并缓存整个返回值
+    lastInsertResult.value = addText(text)
+    return toRaw(lastInsertResult.value || { id: -2 })
   }
-  // 第一次直接插入
-  if (isFirstRecorderText.value) {
-    console.log('第一次进入，直接初始化')
+  // 增量期间只做内容缓存
+  incrementCacheText.value = text
+  if (incrementTimer)
+    clearTimeout(incrementTimer)
+  incrementTimer = setTimeout(() => {
+    incrementTimer = null
+    incrementCacheText.value = ''
+  }, 1500)
+  // 后面每次都直接返回第一次addText的返回内容
+  return toRaw(lastInsertResult.value || { id: -3 })
+}
 
-    return addText(text)
-  }
-  else {
-    console.log('不是第一次进入系统,缓存两秒增量文本', incrementTimer)
-    // 非第一次，每次缓存并重置2秒定时器，2秒后只插入最后缓存的内容
-    // 只在第一次缓存并启动定时器
-    // 项目初始化的第一次不用缓存
-    if (!incrementTimer) {
-      incrementCacheText = text
-      incrementTimer = setTimeout(() => {
-        addText(incrementCacheText)
-        incrementTimer = null
-        incrementCacheText = ''
-      // 后续如需支持多轮，再次触发时记得重置isFirstRecorderText.value = true
-      }, 2000)
-    }
-    else {
-      if(isCatchText.value){
-         incrementCacheText = text
-        //  这儿只启动一次定时器，后续的增量文本都会被缓存
-        // 但是这儿会出现一个问题，!incrementTimer 确认只进行一次么，是增量文本所以会在2s内触发很多次。所以这儿只会触发一次定时器么？？？？ 
-        if(!incrementTimer){
-          incrementTimer = setTimeout(() => {
-            addText(incrementCacheText)
-            incrementTimer = null
-            incrementCacheText = ''
-            isCatchText.value = false
-          }, 1500)
-      }else{
-        addText(incrementCacheText)
-        incrementTimer = null
-        incrementCacheText = ''
-      }
-   
-    return { id: -1 }
-  }
-
-  // 增量期间，不插入任何内容
-
-  // 取出content.value的最后一项，如果 isRecordingPlaceholder为true则直接返回
+/** 重置缓存状态 */
+function resetRecorderTextState() {
+  incrementCacheText.value = ''
+  hasInsertedPlaceholder.value = false
+  lastInsertResult.value = null
 }
 
 function addText(text: string) {
@@ -727,6 +694,10 @@ function addText(text: string) {
   console.log('关闭逻辑调用最后结束')
 
   replyForm.value.content = modelPrefix.value + text
+  let finalText = text
+  if (!text.startsWith(modelPrefix.value)) {
+    finalText = modelPrefix.value + text
+  }
   const sendText = setAiContent({
     type: 'send',
     msg: replyForm.value.content, // 空消息作为占位
@@ -747,18 +718,20 @@ function addText(text: string) {
  */
 function userAudioUploadSuccess(res: UploadFileModel & { id: number, userInputTime: string }) {
   //  通过id来查询content.value中相匹配的数据，并且赋值
+  // 先重置刚刚缓存的状态
+  resetRecorderTextState()
   const item = content.value.find(item => item.id === res.id && item.role === 'user')
   if (item) {
     item.userAudioUrl = res.url
     item.userAudioTime = formatTime({ type: 'YYYY-MM-DD HH:mm:ss' })
     item.userInputTime = res.userInputTime
   }
-  console.log('用户上传成功的回调', res)
 
   addChatHistoryForm.value.userAudio = res.url // 音频地址
   addChatHistoryForm.value.userAudioTime = formatTime({ type: 'YYYY-MM-DD HH:mm:ss' }) // 音频上传时间
   addChatHistoryForm.value.userInput = userMsgFormat(modelPrefix.value, (item?.content as string) || '', true)// 文本
   addChatHistoryForm.value.userInputTime = res.userInputTime // 文本时间
+  console.log('语音识别结束了', addChatHistoryForm.value)
 }
 
 async function stopAll() {
@@ -776,27 +749,10 @@ async function stopAll() {
   isAudioPlaying.value = false
   hasPrepared.value = false
   ttsPendingCount.value = 0
+  addChatHistoryForm.value = {}
+
   console.log('关闭逻辑函数结束-----')
 }
-
-/**
- * 新增ai聊天历史记录
- */
-// function submitChatHistory() {
-//   const assistantOutput = findLastAssistantMessage('assistant')?.content as string
-//   const userInput = findLastAssistantMessage('user')?.content as string
-//   console.log(assistantOutput, userInput)
-// }
-
-// function findLastAssistantMessage(type: AiMessage['role']) {
-//   for (let i = content.value.length - 1; i >= 0; i--) {
-//     const item = content.value[i]
-//     if (item.role === type) {
-//       return item
-//     }
-//   }
-//   return null
-// }
 
 watch([isStreamPlaying, loading], ([isPlaying, isLoading]) => {
   if (!isPlaying || !isLoading) {
@@ -839,13 +795,15 @@ watch(() => isAiMessageEnd.value, (newVal) => {
   }
 })
 
-watch(ttsPendingCount, () => {
-  checkIfAllReady()
-})
+// watch(ttsPendingCount, () => {
+//   checkIfAllReady()
+// })
 
 watch(
   content.value,
-  () => {
+  (newVal) => {
+    console.log('content变化了', newVal)
+
     nextTick(() => {
       scrollToBottom()
     })
@@ -872,7 +830,8 @@ watch(() => isRunning.value, (val: boolean) => {
 /** 语音识别结果返回 - 可以添加识别  */
 watch(() => textRes.value, async (newVal) => {
   await nextTick() // 确保视图更新完成
-  replyForm.value.content = modelPrefix.value + newVal as string
+  // replyForm.value.content = modelPrefix.value + newVal as string
+  replyForm.value.content = newVal?.startsWith(modelPrefix.value) ? newVal : modelPrefix.value + newVal
 })
 
 watch(() => replyForm.value.content, (newVal) => {

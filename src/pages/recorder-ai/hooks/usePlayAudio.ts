@@ -23,8 +23,6 @@ export default function usePlayAudio(RecordApp: any) {
    * 合并多个ArrayBuffer
    */
   function mergeArrayBuffers(buffers: ArrayBuffer[]): ArrayBuffer {
-    console.log('mergeArrayBuffers1111')
-
     const totalLength = buffers.reduce((sum, buf) => sum + buf.byteLength, 0)
     const merged = new Uint8Array(totalLength)
 
@@ -33,7 +31,6 @@ export default function usePlayAudio(RecordApp: any) {
       merged.set(new Uint8Array(buf), offset)
       offset += buf.byteLength
     }
-    console.log('mergeArrayBuffers2222')
 
     return merged.buffer
   }

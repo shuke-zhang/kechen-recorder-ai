@@ -119,8 +119,8 @@ function handleConfirm() {
 <template>
   <view class="comment-input-container bg-#dcebfb flex flex-col items-center" :style="{ bottom: inputBottom }">
     <!-- 正常模式 -->
-    <view class="w-full h-full flex items-center justify-between">
-      <button class="recorder-btn border-0! m-0!  bg-#edf6fd size-120rpx" @click="handleRecorderIconClick">
+    <view class="w-full h-full flex items-center justify-center">
+      <button v-if="false" class="recorder-btn border-0! m-0!  bg-#edf6fd size-120rpx" @click="handleRecorderIconClick">
         <icon-font :name="!showRecordingButton ? 'recorder-fill' : 'keyboard'" size="80" color="#000" />
       </button>
 
@@ -131,11 +131,11 @@ function handleConfirm() {
         </text>
       </view>
 
-      <button v-if="showRecordingButton" class="recorder-btn  m-0! border-0!  bg-#edf6fd size-120rpx">
+      <button v-if="false" class="recorder-btn  m-0! border-0!  bg-#edf6fd size-120rpx">
         <icon-font name="close" size="80" color="red" />
       </button>
 
-      <template v-else>
+      <template v-if="false">
         <input
           v-model="inputValue"
           class="comment-input bg-white h-120rpx"

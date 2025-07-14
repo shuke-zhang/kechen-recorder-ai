@@ -32,7 +32,6 @@ export class WebSocket extends EventEmitter<{
     this.isInitiative = false
     this.socketInstance = null
     this.emit('log', '🛜 初始化websocket')
-    console.log('初始化websocket-内部', this.url)
 
     this.socketInstance = uni.connectSocket({
       url: this.url,

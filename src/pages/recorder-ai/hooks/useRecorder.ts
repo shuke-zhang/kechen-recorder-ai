@@ -173,7 +173,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
    * 语音识别开启操作
    */
   function handleStart() {
-    RecorderCoreClass.start()
+    RecorderCoreClass.start() // 在这儿开始会发送第一帧
     if (RecorderCoreClass.isRunning) {
       isRunning.value = true
     }
@@ -265,7 +265,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
   }
 
   watch(() => textRes.value, (newVal, oldVal) => {
-  // 每次识别有新内容，就清除旧的定时器，重置2秒倒计时
+  // 每次识别有新内容，就清除旧的定时器，重置倒计时
     if (silenceTimer) {
       clearTimeout(silenceTimer)
     }
@@ -276,25 +276,62 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     const normNew = normalizeText(newVal || '')
     const normOld = normalizeText(oldVal || '')
 
-    // 插入新消息，具体判断逻辑在 recorderAddText
+    // ======= 1. 只插入一次user消息，后续全是update =======
+    if (!newVal)
+      return
     const { id } = options.recorderAddText(newVal || '')
 
-    // 如果识别内容发生变化，说明是新内容，重新设置定时器
+    // 有新内容就重置计时器（内容变化才启动）
     if (normNew !== normOld) {
       const userInputTime = formatTime({ type: 'YYYY-MM-DD HH:mm:ss' })
-      console.log('进入了')
 
       silenceTimer = setTimeout(() => {
-        console.warn('⏱️ 2秒内无新内容，自动停止录音', normNew, normOld)
-        isAutoStop.value = true // ⭐ 标记为自动停止
+        console.warn('⏱️ 1.5秒内无新内容，自动停止录音', normNew, normOld)
+        isAutoStop.value = true // 标记为自动停止
 
         options.sendMessage()
-        handleRecorderClose(id, userInputTime)
-        // 重置标志，允许下一轮识别重新插入占位
+        handleRecorderClose(
+          id,
+          userInputTime,
+        )
+        console.log(id, '查看新增消息的id')
+
+        // 允许下一轮识别重新插入占位
         hasInsertedPlaceholder.value = false
-      }, 2000)
+      }, 1500)
     }
   })
+
+  // watch(() => textRes.value, (newVal, oldVal) => {
+  // // 每次识别有新内容，就清除旧的定时器，重置2秒倒计时
+  //   if (silenceTimer) {
+  //     clearTimeout(silenceTimer)
+  //   }
+  //   if (!isAutoRecognize.value) {
+  //     return
+  //   }
+
+  //   const normNew = normalizeText(newVal || '')
+  //   const normOld = normalizeText(oldVal || '')
+
+  //   // 插入新消息，具体判断逻辑在 recorderAddText
+  //   const { id } = options.recorderAddText(newVal || '')
+
+  //   // 如果识别内容发生变化，说明是新内容，重新设置定时器
+  //   if (normNew !== normOld) {
+  //     const userInputTime = formatTime({ type: 'YYYY-MM-DD HH:mm:ss' })
+  //     console.log('进入了')
+
+  //     silenceTimer = setTimeout(() => {
+  //       console.warn('⏱️ 1.5秒内无新内容，自动停止录音', normNew, normOld)        isAutoStop.value = true // ⭐ 标记为自动停止
+
+  //       options.sendMessage()
+  //       handleRecorderClose(id, userInputTime)
+  //       // 重置标志，允许下一轮识别重新插入占位
+  //       hasInsertedPlaceholder.value = false
+  //     }, 1500)
+  //   }
+  // })
   return {
 
     /** 语音识别的class */

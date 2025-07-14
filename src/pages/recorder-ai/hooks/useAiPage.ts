@@ -138,7 +138,7 @@ export default function useAiPage(height: string) {
       const sendText = setAiContent({
         type: 'send',
         id: content.value[content.value.length - 1].id || 0,
-        msg: modelPrefix.value + replyForm.value.content,
+        msg: replyForm.value.content.startsWith(modelPrefix.value) ? replyForm.value.content : modelPrefix.value + replyForm.value.content,
         modeName: modelName.value || '',
       })
 

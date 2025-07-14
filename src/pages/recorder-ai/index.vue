@@ -43,10 +43,10 @@ import useRecorder from './hooks/useRecorder'
 import usePlayAudio from './hooks/usePlayAudio'
 import useAiPage from './hooks/useAiPage'
 import useAutoScroll from './hooks/useAutoScroll'
-// import { useAiCall } from '@/store/modules/ai-call'
+import { useAiCall } from '@/store/modules/ai-call'
 import { doubaoSpeechSynthesisFormat } from '@/api/audio'
 import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
-// import screensaver from './components/screensaver.vue'
+import screensaver from './components/screensaver.vue'
 /** 需要编译成微信小程序时，引入微信小程序支持文件 */
 // #ifdef MP-WEIXIN
 import 'recorder-core/src/app-support/app-miniProgram-wx-support.js'
@@ -73,7 +73,7 @@ const router = useRouter<{
   modelName: string
 }>()
 
-// const aiCall = useAiCall()
+const aiCall = useAiCall()
 /** 主要用于初进页面的语音播报 默认需要两秒后变为true 解决播放器需要初始化的2秒左右的bug */
 const initialLoadPending = ref(false)
 /**
@@ -153,6 +153,7 @@ const {
   isAutoRecognize,
   showRecordingButton,
   isFirstRecorderText,
+  isAutoRecognizerEnabled,
   recReq,
   handleRecorderTouchStart,
 } = useRecorder({
@@ -378,6 +379,9 @@ function resetIdleTimer() {
 /** 点击跳转到历史页面 */
 function handleAiHistory() {
   router.push('/pages/ai-history/detail')
+  isAutoPlaying.value = false
+  isAutoRecognizerEnabled.value = false
+  stopAll()
 }
 
 /** 发送消息确认按钮 */
@@ -441,7 +445,7 @@ async function autoPlayAiMessage(_text: string, index: number) {
     }).catch((error) => {
       isStreamPlaying.value = false
       isAudioPlaying.value = false
-      console.log(error, '错误')
+      console.log(error, 'ai自动播放音频错误')
     }).finally(() => {
       ttsRequestEnd()
     })
@@ -452,53 +456,54 @@ async function autoPlayAiMessage(_text: string, index: number) {
 /**
  * 屏保触发事件
  */
-// async function onScreensaverTrigger() {
-//   isScreensaver.value = false
-//   resetIdleTimer()
-//   console.log('进入操作页面')
+async function onScreensaverTrigger() {
+  isScreensaver.value = false
+  resetIdleTimer()
+  console.log('进入操作页面')
 
-//   if (initialLoadPending.value) {
-//     streamData.value = {
-//       buffer: aiCall.callAudioData.audioData,
-//       text: aiCall.callAudioData.text,
-//       id: aiCall.callAudioData.id,
-//     }
-//     console.log('初始化晚餐播放视频', streamData.value)
-//   }
-//   else {
-//     // 等待 initialLoadPending 为 true 再继续
-//     try {
-//       await waitUntil(() => initialLoadPending.value)
-//       streamData.value = {
-//         buffer: aiCall.callAudioData.audioData,
-//         text: aiCall.callAudioData.text,
-//         id: aiCall.callAudioData.id,
-//       }
-//       console.log('等待初始化完成啦')
-//     }
-//     catch (e) {
-//       console.error('等待 initialLoadPending 超时', e)
-//     }
-//   }
+  if (initialLoadPending.value) {
+    streamData.value = {
+      buffer: aiCall.callAudioData.audioData,
+      text: aiCall.callAudioData.text,
+      id: aiCall.callAudioData.id,
+    }
+    console.log('初始化晚餐播放视频', streamData.value)
+  }
+  else {
+    // 等待 initialLoadPending 为 true 再继续
+    try {
+      await waitUntil(() => initialLoadPending.value)
+      streamData.value = {
+        buffer: aiCall.callAudioData.audioData,
+        text: aiCall.callAudioData.text,
+        id: aiCall.callAudioData.id,
+      }
+      console.log('等待初始化完成啦')
+    }
+    catch (e) {
+      console.error('等待 initialLoadPending 超时', e)
+    }
+  }
+  isAutoRecognizerEnabled.value = true
+  isAutoPlaying.value = true
+  handleRecorderTouchStart()
+}
 
-//   handleTouchStart()
-// }
-
-// function waitUntil(conditionFn: () => boolean, interval = 50, timeout = 5000): Promise<void> {
-//   return new Promise((resolve, reject) => {
-//     const start = Date.now()
-//     const timer = setInterval(() => {
-//       if (conditionFn()) {
-//         clearInterval(timer)
-//         resolve()
-//       }
-//       else if (Date.now() - start > timeout) {
-//         clearInterval(timer)
-//         reject(new Error('waitUntil 超时'))
-//       }
-//     }, interval)
-//   })
-// }
+function waitUntil(conditionFn: () => boolean, interval = 50, timeout = 5000): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const start = Date.now()
+    const timer = setInterval(() => {
+      if (conditionFn()) {
+        clearInterval(timer)
+        resolve()
+      }
+      else if (Date.now() - start > timeout) {
+        clearInterval(timer)
+        reject(new Error('waitUntil 超时'))
+      }
+    }, interval)
+  })
+}
 
 function userMsgFormat(prefix: string, text: string, isFormat = true) {
   if (!isFormat)
@@ -858,10 +863,6 @@ onMounted(() => {
     isFirstVisit.value = false
     setTimeout(() => {
       initialLoadPending.value = true
-      // 直接开始录音 - 模拟录音按钮按下操作
-      if (isAutoPlaying.value) {
-        handleRecorderTouchStart()
-      }
     }, 1500)
   }).catch((err) => {
     showToastError(err)
@@ -876,9 +877,20 @@ onShow(() => {
     RecordAppInstance.UniPageOnShow(vueInstance)
   }
 })
+onHide(() => {
+  console.log('触发onHide')
+  isAutoPlaying.value = false
+  isAutoRecognizerEnabled.value = false
+})
 
 router.ready(() => {
   handleChangeAiModel()
+})
+
+usePageExpose('pages/recorder-ai/index', {
+  init() {
+    onScreensaverTrigger()
+  },
 })
 </script>
 
@@ -926,7 +938,7 @@ router.ready(() => {
     <!-- #endif -->
 
     <!-- <view v-show="!isScreensaver"> -->
-    <view v-show="true">
+    <view v-show="!isScreensaver">
       <view :style="{ height: `calc(100vh - 200rpx - ${navbarHeight})` }">
         <view
           class="w-full h-70%  pointer-events-none"
@@ -1036,7 +1048,7 @@ router.ready(() => {
     </view>
 
     <!-- 屏保 -->
-    <!-- <screensaver v-model:show="isScreensaver" @on-trigger="onScreensaverTrigger" /> -->
+    <screensaver v-model:show="isScreensaver" @on-trigger="onScreensaverTrigger" />
   </view>
 </template>
 

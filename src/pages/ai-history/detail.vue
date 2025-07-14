@@ -1,6 +1,6 @@
 z<route lang="json" pages="home">
   {
-       "style": { "navigationBarTitleText": "历史记录" }
+       "style": { "navigationBarTitleText": "历史记录","navigationStyle": "custom" }
   }
 </route>
 
@@ -10,6 +10,7 @@ import { listChatHistory } from '@/api/chat-history'
 import type { AiMessage } from '@/hooks'
 import { userMsgFormat } from '@/utils'
 
+const router = useRouter()
 const [state, actions] = useListData(listChatHistory, {
   filter() {
     return {
@@ -39,12 +40,26 @@ const [state, actions] = useListData(listChatHistory, {
     state.list = result
   },
 })
+const scaleVm = getPageExpose('pages/scale/index')
+
+function handleToRecorderPage() {
+  console.log('触发handleToRecorderPage')
+
+  router.replace('/pages/recorder-ai/index')
+  scaleVm.init()
+}
 </script>
 
 <template>
+  <nav-bar @custom-click="handleToRecorderPage">
+    <text>
+      历史记录
+    </text>
+  </nav-bar>
   <list-data
     :actions="actions"
     :state="state"
+    with-navbar
     :auto-scroll-to-bottom="true"
   >
     <view v-for="(msg, index) in (state.list as AiMessage[])" :key="index" class="py-16rpx">

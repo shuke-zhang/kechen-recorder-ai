@@ -54,6 +54,8 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
   const isAutoStop = ref(false) // 用于标记是否是自动停止
   /** 是否开启自动识别 */
   const isAutoRecognize = ref(false)
+  /** 全局开关：是否允许自动重启/自动启动语音识别 */
+  const isAutoRecognizerEnabled = ref(true)
   const hasInsertedPlaceholder = ref(false)
   /** 存储流式响应数据 */
   const recorderBufferList = ref<ArrayBuffer[]>([])
@@ -174,6 +176,8 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
    */
   function handleStart() {
     RecorderCoreClass.start() // 在这儿开始会发送第一帧
+    console.log('handleStart', isAutoRecognizerEnabled.value)
+
     if (RecorderCoreClass.isRunning) {
       isRunning.value = true
     }
@@ -234,7 +238,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
       })
 
       // 若是自动停止，则1秒后自动重启
-      if (isAutoStop.value) {
+      if (isAutoStop.value && isAutoRecognizerEnabled.value) {
         restartTimer = setTimeout(() => {
           // 这一步主要是为了实现对话效果
           // 同时在ai消息回复后立即开始语音识别
@@ -352,6 +356,8 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     isAutoRecognize,
     /** 是否是第一次初始化 */
     isFirstRecorderText,
+    /** 是否允许自动重启/自动启动语音识别 */
+    isAutoRecognizerEnabled,
     /** 录音权限函数 */
     recReq,
     /** 开始录音函数 */

@@ -37,7 +37,8 @@
       "path": "pages/ai-history/detail",
       "type": "page",
       "style": {
-        "navigationBarTitleText": "历史记录"
+        "navigationBarTitleText": "历史记录",
+        "navigationStyle": "custom"
       }
     },
     {

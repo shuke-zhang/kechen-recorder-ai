@@ -12,18 +12,20 @@ const props = withDefaults(defineProps<{
   withSearchBar?: boolean
   withNavbar?: boolean
   withTabBar?: boolean
-  state: ListDataState
+  state: ListDataStatusListType
   actions: ListActions
   safeArea?: boolean
   refresherDisabled?: boolean
+  autoScrollToBottom?: boolean
 }>(), {
   wrapperClass: 'list-data-wrapper',
   safeArea: true,
   refresherDisabled: false,
+  autoScrollToBottom: false,
 })
 
 const slots = useSlots()
-
+const scrollTop = ref(0)
 const refresherTriggeredModel = computed({
   get() {
     return !!props.state?.refresherTriggered
@@ -84,6 +86,16 @@ function handleScrolltolower(e: ScrollViewOnScrolltolowerEvent) {
   console.log(e, 'scrolltolower ^^^^^^^^^^', '滚到底部')
   props.actions.getList()
 }
+watch(
+  () => props.state?.list?.length,
+  () => {
+    if (props.autoScrollToBottom) {
+      nextTick(() => {
+        scrollTop.value = 9999999 // 设置为极大值即可
+      })
+    }
+  },
+)
 </script>
 
 <template>
@@ -92,6 +104,7 @@ function handleScrolltolower(e: ScrollViewOnScrolltolowerEvent) {
     :refresher-enabled="refresherEnabled"
     :refresher-triggered="refresherTriggeredModel"
     :refresher-threshold="rpxToPx(100)"
+    :scroll-top="scrollTop"
     :style="{ height }"
     refresher-background="#f4f4f4"
     @refresherrefresh="handleRefresherrefresh"

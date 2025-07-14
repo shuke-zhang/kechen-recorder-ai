@@ -17,8 +17,8 @@ const [state, actions] = useListData(listChatHistory, {
   },
   onComplete(cb) {
     const result: AiMessage[] = []
-    state.list.forEach((item) => {
-    // 用户消息
+    // 把原始list倒序遍历
+    state.list.slice().reverse().forEach((item) => {
       if (item.userInput || item.userAudio) {
         result.push({
           role: 'user',
@@ -27,7 +27,6 @@ const [state, actions] = useListData(listChatHistory, {
           userAudioUrl: item.userAudio || '',
         })
       }
-      // AI消息
       if (item.assistantOutput || item.assistantAudio) {
         result.push({
           role: 'assistant',
@@ -40,17 +39,13 @@ const [state, actions] = useListData(listChatHistory, {
     state.list = result
   },
 })
-const list = computed(() => (state.list as AiMessage[]))
 </script>
 
 <template>
-  <!-- <scroll-view scroll-y :scroll-with-animation="true" class=" scroll-view pr-20rpx pl-20rpx  h-full">
-
-    </scroll-view> -->
-
   <list-data
     :actions="actions"
     :state="state"
+    :auto-scroll-to-bottom="true"
   >
     <view v-for="(msg, index) in (state.list as AiMessage[])" :key="index" class="py-16rpx">
       <text class="flex-center font-size-16rpx color-black-2 mb-4rpx">

@@ -266,6 +266,7 @@ function checkIfAllReady() {
 
 function assistantReplySuccess() {
   const id = chatOrder.value?.length ? chatOrder.value[addChatHistoryId.value] : 0
+  console.log('查看这该死的内容', chatOrder.value, addChatHistoryId.value)
 
   if (!content.value.length)
     return
@@ -316,18 +317,8 @@ function submitChatHistory(id: number) {
   try {
     console.error('使用了user内容')
     const dataByMap = chatHistoryMap.get(id) || {}
-
-    // const data: ChatHistoryModel = {
-    //   userAudio: addChatHistoryForm.value.userAudio,
-    //   userAudioTime: addChatHistoryForm.value.userAudioTime,
-    //   userInput: addChatHistoryForm.value.userInput,
-    //   userInputTime: addChatHistoryForm.value.userInputTime,
-
-    //   assistantAudio: addChatHistoryForm.value.assistantAudio,
-    //   assistantAudioTime: addChatHistoryForm.value.assistantAudioTime,
-    //   assistantOutput: addChatHistoryForm.value.assistantOutput,
-    //   assistantOutputTime: addChatHistoryForm.value.assistantOutputTime,
-    // }
+    // addChatHistoryId.value++
+    console.log('dataByMap', id, dataByMap)
 
     addChatHistory(dataByMap).then((res) => {
       console.log('新增历史记录成功——————————', res)
@@ -374,14 +365,6 @@ function resetIdleTimer() {
     resetAi.value()
     replyForm.value = { content: '', role: 'user' }
   }, IDLE_DELAY)
-}
-
-/** 点击跳转到历史页面 */
-function handleAiHistory() {
-  router.push('/pages/ai-history/detail')
-  isAutoPlaying.value = false
-  isAutoRecognizerEnabled.value = false
-  stopAll()
 }
 
 /** 发送消息确认按钮 */
@@ -897,21 +880,6 @@ usePageExpose('pages/recorder-ai/index', {
 <template>
   <view @touchstart="resetIdleTimer" @touchmove="resetIdleTimer" @touchend="resetIdleTimer" @click="resetIdleTimer" @scroll="resetIdleTimer">
     <nav-bar :show-back="false" transparent>
-      <!-- <template #left>
-        <view>
-          <icon-font :name="isAutoPlayAiMessage ? 'sound' : 'mute'" :color="isAutoPlayAiMessage ? COLOR_PRIMARY : ''" size="40" class="ml-20rpx" @click="handleAutoPlayAiMessage" />
-        </view>
-      </template> -->
-
-      <template #right>
-        <!-- <view class="flex  pr-50rpx">
-          <icon-font name="setting" color="#000" size="40" @click="handleToSetting" />
-        </view> -->
-        <view @click="handleAiHistory">
-          <icon-font name="history" color="#000" size="40" />
-        </view>
-      </template>
-
       <text class="opacity-0" @click="handleMultiClick">
         柯仔AI
       </text>

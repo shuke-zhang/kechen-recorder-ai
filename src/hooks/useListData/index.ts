@@ -246,10 +246,10 @@ export function useListData<T extends AnyObject = AnyObject>(
       return Promise.resolve()
     }
     /**
-     *  设置 pageNum = 1
+     *  设置 current = 1
      */
     if (isRestPageNumber.value) {
-      console.log('@isRestPageNumber paramsRef.value.pageNum = 1')
+      console.log('@isRestCurrent paramsRef.value.current = 1')
       paramsRef.value.current = 1
       return getData()
     }

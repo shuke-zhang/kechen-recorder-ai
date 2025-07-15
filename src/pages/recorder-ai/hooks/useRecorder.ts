@@ -175,8 +175,11 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
    * 语音识别开启操作
    */
   function handleStart() {
-    RecorderCoreClass.start() // 在这儿开始会发送第一帧
     console.log('handleStart', isAutoRecognizerEnabled.value)
+    if (!isAutoRecognizerEnabled.value) {
+      return console.warn('语音识别功能已被禁用')
+    }
+    RecorderCoreClass.start() // 在这儿开始会发送第一帧
 
     if (RecorderCoreClass.isRunning) {
       isRunning.value = true
@@ -235,6 +238,8 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
         fileNamePre: 'user-audio',
       }).then((res) => {
         options.userAudioUploadSuccess({ ...res, id, userInputTime })
+      }).finally(() => {
+        recorderBufferList.value = []
       })
 
       // 若是自动停止，则1秒后自动重启

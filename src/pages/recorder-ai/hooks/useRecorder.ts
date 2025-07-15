@@ -48,6 +48,8 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
   const showRecordingButton = ref(true)
   /** 录音识别结果 */
   const textRes = ref<string | null>(null)
+  /** 标识 标识是否往数组里面推送数据 true表示录音结束了 false表示录音开始 */
+  const isRecorderStopped = ref(false)
 
   let silenceTimer: ReturnType<typeof setTimeout> | null = null
   let restartTimer: ReturnType<typeof setTimeout> | null = null
@@ -103,7 +105,10 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
         const arrayBuffer = pcmInt16.buffer // ✅ 得到最终的 ArrayBuffer
         // 在这儿可以进行语音识别的操作，如果更换语音识别，那么可以把这个arrayBuffer发送给语音识别的接口
         arrayBuffer ? RecorderCoreClass.pushAudioData(arrayBuffer) : null
-        recorderBufferList.value.push(arrayBuffer)
+        if (!isRecorderStopped.value && arrayBuffer && !isBufferSilent(arrayBuffer)) {
+          recorderBufferList.value.push(arrayBuffer)
+        }
+        // recorderBufferList.value.push(arrayBuffer)
         // #ifdef H5 || MP-WEIXIN
         if (vueInstance?.waveView)
           vueInstance.waveView.input(buffers[buffers.length - 1], powerLevel, sampleRate)
@@ -170,17 +175,27 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
       console.error(`结束录音失败：${msg}`)
     })
   }
+  function isBufferSilent(arrayBuffer: ArrayBuffer, threshold = 20) {
+    const pcm = new Int16Array(arrayBuffer)
+    for (let i = 0; i < pcm.length; i++) {
+      if (Math.abs(pcm[i]) > threshold)
+        return false
+    }
+    return true
+  }
 
   /**
    * 语音识别开启操作
    */
   function handleStart() {
     console.log('handleStart', isAutoRecognizerEnabled.value)
+
     if (!isAutoRecognizerEnabled.value) {
       return console.warn('语音识别功能已被禁用')
     }
     RecorderCoreClass.start() // 在这儿开始会发送第一帧
-
+    isRecorderStopped.value = false // ② 开始录音时允许写入
+    recorderBufferList.value = []
     if (RecorderCoreClass.isRunning) {
       isRunning.value = true
     }
@@ -240,6 +255,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
         options.userAudioUploadSuccess({ ...res, id, userInputTime })
       }).finally(() => {
         recorderBufferList.value = []
+        isRecorderStopped.value = true
       })
 
       // 若是自动停止，则1秒后自动重启

@@ -93,7 +93,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     const set = {
       type: 'pcm',
       sampleRate: 16000,
-      bitRate: 16, // mp3格式，指定采样率hz、比特率kbps，其他参数使用默认配置；注意：是数字的参数必须提供数字，不要用字符串；需要使用的type类型，需提前把格式支持文件加载进来，比如使用wav格式需要提前加载wav.js编码引擎
+      bitRate: 16,
       onProcess: (buffers: ArrayBuffer[], powerLevel: any, duration: any, sampleRate: number, _newBufferIdx: any, _asyncEnd: any) => {
         if (lastIdx > _newBufferIdx) {
           chunk = null // 重新录音了，重置环境
@@ -113,6 +113,11 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
         if (vueInstance?.waveView)
           vueInstance.waveView.input(buffers[buffers.length - 1], powerLevel, sampleRate)
           // #endif
+      },
+      audioTrackSet: {
+        echoCancellation: true, // 回声消除（AEC）开关，不设置时由浏览器控制（一般为默认自动打开），设为true明确打开，设为false明确关闭
+        noiseSuppression: true, // 降噪（ANS）开关，取值和回声消除开关一样
+        autoGainControl: true, // 自动增益（AGC）开关，取值和回声消除开关一样
       },
       onProcess_renderjs: `function(buffers,powerLevel,duration,sampleRate,_newBufferIdx,_asyncEnd){
               if (this.lastIdx > _newBufferIdx) {
@@ -146,6 +151,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
                 //App中可以放一个函数，在Stop成功时renderjs中会先调用这里的代码，this是renderjs模块的this（也可以用This变量）
                 //放一些仅在renderjs中才生效的事情，不提供也行
             }`,
+
     }
 
     RecordApp.UniWebViewActivate(vueInstance) // App环境下必须先切换成当前页面WebView

@@ -40,7 +40,7 @@ import { default as RecordAppInstance } from 'recorder-core/src/app-support/app'
 import { useTextFormatter } from './hooks/useTextFormatter'
 import RecorderInputAuto from './recorder-input-auto.vue'
 import useRecorder from './hooks/useRecorder'
-import usePlayAudio from './hooks/usePlayAudio'
+import usePlayAudio, { type PlayAudioCallbackModel } from './hooks/usePlayAudio'
 import useAiPage from './hooks/useAiPage'
 import useAutoScroll from './hooks/useAutoScroll'
 import { useAiCall } from '@/store/modules/ai-call'
@@ -109,7 +109,7 @@ const { handleMultiClick } = useMultiClickTrigger({
   },
 })
 
-const { base64ToArrayBuffer, playAudioInit, uploadFileAudio } = usePlayAudio(RecordAppInstance)
+const { base64ToArrayBuffer, playAudioInit, uploadFileAudio, saveAndPlayBase64MP3 } = usePlayAudio(RecordAppInstance)
 
 const {
   chatSSEClientRef,
@@ -154,6 +154,7 @@ const {
   isAutoRecognizerEnabled,
   recReq,
   handleRecorderTouchStart,
+  handleStop,
 } = useRecorder({
   RecordApp: RecordAppInstance,
   Recorder: RecorderInstance,
@@ -208,7 +209,7 @@ const hasUserInterruptedAutoPlay = ref(false)
 const lastAiMsgEnd = ref(false)
 /** 无操作逻辑 */
 const idleTimeout = ref< ReturnType<typeof setTimeout> | null>(null)
-const IDLE_DELAY = 10000 // 5秒
+const IDLE_DELAY = 5 * 1000 // 5秒
 const canStartIdleTimer = computed(() => {
   return !isStreamPlaying.value && !loading.value
 })
@@ -345,7 +346,10 @@ function resetIdleTimer() {
   if (idleTimeout.value)
     clearTimeout(idleTimeout.value)
 
-  idleTimeout.value = setTimeout(() => {
+  idleTimeout.value = setTimeout(async () => {
+    // 新增：完全停止语音识别
+    await handleStop()
+    isAutoRecognize.value = false
     stopAll()
     isScreensaver.value = true
     // 清空所有内容
@@ -357,6 +361,8 @@ function resetIdleTimer() {
     content.value = []
     resetAi.value()
     replyForm.value = { content: '', role: 'user' }
+    isAutoRecognizerEnabled.value = false
+    recReq()
   }, IDLE_DELAY)
 }
 
@@ -438,22 +444,18 @@ async function onScreensaverTrigger() {
   console.log('进入操作页面')
 
   if (initialLoadPending.value) {
-    streamData.value = {
-      buffer: aiCall.callAudioData.audioData,
-      text: aiCall.callAudioData.text,
-      id: aiCall.callAudioData.id,
-    }
-    console.log('初始化晚餐播放视频', streamData.value)
+    playDefaultAudioData()
   }
   else {
     // 等待 initialLoadPending 为 true 再继续
     try {
       await waitUntil(() => initialLoadPending.value)
-      streamData.value = {
-        buffer: aiCall.callAudioData.audioData,
-        text: aiCall.callAudioData.text,
-        id: aiCall.callAudioData.id,
-      }
+      // streamData.value = {
+      //   buffer: aiCall.callAudioData.audioData,
+      //   text: aiCall.callAudioData.text,
+      //   id: aiCall.callAudioData.id,
+      // }
+      playDefaultAudioData()
       console.log('等待初始化完成啦')
     }
     catch (e) {
@@ -463,6 +465,31 @@ async function onScreensaverTrigger() {
   isAutoRecognizerEnabled.value = true
   isAutoPlaying.value = true
   handleRecorderTouchStart()
+}
+
+/**
+ * 播放静默音频事件
+ */
+function playDefaultAudioData() {
+  const callBack: PlayAudioCallbackModel = {
+    onPlay: () => {
+      onStreamPlayStart()
+    },
+    onStop: () => {
+      onStreamStop()
+    },
+    onError: () => {
+      onStreamStop()
+    },
+    onEnded: () => {
+      onStreamPlayEnd()
+    },
+  }
+  saveAndPlayBase64MP3({
+    base64: aiCall.callAudioData.audioData,
+    fileNamePre: 'auto-recorder',
+    audioCallback: callBack,
+  })
 }
 
 function waitUntil(conditionFn: () => boolean, interval = 50, timeout = 5000): Promise<void> {

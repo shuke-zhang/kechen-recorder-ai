@@ -63,7 +63,10 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
   const recorderBufferList = ref<ArrayBuffer[]>([])
   /** 是否是第一次初始化 */
   const isFirstRecorderText = ref(true)
-
+  // 静音监控变量
+  let silentStartTime: number | null = null
+  let hasWarnedSilence = false
+  let lastSilentWarnedSecond = 0
   /**
    * 请求录音权限
    */
@@ -108,7 +111,9 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
         if (!isRecorderStopped.value && arrayBuffer && !isBufferSilent(arrayBuffer)) {
           recorderBufferList.value.push(arrayBuffer)
         }
-        // recorderBufferList.value.push(arrayBuffer)
+
+        const now = Date.now()
+        handleRecorderBuffer(arrayBuffer)
         // #ifdef H5 || MP-WEIXIN
         if (vueInstance?.waveView)
           vueInstance.waveView.input(buffers[buffers.length - 1], powerLevel, sampleRate)
@@ -295,6 +300,59 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     return text.replace(/[，。？！、“”‘’…—【】《》]/g, '') // 去除常见中文标点
   }
 
+  /**
+   * 用来识别静音状态的函数
+   */
+  function handleRecorderBuffer(arrayBuffer: ArrayBuffer) {
+    if (!isRecorderStopped.value && arrayBuffer) {
+      const now = Date.now()
+
+      if (isBufferSilent(arrayBuffer)) {
+      // 开始计时
+        if (silentStartTime === null) {
+          silentStartTime = now
+          lastSilentWarnedSecond = 0
+        }
+
+        const silentDuration = now - silentStartTime
+        const currentSecond = Math.floor(silentDuration / 1000)
+
+        // 每秒打印一次警告（避免重复）
+        if (currentSecond > lastSilentWarnedSecond && currentSecond <= 5) {
+          switch (currentSecond) {
+            case 1:
+              console.warn('⏱ 1秒内无有效语音数据')
+              break
+            case 2:
+              console.warn('⏱ 2秒内无有效语音数据')
+              break
+            case 3:
+              console.warn('⏱ 3秒内无有效语音数据')
+              break
+            case 4:
+              console.warn('⏱ 4秒内无有效语音数据（即将重启）')
+              break
+            case 5:
+              console.warn('⚠️ 5秒内无有效语音数据（已重启语音识别）')
+              hasWarnedSilence = true
+              handleStart() // 你的重启函数
+              break
+          }
+          lastSilentWarnedSecond = currentSecond
+        }
+      }
+      else {
+      // 非静音，重置一切
+        if (silentStartTime !== null) {
+          console.log('🔊 检测到非静音数据，已重置静音计时器')
+        }
+        silentStartTime = null
+        hasWarnedSilence = false
+        lastSilentWarnedSecond = 0
+      }
+    }
+  }
+
   watch(() => textRes.value, (newVal, oldVal) => {
   // 每次识别有新内容，就清除旧的定时器，重置倒计时
     if (silenceTimer) {
@@ -333,36 +391,6 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     }
   })
 
-  // watch(() => textRes.value, (newVal, oldVal) => {
-  // // 每次识别有新内容，就清除旧的定时器，重置2秒倒计时
-  //   if (silenceTimer) {
-  //     clearTimeout(silenceTimer)
-  //   }
-  //   if (!isAutoRecognize.value) {
-  //     return
-  //   }
-
-  //   const normNew = normalizeText(newVal || '')
-  //   const normOld = normalizeText(oldVal || '')
-
-  //   // 插入新消息，具体判断逻辑在 recorderAddText
-  //   const { id } = options.recorderAddText(newVal || '')
-
-  //   // 如果识别内容发生变化，说明是新内容，重新设置定时器
-  //   if (normNew !== normOld) {
-  //     const userInputTime = formatTime({ type: 'YYYY-MM-DD HH:mm:ss' })
-  //     console.log('进入了')
-
-  //     silenceTimer = setTimeout(() => {
-  //       console.warn('⏱️ 1.5秒内无新内容，自动停止录音', normNew, normOld)        isAutoStop.value = true // ⭐ 标记为自动停止
-
-  //       options.sendMessage()
-  //       handleRecorderClose(id, userInputTime)
-  //       // 重置标志，允许下一轮识别重新插入占位
-  //       hasInsertedPlaceholder.value = false
-  //     }, 1500)
-  //   }
-  // })
   return {
 
     /** 语音识别的class */

@@ -70,6 +70,7 @@ export default class StreamAudioPlayer {
     //   this.isPendingEnd = false
     // }
     await this.ensureAudioContextRunning()
+    this.enableSpeaker()
     const format = this.detectFormat(options.buffer)
     if (format === 'mp3') {
       await this.appendMP3Chunk(options)
@@ -193,6 +194,30 @@ export default class StreamAudioPlayer {
     if (this.isPendingEnd && !this.isForceStop && this.decodeQueue.length === 0 && this.audioBufferMap.size === 0) {
       this._onEnd?.()
       this.isPendingEnd = false
+    }
+  }
+
+  private enableSpeaker() {
+    if (typeof plus === 'undefined' || !plus.android)
+      return
+
+    try {
+      const main = plus.android.runtimeMainActivity()
+
+      // 动态调用方式（绕过类型检查）
+      const Context = plus.android.importClass('android.content.Context')
+      const audioManager = plus.android.invoke(
+        main,
+        'getSystemService',
+        plus.android.getAttribute(Context, 'AUDIO_SERVICE'), // 获取常量值
+      )
+
+      // 开启扬声器
+      plus.android.invoke(audioManager, 'setSpeakerphoneOn', true)
+      console.log('📢 已强制使用扬声器播放')
+    }
+    catch (err) {
+      console.warn('⚠️ 设置扬声器失败:', err)
     }
   }
 

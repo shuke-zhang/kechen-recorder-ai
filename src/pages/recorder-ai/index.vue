@@ -58,8 +58,7 @@ import type { StatusModel } from '@/components/audio-wave/audio-wave'
 // import type { AiMessage } from '@/hooks'
 import type { ChatHistoryModel } from '@/model/chat'
 import type { UploadFileModel } from '@/model/chat'
-import { addChatHistory, addChatHistory2 } from '@/api/chat-history'
-import { request } from '@/utils/request'
+import { addChatHistory } from '@/api/chat-history'
 // import usePlayAudio from './hooks/usePlayAudio'
 const vueInstance = getCurrentInstance()?.proxy as any // 必须定义到最外面，getCurrentInstance得到的就是当前实例this
 const pageHeight = computed(() => {
@@ -152,7 +151,6 @@ const {
   isFirstVisit,
   isAutoRecognize,
   showRecordingButton,
-  isFirstRecorderText,
   isAutoRecognizerEnabled,
   recReq,
   handleRecorderTouchStart,
@@ -203,8 +201,6 @@ const assistantAudioBuffers = ref<{
   buffers: ArrayBuffer
   id: number
 }[]>([])
-const isFirstText = ref(true)
-const delayTimer: ReturnType<typeof setTimeout> | null = null
 // 全局变量存储格式化器实例和当前处理的消息索引
 let lastProcessedIndex: number | null = null
 /** 代表当点击了音频小图标时 ，如果此时ai消息还没回复完音频也在播放时为true 否则为false 主要是用于判断ai回复中点击了音频图标后不再需要自动播放 */
@@ -216,10 +212,7 @@ const IDLE_DELAY = 10000 // 5秒
 const canStartIdleTimer = computed(() => {
   return !isStreamPlaying.value && !loading.value
 })
-/**
- * 用于缓存新识别到的内容的变量
- */
-const isCatchText = ref(true)
+
 /**
  * 临时存储新增历史记录的数组
  */

@@ -413,15 +413,18 @@ async function autoPlayAiMessage(_text: string, index: number) {
   })
 
   // 处理文本 下面是对接后端的音频 采用接口的方式
-  if (longText.length > 0) {
+  if (longText.trim().length > 0) {
     tempFormattedTexts.value.push(longText)
     //  判断是不是新的ai消息
     if (tempFormattedTexts.value.findIndex(t => t === longText) === 0 && !isAiMessageEnd.value) {
       streamPlayerRef.value?.onStreamStop()
       assistantAudioBuffers.value = []
     }
+    console.log('查看文本longText', longText, longText.length)
 
     ttsRequestStart()
+    console.log('请求音频接口', longText, tempFormattedTexts.value.findIndex(t => t === longText) || 0)
+
     doubaoSpeechSynthesisFormat({
       text: longText,
       id: tempFormattedTexts.value.findIndex(t => t === longText) || 0,
@@ -437,6 +440,7 @@ async function autoPlayAiMessage(_text: string, index: number) {
         buffers: audio_buffer,
         id,
       })
+      console.log('接口请求成功', res)
 
       // ai返回的消息结束了
       if (isAiMessageEnd.value) {
@@ -993,7 +997,7 @@ usePageExpose('pages/recorder-ai/index', {
                 <view>
                   <image
                     class="ai-img"
-                    :src="`/static/images/ai-logo/${currentModel?.icon}.png`"
+                    src="/static/images/ai-logo/kezai-default.png"
                     mode="aspectFill"
                   />
                 </view>
@@ -1028,7 +1032,14 @@ usePageExpose('pages/recorder-ai/index', {
 
                 <!-- AI消息（含加载状态） -->
                 <view v-if="msg.role === 'assistant'" class="flex justify-start opacity-60">
-                  <Icon-font name="zhipu" class="mt-20rpx mr-10rpx" />
+                  <!-- <Icon-font name="zhipu" class="mt-20rpx mr-10rpx" /> -->
+                  <view class="size-32rpx">
+                    <image
+                      class="w-full h-full"
+                      src="/static/images/ai-logo/kezai-default.png"
+                      mode="aspectFill"
+                    />
+                  </view>
                   <view class="flex mt-16rpx mb-16rpx flex-justify-start bg-#ffffff color-#333333 max-w-80% border-rd-16rpx">
                     <view
                       class="message-bubble  p-32rpx border-rd-16rpx w-100%"

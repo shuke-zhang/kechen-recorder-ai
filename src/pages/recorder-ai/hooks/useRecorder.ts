@@ -65,7 +65,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
   const isFirstRecorderText = ref(true)
   // 静音监控变量
   let silentStartTime: number | null = null
-  let hasWarnedSilence = false
+  const hasWarnedSilence = ref(false)
   let lastSilentWarnedSecond = 0
   /**
    * 请求录音权限
@@ -112,7 +112,6 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
           recorderBufferList.value.push(arrayBuffer)
         }
 
-        const now = Date.now()
         handleRecorderBuffer(arrayBuffer)
         // #ifdef H5 || MP-WEIXIN
         if (vueInstance?.waveView)
@@ -334,7 +333,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
               break
             case 5:
               console.warn('⚠️ 5秒内无有效语音数据（已重启语音识别）')
-              hasWarnedSilence = true
+              hasWarnedSilence.value = true
               handleStart() // 你的重启函数
               break
           }
@@ -347,7 +346,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
           console.log('🔊 检测到非静音数据，已重置静音计时器')
         }
         silentStartTime = null
-        hasWarnedSilence = false
+        hasWarnedSilence.value = false
         lastSilentWarnedSecond = 0
       }
     }

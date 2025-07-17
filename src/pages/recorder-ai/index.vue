@@ -697,10 +697,10 @@ function addText(text: string) {
   console.log('关闭逻辑调用最后结束')
 
   replyForm.value.content = modelPrefix.value + text
-  let finalText = text
-  if (!text.startsWith(modelPrefix.value)) {
-    finalText = modelPrefix.value + text
-  }
+  // let finalText = text
+  // if (!text.startsWith(modelPrefix.value)) {
+  //   finalText = modelPrefix.value + text
+  // }
   const sendText = setAiContent({
     type: 'send',
     msg: replyForm.value.content, // 空消息作为占位

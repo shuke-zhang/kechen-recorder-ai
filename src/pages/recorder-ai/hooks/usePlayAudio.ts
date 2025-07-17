@@ -134,6 +134,7 @@ export default function usePlayAudio(RecordApp?: any) {
       if (callBack) {
         callBack.onError && callBack.onError(res)
       }
+      ctx.destroy()
     })
     ctx.onEnded((res) => {
       uni.removeSavedFile({
@@ -149,6 +150,7 @@ export default function usePlayAudio(RecordApp?: any) {
       if (callBack) {
         callBack.onEnded && callBack.onEnded(res)
       }
+      ctx.destroy()
     })
     ctx.onPlay(() => {
       console.log('音频开始播放')

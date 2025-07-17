@@ -35,6 +35,10 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     host,
   }, onTextChanged)
 
+  // 全局缓存变量
+  let lastPowerLevel = 0
+  let keepCount = 0
+
   const { playAudioInit, uploadFileAudio } = usePlayAudio(RecordApp)
   /** 识别是否关闭 */
   const isRunning = ref(false)
@@ -89,26 +93,59 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
       type: 'pcm',
       sampleRate: 16000,
       bitRate: 16,
-      onProcess: (buffers: ArrayBuffer[], powerLevel: any, duration: any, sampleRate: number, _newBufferIdx: any, _asyncEnd: any) => {
+      onProcess: (buffers: ArrayBuffer[], powerLevel: number, duration: any, sampleRate: number, _newBufferIdx: any, _asyncEnd: any) => {
         if (lastIdx > _newBufferIdx) {
           chunk = null // 重新录音了，重置环境
         }
+
         lastIdx = _newBufferIdx
-        // 借用SampleData函数进行数据的连续处理，采样率转换是顺带的，得到新的pcm数据
+
+        // 连续采样处理
         chunk = Recorder.SampleData(buffers, sampleRate, 16000, chunk)
         const pcmInt16 = new Int16Array(chunk.data)
-        const arrayBuffer = pcmInt16.buffer // ✅ 得到最终的 ArrayBuffer
-        // 在这儿可以进行语音识别的操作，如果更换语音识别，那么可以把这个arrayBuffer发送给语音识别的接口
-        arrayBuffer ? RecorderCoreClass.pushAudioData(arrayBuffer) : null
-        if (!isRecorderStopped.value && arrayBuffer && !isBufferSilent(arrayBuffer)) {
-          recorderBufferList.value.push(arrayBuffer)
+        const arrayBuffer = pcmInt16.buffer
+
+        const keep = shouldKeepAudio(powerLevel)
+        if (keep) {
+          console.warn('✅ 音量合适，上传数据')
+          RecorderCoreClass.pushAudioData(arrayBuffer)
+          if (!isRecorderStopped.value && arrayBuffer && !isBufferSilent(arrayBuffer)) {
+            recorderBufferList.value.push(arrayBuffer)
+          }
         }
 
+        // ⚠️ 保留这部分逻辑，不受音量影响，确保语音识别控制流程完整
         handleRecorderBuffer(arrayBuffer)
+
         // #ifdef H5 || MP-WEIXIN
-        if (vueInstance?.waveView)
+        if (vueInstance?.waveView) {
           vueInstance.waveView.input(buffers[buffers.length - 1], powerLevel, sampleRate)
-          // #endif
+        }
+        // #endif
+        // if (lastIdx > _newBufferIdx) {
+        //   chunk = null // 重新录音了，重置环境
+        // }
+        // console.warn('音量正常，上传数据')
+
+        // lastIdx = _newBufferIdx
+        // // 借用SampleData函数进行数据的连续处理，采样率转换是顺带的，得到新的pcm数据
+        // chunk = Recorder.SampleData(buffers, sampleRate, 16000, chunk)
+        // const pcmInt16 = new Int16Array(chunk.data)
+        // const arrayBuffer = pcmInt16.buffer // ✅ 得到最终的 ArrayBuffer
+        // // 在这儿可以进行语音识别的操作，如果更换语音识别，那么可以把这个arrayBuffer发送给语音识别的接口
+        // if (!shouldKeepAudio(powerLevel)) {
+        //   return
+        // }
+        // arrayBuffer ? RecorderCoreClass.pushAudioData(arrayBuffer) : null
+        // if (!isRecorderStopped.value && arrayBuffer && !isBufferSilent(arrayBuffer)) {
+        //   recorderBufferList.value.push(arrayBuffer)
+        // }
+
+        // handleRecorderBuffer(arrayBuffer)
+        // // #ifdef H5 || MP-WEIXIN
+        // if (vueInstance?.waveView)
+        //   vueInstance.waveView.input(buffers[buffers.length - 1], powerLevel, sampleRate)
+        //   // #endif
       },
       audioTrackSet: {
         echoCancellation: true, // 回声消除（AEC）开关，不设置时由浏览器控制（一般为默认自动打开），设为true明确打开，设为false明确关闭
@@ -329,6 +366,34 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
         lastSilentWarnedSecond = 0
       }
     }
+  }
+
+  function shouldKeepAudio(currentPower: number): boolean {
+    const THRESHOLD = 10 // 基准音量阈值
+    const KEEP_FRAMES = 2 // 音量下降后继续保留的帧数
+
+    if (currentPower > THRESHOLD) {
+    // 音量本次足够高，重置 keepCount，允许上传
+      keepCount = KEEP_FRAMES
+      lastPowerLevel = currentPower
+      return true
+    }
+
+    if (lastPowerLevel > THRESHOLD) {
+    // 本次音量低，但上次高，开启保留帧逻辑
+      keepCount = KEEP_FRAMES
+      lastPowerLevel = currentPower
+      return true
+    }
+
+    if (keepCount > 0) {
+      keepCount--
+      lastPowerLevel = currentPower
+      return true
+    }
+
+    lastPowerLevel = currentPower
+    return false
   }
 
   watch(() => textRes.value, (newVal, oldVal) => {

@@ -56,7 +56,7 @@ export interface ChatHistoryModel {
    * 记录更新时间
    */
   updatedTime?: string
-
+  [key: string]: any
 }
 
 export interface UploadFileModel {

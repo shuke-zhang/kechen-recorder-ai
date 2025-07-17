@@ -257,7 +257,7 @@ function checkIfAllReady() {
 
 function assistantReplySuccess() {
   const id = chatOrder.value?.length ? chatOrder.value[addChatHistoryId.value] : 0
-  console.log('查看这该死的内容', chatOrder.value, addChatHistoryId.value)
+  console.log('查看这该死的内容', chatOrder.value, addChatHistoryId.value, id)
 
   if (!content.value.length)
     return
@@ -310,9 +310,26 @@ function submitChatHistory(id: number) {
     const dataByMap = chatHistoryMap.get(id) || {}
     // addChatHistoryId.value++
     console.log('dataByMap', id, dataByMap)
+    // 判断 dataByMap 的每一项都有内容才开始上传
+    const requiredFields = [
+      'userAudio',
+      'userAudioTime',
+      'userInput',
+      'userInputTime',
 
+      'assistantAudio',
+      'assistantAudioTime',
+      'assistantOutput',
+      'assistantOutputTime',
+    ]
+    const allFieldsFilled = requiredFields.every(field => !!dataByMap[field])
+    if (!allFieldsFilled) {
+      console.warn('chatHistory未填写完整，跳过上传', dataByMap)
+      return
+    }
     addChatHistory(dataByMap).then((res) => {
       console.log('新增历史记录成功——————————', res)
+      chatHistoryMap.delete(id) // ✅ 上传成功后删除对应记录
     }).finally(() => {
       addChatHistoryId.value++
       addChatHistoryForm.value = {}
@@ -436,6 +453,26 @@ async function autoPlayAiMessage(_text: string, index: number) {
  * 屏保触发事件
  */
 async function onScreensaverTrigger() {
+  // ✅ 尝试提交所有已完成但未上传的历史记录
+  // for (const [id, data] of chatHistoryMap.entries()) {
+  //   const requiredFields = [
+  //     'userAudio',
+  //     'userAudioTime',
+  //     'userInput',
+  //     'userInputTime',
+  //     'assistantAudio',
+  //     'assistantAudioTime',
+  //     'assistantOutput',
+  //     'assistantOutputTime',
+  //   ]
+  //   const allFieldsFilled = requiredFields.every(field => !!data[field])
+  //   if (allFieldsFilled) {
+  //     submitChatHistory(id)
+  //   }
+  //   else {
+  //     console.warn(`屏保前检测到未完成记录（未提交），ID: ${id}`, data)
+  //   }
+  // }
   isScreensaver.value = false
   resetIdleTimer()
   console.log('进入操作页面')

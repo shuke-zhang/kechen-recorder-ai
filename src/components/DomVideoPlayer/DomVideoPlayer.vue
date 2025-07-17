@@ -194,7 +194,16 @@ export default {
         name: 'toSeekHandler',
         params: { sec, isDelay }
       }
+    },
+    /**
+     * 自定义函数 - 重置视频播放器状态
+     */
+    reset() {
+    this.renderFunc = {
+      name: 'resetHandler',
+      params: null
     }
+}
   }
 }
 </script>
@@ -224,6 +233,20 @@ export default {
     isApple() {
       const ua = navigator.userAgent.toLowerCase()
       return ua.indexOf('iphone') !== -1 || ua.indexOf('ipad') !== -1
+    },
+    resetHandler(){
+      if (this.videoEl) {
+          this.videoEl.pause()
+          this.videoEl.currentTime = 0
+          this.$ownerInstance.callMethod('setViewData', {
+            key: 'currentTime',
+            value: 0
+          })
+          this.$ownerInstance.callMethod('setViewData', {
+            key: 'playing',
+            value: false
+          })
+        }
     },
     async initVideoPlayer(src) {
       this.delayFunc = null

@@ -87,6 +87,10 @@
       }
     },
     {
+      "path": "pages/recorder-ai/components/chat-video",
+      "type": "page"
+    },
+    {
       "path": "pages/recorder-ai/components/screensaver",
       "type": "page"
     }

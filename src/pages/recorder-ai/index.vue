@@ -39,6 +39,7 @@ import { default as RecorderInstance } from 'recorder-core'
 import { default as RecordAppInstance } from 'recorder-core/src/app-support/app'
 import { useTextFormatter } from './hooks/useTextFormatter'
 import RecorderInputAuto from './recorder-input-auto.vue'
+import chatVideo from './components/chat-video.vue'
 import useRecorder from './hooks/useRecorder'
 import usePlayAudio, { type PlayAudioCallbackModel } from './hooks/usePlayAudio'
 import useAiPage from './hooks/useAiPage'
@@ -86,6 +87,10 @@ const recorderStatus = ref<StatusModel >('pending')
  * 音频播放组件实例
  */
 const streamPlayerRef = ref<InstanceType<typeof StreamPlayer>>()
+/**
+ * 视频播放组件实例
+ */
+const chatVideoRef = ref<InstanceType<typeof chatVideo>>()
 /**
  * 状态栏高度
  */
@@ -931,7 +936,7 @@ usePageExpose('pages/recorder-ai/index', {
 </script>
 
 <template>
-  <view @touchstart="resetIdleTimer" @touchmove="resetIdleTimer" @touchend="resetIdleTimer" @click="resetIdleTimer" @scroll="resetIdleTimer">
+  <view class="bg-[#fdf9f6]" @touchstart="resetIdleTimer" @touchmove="resetIdleTimer" @touchend="resetIdleTimer" @click="resetIdleTimer" @scroll="resetIdleTimer">
     <nav-bar :show-back="false" transparent>
       <text class="opacity-0" @click="handleMultiClick">
         柯仔AI
@@ -964,11 +969,13 @@ usePageExpose('pages/recorder-ai/index', {
         <view
           class="w-full h-70%  pointer-events-none"
         >
-          <image
+          <!-- <image
             :src="(isStreamPlaying && isAudioPlaying) ? '/static/images/aiPageBg.gif' : '/static/images/aiPageBg-quiet.png'"
             mode="aspectFit"
             class="size-100%"
-          />
+          /> -->
+
+          <chat-video ref="chatVideoRef" :is-reset="!(isStreamPlaying && isAudioPlaying)" :is-play="(isStreamPlaying && isAudioPlaying)" />
         </view>
         <view class="h-30% pb-120rpx">
           <scroll-view
@@ -1081,7 +1088,7 @@ usePageExpose('pages/recorder-ai/index', {
 }
 </style>
 
-<route lang="json" pages="page">
+<route lang="json"  type="home">
   {
        "style": { "navigationBarTitleText": "录音","navigationStyle": "custom" }
   }

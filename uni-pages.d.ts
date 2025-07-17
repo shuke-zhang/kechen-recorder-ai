@@ -15,6 +15,7 @@ interface NavigateToOptions {
        "/pages/recorder-ai/recorder-input-auto" |
        "/pages/recorder-ai/recorder-input" |
        "/pages/test/index" |
+       "/pages/recorder-ai/components/chat-video" |
        "/pages/recorder-ai/components/screensaver" |
        "/feature/pages/list-data-preview/detail" |
        "/feature/pages/list-data-preview/index" |

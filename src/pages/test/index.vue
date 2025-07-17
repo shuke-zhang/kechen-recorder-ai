@@ -2,20 +2,14 @@
   {
     "style": { "navigationBarTitleText": "测试页面" }
   }
-  </route>
+</route>
 
 <script setup lang="ts">
-import RecorderInputAuto from '@/pages/recorder-ai/recorder-input-auto.vue'
-
-const showRecordingButton = ref(false)
-const text = ref('')
+import ChatVideo from '@/pages/recorder-ai/components/chat-video.vue'
 </script>
 
 <template>
-  <button class="border-rd-50% border-color-#edf6fd  bg-#edf6fd size-140rpx flex-center">
-    <icon-font name="recorder-fill" size="80" color="#000" />
-  </button>
-  <RecorderInputAuto v-model:show-recorder-btn="showRecordingButton" v-model="text" />
+  <ChatVideo />
 </template>
 
 <style>

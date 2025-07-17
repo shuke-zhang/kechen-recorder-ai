@@ -19,7 +19,6 @@ interface RecorderVoid {
 }
 
 export default function useRecorder(options: AnyObject & RecorderVoid) {
-  const isFirstVisit = ref(true)
   const {
     RecordApp,
     Recorder,
@@ -42,10 +41,6 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
   /** 输入框内容 */
   const content = ref('')
 
-  /** 是否触发焦点 */
-  const isFocus = ref(false)
-  /** 显示录音按钮 */
-  const showRecordingButton = ref(true)
   /** 录音识别结果 */
   const textRes = ref<string | null>(null)
   /** 标识 标识是否往数组里面推送数据 true表示录音结束了 false表示录音开始 */
@@ -58,11 +53,8 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
   const isAutoRecognize = ref(false)
   /** 全局开关：是否允许自动重启/自动启动语音识别 */
   const isAutoRecognizerEnabled = ref(true)
-  const hasInsertedPlaceholder = ref(false)
   /** 存储流式响应数据 */
   const recorderBufferList = ref<ArrayBuffer[]>([])
-  /** 是否是第一次初始化 */
-  const isFirstRecorderText = ref(true)
   // 静音监控变量
   let silentStartTime: number | null = null
   const hasWarnedSilence = ref(false)
@@ -123,17 +115,16 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
         noiseSuppression: true, // 降噪（ANS）开关，取值和回声消除开关一样
         autoGainControl: true, // 自动增益（AGC）开关，取值和回声消除开关一样
       },
-      onProcess_renderjs: `function(buffers,powerLevel,duration,sampleRate,_newBufferIdx,_asyncEnd){
-              if (this.lastIdx > _newBufferIdx) {
-                this.chunk = null // 重新录音了，重置环境
-              }
-              this.lastIdx = _newBufferIdx
-              this.chunk = Recorder.SampleData(buffers, sampleRate, 16000, this.chunk)
-              const pcmInt16 = new Int16Array(this.chunk.data)
-              const arrayBuffer = pcmInt16.buffer
-              this.$ownerInstance.callMethod("pushPcmData", { array: Array.from(pcmInt16) })
-  
-              if(this.waveView) this.waveView.input(buffers[buffers.length-1],powerLevel,sampleRate);
+      onProcess_renderjs: `function(buffers,powerLevel,duration,sampleRate,newBufferIdx,asyncEnd){
+                //App中在这里修改buffers会改变生成的音频文件，但注意：buffers会先转发到逻辑层onProcess后才会调用本方法，因此在逻辑层的onProcess中需要重新修改一遍
+                //本方法可以返回true，renderjs中的onProcess将开启异步模式，处理完后调用asyncEnd结束异步，注意：这里异步修改的buffers一样的不会在逻辑层的onProcess中生效
+                //App中是在renderjs中进行的可视化图形绘制，因此需要写在这里，this是renderjs模块的this（也可以用This变量）；如果代码比较复杂，请直接在renderjs的methods里面放个方法xxxFunc，这里直接使用this.xxxFunc(args)进行调用
+                if(this.waveView) this.waveView.input(buffers[buffers.length-1],powerLevel,sampleRate);
+                
+                /*和onProcess中一样进行释放清理内存，用于支持长时间录音
+                if(this.clearBufferIdx>newBufferIdx){ this.clearBufferIdx=0 } //重新录音了就重置
+                for(var i=this.clearBufferIdx||0;i<newBufferIdx;i++) buffers[i]=null;
+                this.clearBufferIdx=newBufferIdx; */
             }`,
 
       takeoffEncodeChunk: true
@@ -163,7 +154,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     RecordApp.Start(set, () => {
       textRes.value = ''
 
-      handleStart()
+      handleRecognitionStart()
       RecorderCoreClass.on('log', (msg) => {
         console.log(msg)
       })
@@ -197,8 +188,8 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
   /**
    * 语音识别开启操作
    */
-  function handleStart() {
-    console.log('handleStart', isAutoRecognizerEnabled.value)
+  function handleRecognitionStart() {
+    console.log('handleRecognitionStart', isAutoRecognizerEnabled.value)
 
     if (!isAutoRecognizerEnabled.value) {
       return console.warn('语音识别功能已被禁用')
@@ -213,26 +204,20 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
   /**
    * 语音识别关闭操作
    */
-  function handleStop() {
-    console.log('handleStop11111111')
-
+  function handleRecognitionStop() {
     if (silenceTimer) {
-      console.log('handleStop222222')
-
       clearTimeout(silenceTimer)
       silenceTimer = null
     }
-    console.log('333333')
 
     return RecorderCoreClass.stop().then(() => {
-      console.log('关闭成功666666666666666')
     })
   }
 
   /**
    * 录音按钮按下
    */
-  function handleRecorderTouchStart() {
+  function handleRecorderStart() {
     try {
       isAutoRecognize.value = true
       recStart()
@@ -255,7 +240,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
       clearTimeout(restartTimer)
       restartTimer = null
     }
-    handleStop().then(() => {
+    handleRecognitionStop().then(() => {
       const { wavBuffer } = playAudioInit(recorderBufferList.value)
       uploadFileAudio({
         wavBuffer,
@@ -275,7 +260,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
           // 同时在ai消息回复后立即开始语音识别
           console.log('🔁 自动重启语音识别')
 
-          handleStart()
+          handleRecognitionStart()
         }, 1000)
       }
       isAutoStop.value = false // 重置标记
@@ -287,12 +272,6 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
    */
   function onTextChanged(text: string) {
     textRes.value = text
-  }
-
-  function pushPcmData({ array }: any) {
-    const pcmInt16 = new Int16Array(array)
-    const buffer = pcmInt16.buffer
-    RecorderCoreClass.pushAudioData(buffer)
   }
 
   function normalizeText(text = '') {
@@ -334,7 +313,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
             case 5:
               console.warn('⚠️ 5秒内无有效语音数据（已重启语音识别）')
               hasWarnedSilence.value = true
-              handleStart() // 你的重启函数
+              handleRecognitionStart() // 你的重启函数
               break
           }
           lastSilentWarnedSecond = currentSecond
@@ -383,33 +362,21 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
           userInputTime,
         )
         console.log(id, '查看新增消息的id')
-
-        // 允许下一轮识别重新插入占位
-        hasInsertedPlaceholder.value = false
       }, 1500)
     }
   })
 
   return {
-
     /** 语音识别的class */
     RecorderCoreClass,
     /** 输入框内容 */
     content,
-    /** 是否触发焦点 */
-    isFocus,
-    /** 显示录音按钮 */
-    showRecordingButton,
     /** 录音识别结果 */
     textRes,
     /** 是否正在录音 */
     isRunning,
-    /** 是否第一次访问 */
-    isFirstVisit,
     /** 是否开启自动识别功能 */
     isAutoRecognize,
-    /** 是否是第一次初始化 */
-    isFirstRecorderText,
     /** 是否允许自动重启/自动启动语音识别 */
     isAutoRecognizerEnabled,
     /** 录音权限函数 */
@@ -419,12 +386,10 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     /** 停止录音函数 */
     recStop,
     /** 语音识别开启操作 */
-    handleStart,
+    handleRecognitionStart,
     /** 语音识别关闭操作 */
-    handleStop,
+    handleRecognitionStop,
     /** 录音按钮按下 */
-    handleRecorderTouchStart,
-    /** pcm */
-    pushPcmData,
+    handleRecorderStart,
   }
 }

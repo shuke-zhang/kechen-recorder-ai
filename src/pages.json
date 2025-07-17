@@ -72,14 +72,6 @@
       }
     },
     {
-      "path": "pages/recorder-ai/index-copy",
-      "type": "page",
-      "style": {
-        "navigationBarTitleText": "录音",
-        "navigationStyle": "custom"
-      }
-    },
-    {
       "path": "pages/recorder-ai/recorder-input-auto",
       "type": "page"
     },

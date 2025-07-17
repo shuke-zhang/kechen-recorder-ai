@@ -98,7 +98,7 @@ const { handleMultiClick } = useMultiClickTrigger({
     isAutoPlaying.value = !isAutoPlaying.value
     if (isAutoPlaying.value) {
       showToastSuccess('开启自动识别').then(() => {
-        handleRecorderTouchStart()
+        handleRecorderStart()
       })
     }
     else {
@@ -146,15 +146,12 @@ const handleTouchStart = debounce(() => {
 }, 300)
 const {
   textRes,
-  isFocus,
   isRunning,
-  isFirstVisit,
   isAutoRecognize,
-  showRecordingButton,
   isAutoRecognizerEnabled,
   recReq,
-  handleRecorderTouchStart,
-  handleStop,
+  handleRecorderStart,
+  handleRecognitionStop,
 } = useRecorder({
   RecordApp: RecordAppInstance,
   Recorder: RecorderInstance,
@@ -348,7 +345,7 @@ function resetIdleTimer() {
 
   idleTimeout.value = setTimeout(async () => {
     // 新增：完全停止语音识别
-    await handleStop()
+    await handleRecognitionStop()
     isAutoRecognize.value = false
     stopAll()
     isScreensaver.value = true
@@ -464,7 +461,7 @@ async function onScreensaverTrigger() {
   }
   isAutoRecognizerEnabled.value = true
   isAutoPlaying.value = true
-  handleRecorderTouchStart()
+  handleRecorderStart()
 }
 
 /**
@@ -863,7 +860,6 @@ onMounted(() => {
   (vueInstance as any).isMounted = true
   RecordAppInstance.UniPageOnShow(vueInstance)
   recReq().then((res) => {
-    isFirstVisit.value = false
     setTimeout(() => {
       initialLoadPending.value = true
     }, 1500)
@@ -1025,8 +1021,6 @@ usePageExpose('pages/recorder-ai/index', {
       <!-- 统一输入框 -->
       <RecorderInputAuto
         v-model:model-value="replyForm.content"
-        v-model:focus="isFocus"
-        v-model:show-recording-button="showRecordingButton"
         v-model:status="recorderStatus"
         placeholder="请输入您的问题..."
         btn-text="发送"

@@ -47,7 +47,7 @@ import useAutoScroll from './hooks/useAutoScroll'
 import { useAiCall } from '@/store/modules/ai-call'
 import { doubaoSpeechSynthesisFormat } from '@/api/audio'
 import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
-import screensaver from './components/screensaver.vue'
+// import screensaver from './components/screensaver.vue'
 /** 需要编译成微信小程序时，引入微信小程序支持文件 */
 // #ifdef MP-WEIXIN
 import 'recorder-core/src/app-support/app-miniProgram-wx-support.js'
@@ -60,7 +60,6 @@ import type { StatusModel } from '@/components/audio-wave/audio-wave'
 import type { ChatHistoryModel } from '@/model/chat'
 import type { UploadFileModel } from '@/model/chat'
 import { addChatHistory } from '@/api/chat-history'
-import { log } from 'node:console'
 // import usePlayAudio from './hooks/usePlayAudio'
 const vueInstance = getCurrentInstance()?.proxy as any // 必须定义到最外面，getCurrentInstance得到的就是当前实例this
 const pageHeight = computed(() => {
@@ -73,7 +72,6 @@ const isStreamPlaying = ref(false)
 const router = useRouter<{
   modelName: string
 }>()
-const { visible, downloadUrl, updateList, downloadApp, onCheckNewVersion } = useCheckAppVersion()
 
 const aiCall = useAiCall()
 /** 主要用于初进页面的语音播报 默认需要两秒后变为true 解决播放器需要初始化的2秒左右的bug */
@@ -352,11 +350,11 @@ function submitChatHistory(id: number) {
 /** 重置定时器 */
 function resetIdleTimer() {
   // 若不能启动 idleTimer（因为正在播放或AI正在回复），就清除定时器并返回
-  if (isScreensaver.value) {
-    // console.log('屏保中，不重置定时器')
+  // if (isScreensaver.value) {
+  //   // console.log('屏保中，不重置定时器')
 
-    return
-  }
+  //   return
+  // }
   console.log('监听到用户操作，重置定时器')
 
   if (!canStartIdleTimer.value) {
@@ -374,7 +372,8 @@ function resetIdleTimer() {
     await handleRecognitionStop()
     isAutoRecognize.value = false
     stopAll()
-    isScreensaver.value = true
+    // isScreensaver.value = true
+    router.replace('/pages/screensaver/index')
     // 清空所有内容
     streamData.value = {
       text: '',
@@ -913,11 +912,10 @@ onMounted(() => {
     setTimeout(() => {
       initialLoadPending.value = true
     }, 1500)
+    onScreensaverTrigger()
   }).catch((err) => {
     showToastError(err)
     console.log(err, '请求权限拒绝')
-  }).finally(() => {
-    onCheckNewVersion(false)
   })
   addChatHistoryId.value = 0
   initHeights()
@@ -974,7 +972,7 @@ usePageExpose('pages/recorder-ai/index', {
     <!-- #endif -->
 
     <!-- <view v-show="!isScreensaver"> -->
-    <view v-show="!isScreensaver">
+    <view>
       <view :style="{ height: `calc(100vh - ${inputHeight} - ${navbarHeight})` }">
         <view
           class="w-full h-70%  pointer-events-none"
@@ -1105,10 +1103,7 @@ usePageExpose('pages/recorder-ai/index', {
     </view>
 
     <!-- 屏保 -->
-    <screensaver v-model:show="isScreensaver" @on-trigger="onScreensaverTrigger" />
-
-    <!-- 自动更新 -->
-    <check-app-page v-model="visible" :update-list="updateList" @update-now="downloadApp(downloadUrl)" />
+    <!-- <screensaver v-model:show="isScreensaver" @on-trigger="onScreensaverTrigger" /> -->
   </view>
 </template>
 
@@ -1122,7 +1117,7 @@ usePageExpose('pages/recorder-ai/index', {
 }
 </style>
 
-<route lang="json"  type="home">
+<route lang="json"  type="page">
   {
        "style": { "navigationBarTitleText": "录音","navigationStyle": "custom" }
   }

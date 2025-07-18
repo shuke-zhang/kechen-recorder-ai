@@ -72,6 +72,7 @@ const isStreamPlaying = ref(false)
 const router = useRouter<{
   modelName: string
 }>()
+const { visible, downloadUrl, updateList, downloadApp, onCheckNewVersion } = useCheckAppVersion()
 
 const aiCall = useAiCall()
 /** 主要用于初进页面的语音播报 默认需要两秒后变为true 解决播放器需要初始化的2秒左右的bug */
@@ -912,6 +913,8 @@ onMounted(() => {
   }).catch((err) => {
     showToastError(err)
     console.log(err, '请求权限拒绝')
+  }).finally(() => {
+    onCheckNewVersion(false)
   })
   addChatHistoryId.value = 0
   initHeights()
@@ -1093,6 +1096,9 @@ usePageExpose('pages/recorder-ai/index', {
 
     <!-- 屏保 -->
     <screensaver v-model:show="isScreensaver" @on-trigger="onScreensaverTrigger" />
+
+    <!-- 自动更新 -->
+    <check-app-page v-model="visible" :update-list="updateList" @update-now="downloadApp(downloadUrl)" />
   </view>
 </template>
 

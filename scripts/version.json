@@ -1,9 +1,9 @@
 {
-  "version": "1.0.6",
+  "version": "1.0.7",
   "appUrl": "https://shuke-zhang.oss-cn-chengdu.aliyuncs.com/kezai/kezai-AI.zip",
   "updateList": [
-    "添加屏保页面",
-    "优化柯仔逻辑",
+    "优化屏保页面",
+    "聊天界面更改为对话模式",
     "修复了部分bug"
   ]
 }

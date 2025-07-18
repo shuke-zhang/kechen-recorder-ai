@@ -120,6 +120,7 @@ export default function usePlayAudio(RecordApp?: any) {
   function playAudio(savePath: string, callBack?: PlayAudioCallbackModel) {
     const ctx = uni.createInnerAudioContext()
     ctx.src = savePath
+    // ctx.obeyMuteSwitch = false
     ctx.onError((res) => {
       console.log(res, '音频播放错误')
       uni.removeSavedFile({

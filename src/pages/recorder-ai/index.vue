@@ -1055,7 +1055,14 @@ usePageExpose('pages/recorder-ai/index', {
                             <icon-font name="copy" :color="COLOR_PRIMARY" :size="28" />
                           </view>
                           <view class="border-rd-16rpx size-60rpx  bg-#e8ecf5 flex-center  ml-20rpx" @click="handleRecorder(msg.content as string, index)">
-                            <audio-wave v-if="isStreamPlaying && currentIndex === index" status="playing" :color="COLOR_PRIMARY" />
+                            <audio-wave
+                              v-if="isStreamPlaying && currentIndex === index"
+                              status="playing"
+                              :color="COLOR_PRIMARY"
+                              :bar-width="6"
+                              :bar-max-height="24"
+                              :gap="4"
+                            />
                             <icon-font v-else name="sound" :color="COLOR_PRIMARY" :size="28" />
                           </view>
                         </view>

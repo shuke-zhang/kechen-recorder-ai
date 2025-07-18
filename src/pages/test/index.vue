@@ -5,11 +5,16 @@
 </route>
 
 <script setup lang="ts">
-import ChatVideo from '@/pages/recorder-ai/components/chat-video.vue'
 </script>
 
 <template>
-  <ChatVideo />
+  <audio-wave
+    status="playing"
+    :color="COLOR_PRIMARY"
+    :bar-width="6"
+    :bar-max-height="24"
+    :gap="4"
+  />
 </template>
 
 <style>

@@ -73,6 +73,34 @@ declare module '@vue/runtime-core' {
      */
     CUSTOM_TOKEN: string
     /**
+     * @description 运行平台是不是平板
+     */
+    isPad: boolean
+    /**
+     * @description 运行平台是不是web
+     */
+    isWeb: boolean
+    /**
+     * @description 运行平台是不是App
+     */
+    isApp: boolean
+    /**
+     * @description 运行平台是不是微信
+     */
+    isWeixin: boolean
+    /**
+     * @description 运行平台是不是开发者工具
+     */
+    isDevtools: boolean
+    /**
+     * @description 运行平台是不是Android
+     */
+    isAndroid: boolean
+    /**
+     * @description 运行平台是不是IOS
+     */
+    isIOS: boolean
+    /**
      *  上传文件成功后返回的链接添加前缀
      */
     $addPrefixUrl: typeof import('@utils/helpers/addPrefixUrl')['addPrefixUrl']

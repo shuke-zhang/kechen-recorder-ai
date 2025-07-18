@@ -18,6 +18,13 @@ export const appGlobalProperties = {
     app.config.globalProperties.API_URL = API_URL
     app.config.globalProperties.STATIC_URL = STATIC_URL
     app.config.globalProperties.FILE_URL = FILE_URL
+    app.config.globalProperties.isPad = isPad
+    app.config.globalProperties.isWeb = isWeb
+    app.config.globalProperties.isApp = isApp
+    app.config.globalProperties.isWeixin = isWeixin
+    app.config.globalProperties.isDevtools = isDevtools
+    app.config.globalProperties.isAndroid = isAndroid
+    app.config.globalProperties.isIOS = isIOS
     /**
      * @description 上传文件成功后返回的链接添加前缀
      */

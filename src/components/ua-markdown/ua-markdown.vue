@@ -1,14 +1,14 @@
-<!-- uniapp vue3 markdown解析 -->
-<template>
-	<view class="ua__markdown"><rich-text space="nbsp" :nodes="parseNodes(source)" @itemclick="handleItemClick"></rich-text></view>
-	</template>
-	
-	<script setup>
-	import { ref, computed } from 'vue'
-		import MarkdownIt from './lib/markdown-it.min.js'
-	import hljs from './lib/highlight/uni-highlight.min.js'
-	import './lib/highlight/atom-one-dark.css'
+<!-- eslint-disable eslint-comments/no-duplicate-disable -->
+<!-- eslint-disable eslint-comments/no-unlimited-disable -->
+
+<script setup>
+
+/* eslint-disable */
+	import { computed, ref } from 'vue'
 	import parseHtml from './lib/html-parser.js'
+	import MarkdownIt from './lib/markdown-it.min.js'
+	import './lib/highlight/atom-one-dark.css'
+	import hljs from './lib/highlight/uni-highlight.min.js'
 		const props = defineProps({
 			// 解析内容
 		source: String,
@@ -97,9 +97,14 @@
 				})
 			}
 		}
-	</script>
-	
-	<style lang="scss" scoped>
+</script>
+
+<!-- uniapp vue3 markdown解析 -->
+<template>
+	<view class="ua__markdown"><rich-text space="nbsp" :nodes="parseNodes(source)" @itemclick="handleItemClick"></rich-text></view>
+</template>
+
+<style lang="scss" scoped>
 	.ua__markdown {
 		  font-size: 14px;line-height: 1.5; word-break: break-all;
 		  h1,h2,h3,h4,h5,h6 {
@@ -315,5 +320,5 @@
 			content: "php"
 		}
 		}
-	</style>
+</style>
 	

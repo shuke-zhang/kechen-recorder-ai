@@ -60,3 +60,5 @@ export const isApp = (uniPlatform || process.env.UNI_PLATFORM)?.toLocaleLowerCas
 export const isWeixin = (uniPlatform || process.env.UNI_PLATFORM)?.toLocaleLowerCase() === 'mp-weixin'
 
 export const isH5 = (uniPlatform || process.env.UNI_PLATFORM)?.toLocaleLowerCase() === 'h5'
+
+export const isPad = (uniPlatform || process.env.UNI_PLATFORM)?.toLocaleLowerCase() === 'PAD' || (uni.getDeviceInfo().deviceType || '') === 'pad'

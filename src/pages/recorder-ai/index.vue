@@ -60,6 +60,7 @@ import type { StatusModel } from '@/components/audio-wave/audio-wave'
 import type { ChatHistoryModel } from '@/model/chat'
 import type { UploadFileModel } from '@/model/chat'
 import { addChatHistory } from '@/api/chat-history'
+import { log } from 'node:console'
 // import usePlayAudio from './hooks/usePlayAudio'
 const vueInstance = getCurrentInstance()?.proxy as any // 必须定义到最外面，getCurrentInstance得到的就是当前实例this
 const pageHeight = computed(() => {
@@ -96,7 +97,9 @@ const chatVideoRef = ref<InstanceType<typeof chatVideo>>()
  * 状态栏高度
  */
 const navbarHeight = computed(() => '45px')
-
+const inputHeight = computed(() => {
+  return isPad ? '150px' : '200rpx'
+})
 const isAutoPlaying = ref(false)
 const { handleMultiClick } = useMultiClickTrigger({
   onTrigger: () => {
@@ -972,7 +975,7 @@ usePageExpose('pages/recorder-ai/index', {
 
     <!-- <view v-show="!isScreensaver"> -->
     <view v-show="!isScreensaver">
-      <view :style="{ height: `calc(100vh - 200rpx - ${navbarHeight})` }">
+      <view :style="{ height: `calc(100vh - ${inputHeight} - ${navbarHeight})` }">
         <view
           class="w-full h-70%  pointer-events-none"
         >
@@ -1015,8 +1018,12 @@ usePageExpose('pages/recorder-ai/index', {
               <view v-for="(msg, index) in content" :key="index" class="py-16rpx">
                 <!-- 用户消息 -->
                 <view v-if="msg.role === 'user'" class=" flex  flex-justify-end opacity-60">
-                  <view class="message-bubble p-32rpx border-rd-16rpx   bg-#07c160 color-white max-w-80%">
-                    <text selectable>
+                  <view class="message-bubble  border-rd-16rpx   bg-#07c160 color-white max-w-80%" :class="[isPad ? 'p-16px!' : 'p-32rpx!']">
+                    <text
+                      selectable :class="{
+                        ['font-size-14px!']: isPad,
+                      }"
+                    >
                       <!-- 首先判断 用户消息临时加载状态 如果是则代表是语音识别消息 否则展示已经添加进去的消息 -->
                       {{
                         msg.isRecordingPlaceholder
@@ -1045,8 +1052,11 @@ usePageExpose('pages/recorder-ai/index', {
                   </view>
                   <view class="flex mt-16rpx mb-16rpx flex-justify-start bg-#ffffff color-#333333 max-w-80% border-rd-16rpx">
                     <view
-                      class="message-bubble  p-32rpx border-rd-16rpx w-100%"
-                      :class="[msg.streaming && !(msg.content && msg.content!.length) ? 'flex-center w-120rpx h-120rpx ' : '']"
+                      class="message-bubble  border-rd-16rpx w-100%"
+                      :class="[
+                        msg.streaming && !(msg.content && msg.content!.length) ? 'flex-center w-120rpx h-120rpx ' : '',
+                        isPad ? 'p-16px!' : 'p-32rpx!',
+                      ]"
                     >
                       <view v-if="msg.content">
                         <UaMarkdown :source="`${msg.content}`" :show-line="false" />

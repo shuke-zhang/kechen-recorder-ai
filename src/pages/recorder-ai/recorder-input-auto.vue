@@ -117,7 +117,12 @@ function handleConfirm() {
 </script>
 
 <template>
-  <view class="comment-input-container bg-#dcebfb flex flex-col items-center" :style="{ bottom: inputBottom }">
+  <view
+    class="comment-input-container bg-#dcebfb flex flex-col items-center" :style="{
+      bottom: inputBottom,
+      height: `${isPad ? '150px' : '200rpx'}`,
+    }"
+  >
     <!-- 正常模式 -->
     <view class="w-full h-full flex items-center justify-center">
       <button v-if="false" class="recorder-btn border-0! m-0!  bg-#edf6fd size-120rpx" @click="handleRecorderIconClick">
@@ -126,7 +131,7 @@ function handleConfirm() {
 
       <view v-if="showRecordingButton" class="flex flex-col justify-center items-center">
         <audio-wave :status="status" :color="COLOR_PRIMARY" @click-stopped="clickStopped" />
-        <text>
+        <text class="font-size-28rpx!">
           {{ statusText }}
         </text>
       </view>
@@ -167,7 +172,6 @@ function handleConfirm() {
   position: fixed;
   bottom: 0;
   padding-bottom: env(safe-area-inset-bottom);
-  height: 200rpx;
   padding: 20rpx;
   box-sizing: border-box;
   z-index: 50;

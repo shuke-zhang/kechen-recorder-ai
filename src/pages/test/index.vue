@@ -9,26 +9,31 @@ import chatVideo from '@/pages/recorder-ai/components/chat-video.vue'
 
 const chatVideoRef = ref()
 const isShow = ref(false)
+const isSilence = ref(false)
+
+const idleTimer = createIdleTimer({
+  text: '当前页面空闲中',
+  delay: 10 * 1000,
+  onTimeout: () => {
+    console.log('空闲超时触发')
+  },
+})
+function handleTimer() {
+  idleTimer.reset()
+}
 </script>
 
 <template>
-  <audio-wave
-    status="playing"
-    :color="COLOR_PRIMARY"
-    :bar-width="6"
-    :bar-max-height="24"
-    :gap="4"
-  />
-  <text selectable class="font-size-28rpx!">
-    首先判断 用户消息临时加载状态 如果是则代表是语音识别消息 否则展示已经添加进去的消息
-  </text>
-
-  <button @click="isShow = true">
-    点击显示
+  <button @click="isSilence = !isSilence">
+    点击切换视频url
   </button>
 
-  <view v-if="isShow" class="size-300rpx">
-    <chat-video ref="chatVideoRef" />
+  <button @click="handleTimer">
+    点击开启倒计时
+  </button>
+
+  <view class="size-300rpx">
+    <chat-video ref="chatVideoRef" v-model:silence="isSilence" />
   </view>
 </template>
 

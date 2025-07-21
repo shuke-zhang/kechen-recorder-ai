@@ -213,11 +213,37 @@ const hasUserInterruptedAutoPlay = ref(false)
 const lastAiMsgEnd = ref(false)
 /** 无操作逻辑 */
 const idleTimeout = ref< ReturnType<typeof setTimeout> | null>(null)
-const IDLE_DELAY = 30 * 1000 // 5秒
+const IDLE_DELAY = 2 * 60 * 1000 // 5秒
 const canStartIdleTimer = computed(() => {
   return !isStreamPlaying.value && !loading.value
 })
+const screensaverTimer = createIdleTimer({
+  text: '监听到用户无操作',
+  delay: IDLE_DELAY, // 你原本的 IDLE_DELAY 值
+  onTimeout: async () => {
+    console.log('⏳ 空闲超时触发，执行屏保逻辑')
 
+    // 停止语音识别
+    await handleRecognitionStop()
+    isAutoRecognize.value = false
+    stopAll()
+
+    // 跳转屏保页面
+    router.replace('/pages/screensaver/index')
+
+    // 清空内容
+    streamData.value = {
+      text: '',
+      buffer: '',
+      id: 0,
+    }
+    content.value = []
+    resetAi.value()
+    replyForm.value = { content: '', role: 'user' }
+    isAutoRecognizerEnabled.value = false
+    recReq()
+  },
+})
 /**
  * 临时存储新增历史记录的数组
  */
@@ -349,43 +375,16 @@ function submitChatHistory(id: number) {
 
 /** 重置定时器 */
 function resetIdleTimer() {
-  // 若不能启动 idleTimer（因为正在播放或AI正在回复），就清除定时器并返回
-  // if (isScreensaver.value) {
-  //   // console.log('屏保中，不重置定时器')
-
-  //   return
-  // }
   console.log('监听到用户操作，重置定时器')
 
+  // 如果当前状态不允许开启定时器（如正在播放或AI回复中）
   if (!canStartIdleTimer.value) {
-    if (idleTimeout.value)
-      clearTimeout(idleTimeout.value)
+    screensaverTimer.stop()
     return
   }
 
-  // 启动 idle timer
-  if (idleTimeout.value)
-    clearTimeout(idleTimeout.value)
-
-  idleTimeout.value = setTimeout(async () => {
-    // 新增：完全停止语音识别
-    await handleRecognitionStop()
-    isAutoRecognize.value = false
-    stopAll()
-    // isScreensaver.value = true
-    router.replace('/pages/screensaver/index')
-    // 清空所有内容
-    streamData.value = {
-      text: '',
-      buffer: '',
-      id: 0,
-    }
-    content.value = []
-    resetAi.value()
-    replyForm.value = { content: '', role: 'user' }
-    isAutoRecognizerEnabled.value = false
-    recReq()
-  }, IDLE_DELAY)
+  // 启动/重置空闲倒计时
+  screensaverTimer.reset()
 }
 
 /** 发送消息确认按钮 */

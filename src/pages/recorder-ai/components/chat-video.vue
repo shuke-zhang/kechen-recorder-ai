@@ -19,6 +19,38 @@ const isChatVideo = defineModel('show', {
   default: true,
 })
 
+const isSilence = defineModel('silence', {
+  type: Boolean,
+  default: false,
+})
+// 当前播放的视频索引
+const currentVideoIndex = ref(0)
+// 当前播放的视频地址
+const currentVideoSrc = ref('')
+/** 视频文件 */
+const videoLists = ref([
+  `${STATIC_URL}/kezai/video/screensaver-1.mp4`,
+  `${STATIC_URL}/kezai/video/screensaver-2.mp4`,
+  `${STATIC_URL}/kezai/video/screensaver-3.mp4`,
+  `${STATIC_URL}/kezai/video/screensaver-4.mp4`,
+  `${STATIC_URL}/kezai/video/screensaver-5.mp4`,
+])
+
+function initRandomVideo() {
+  const randomIndex = Math.floor(Math.random() * videoLists.value.length)
+  currentVideoIndex.value = randomIndex
+  currentVideoSrc.value = videoLists.value[randomIndex]
+}
+
+// const videoUrl = computed(() => {
+//   if (isSilence.value) {
+//     return `${STATIC_URL}/kezai/video/ai-chat.mp4`
+//   }
+//   else {
+//     return `${STATIC_URL}/kezai/video/ai-chat-2.mp4`
+//   }
+// })
+
 /**
  * 重置视频播放器状态
  */
@@ -35,6 +67,27 @@ function handlePlay() {
     DomVideoPlayerRef.value.play()
   }
 }
+
+/**
+ * 视频播放完成
+ */
+function handleEnded() {
+  console.error('视频播放完成')
+
+  if (isSilence.value) {
+    initRandomVideo()
+    nextTick(() => {
+      DomVideoPlayerRef.value?.play?.()
+    })
+  }
+  else {
+    currentVideoSrc.value = `${STATIC_URL}/kezai/video/ai-chat.mp4`
+    nextTick(() => {
+      DomVideoPlayerRef.value?.play?.()
+    })
+  }
+}
+
 watch(
   () => props.isReset,
   (val) => {
@@ -53,6 +106,18 @@ watch(
   },
   { immediate: true },
 )
+
+watch(() => isSilence.value, (newVal) => {
+  if (newVal) {
+    initRandomVideo()
+  }
+  else {
+    currentVideoSrc.value = `${STATIC_URL}/kezai/video/ai-chat.mp4`
+  }
+}, {
+  immediate: true,
+})
+
 defineExpose({
   /**
    * 重置视频播放器状态
@@ -69,13 +134,13 @@ defineExpose({
   <view class="size-full flex-center bg-#fdf9f6 " :class="{ 'off-screen': !isChatVideo }">
     <DomVideoPlayer
       ref="DomVideoPlayerRef"
-      :src="`${STATIC_URL}/kezai/video/ai-chat-2.mp4`"
+      :src="currentVideoSrc"
       autoplay
-      :is-loading="true"
-      loop
+      :is-loading="false"
       :controls="false"
-      poster="/static/images/aiPageBg-quiet.png"
+      :poster="`${STATIC_URL}/kezai/aiPageBg-quiet.png`"
       muted
+      @ended="handleEnded"
     />
   </view>
 </template>

@@ -6,7 +6,6 @@
 
 <script setup lang="ts">
 import type { Video } from '@uni-helper/uni-app-types'
-import { defineEmits, onMounted, onUnmounted, ref } from 'vue'
 import type DomVideoPlayer from '@/components/DomVideoPlayer/DomVideoPlayer.vue'
 
 const emit = defineEmits(['onTrigger'])

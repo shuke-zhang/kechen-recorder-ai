@@ -5,6 +5,8 @@ export interface IdleTimerOptions {
   text?: string
   /** 空闲时长阈值（单位 ms） */
   delay: number
+  /** 是否打印日志 */
+  isLog?: boolean
   /** 空闲超时触发回调 */
   onTimeout: () => void | Promise<void>
 }
@@ -63,7 +65,9 @@ export function createIdleTimer(options: IdleTimerOptions): IdleTimerController 
 
       if (currentSecond > lastSecond) {
         lastSecond = currentSecond
-        console.log(`⌛ ${text} ${currentSecond} 秒`)
+        if (options.isLog) {
+          console.log(`⌛ ${text} ${currentSecond} 秒`)
+        }
 
         if (elapsed >= delay) {
           stop()

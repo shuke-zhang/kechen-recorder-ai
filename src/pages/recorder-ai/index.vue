@@ -126,7 +126,6 @@ const {
   modelName,
   modelSubTitle,
   modelPrefix,
-  currentModel,
   replyForm,
   onSuccess,
   onFinish,
@@ -217,9 +216,31 @@ const IDLE_DELAY = 2 * 60 * 1000 // 5秒
 const canStartIdleTimer = computed(() => {
   return !isStreamPlaying.value && !loading.value
 })
-const screensaverTimer = createIdleTimer({
+
+/**
+ * 静默模式触发操作
+ */
+const isSilence = ref(false)
+// 使用变量统一控制时间
+const SILENCE_DELAY = 10 * 1000 // 10秒
+
+const silenceTimer = new IdleTimer({
+  text: `当前无操作，静默模式`,
+  delay: SILENCE_DELAY,
+  isLog: false,
+  onTimeout: () => {
+    isSilence.value = true
+    console.warn('当前页面空闲中，触发静默模式')
+  },
+})
+
+/**
+ * 屏保触发操作
+ */
+const screensaverTimer = new IdleTimer({
   text: '监听到用户无操作',
   delay: IDLE_DELAY, // 你原本的 IDLE_DELAY 值
+  isLog: false,
   onTimeout: async () => {
     console.log('⏳ 空闲超时触发，执行屏保逻辑')
 
@@ -244,6 +265,7 @@ const screensaverTimer = createIdleTimer({
     recReq()
   },
 })
+
 /**
  * 临时存储新增历史记录的数组
  */
@@ -380,11 +402,14 @@ function resetIdleTimer() {
   // 如果当前状态不允许开启定时器（如正在播放或AI回复中）
   if (!canStartIdleTimer.value) {
     screensaverTimer.stop()
+    silenceTimer.stop()
     return
   }
 
   // 启动/重置空闲倒计时
   screensaverTimer.reset()
+
+  silenceTimer.reset()
 }
 
 /** 发送消息确认按钮 */
@@ -982,7 +1007,12 @@ usePageExpose('pages/recorder-ai/index', {
             class="size-100%"
           /> -->
 
-          <chat-video ref="chatVideoRef" :is-reset="!(isStreamPlaying && isAudioPlaying)" :is-play="(isStreamPlaying && isAudioPlaying)" />
+          <chat-video
+            ref="chatVideoRef"
+            v-model:silence="isSilence"
+            :is-reset="!(isStreamPlaying && isAudioPlaying)"
+            :is-play="(isStreamPlaying && isAudioPlaying)"
+          />
         </view>
         <view class="h-30% pb-120rpx">
           <scroll-view

@@ -40,16 +40,8 @@ function initRandomVideo() {
   const randomIndex = Math.floor(Math.random() * videoLists.value.length)
   currentVideoIndex.value = randomIndex
   currentVideoSrc.value = videoLists.value[randomIndex]
+  console.log('初始化随机视频:', currentVideoSrc.value)
 }
-
-// const videoUrl = computed(() => {
-//   if (isSilence.value) {
-//     return `${STATIC_URL}/kezai/video/ai-chat.mp4`
-//   }
-//   else {
-//     return `${STATIC_URL}/kezai/video/ai-chat-2.mp4`
-//   }
-// })
 
 /**
  * 重置视频播放器状态
@@ -72,7 +64,7 @@ function handlePlay() {
  * 视频播放完成
  */
 function handleEnded() {
-  console.error('视频播放完成')
+  console.error('视频播放完成', isSilence.value)
 
   if (isSilence.value) {
     initRandomVideo()
@@ -81,7 +73,7 @@ function handleEnded() {
     })
   }
   else {
-    currentVideoSrc.value = `${STATIC_URL}/kezai/video/ai-chat.mp4`
+    currentVideoSrc.value = `${STATIC_URL}/kezai/video/ai-chat-2.mp4`
     nextTick(() => {
       DomVideoPlayerRef.value?.play?.()
     })
@@ -108,11 +100,13 @@ watch(
 )
 
 watch(() => isSilence.value, (newVal) => {
+  console.log('isSilence changed:', newVal)
+
   if (newVal) {
     initRandomVideo()
   }
   else {
-    currentVideoSrc.value = `${STATIC_URL}/kezai/video/ai-chat.mp4`
+    currentVideoSrc.value = `${STATIC_URL}/kezai/video/ai-chat-2.mp4`
   }
 }, {
   immediate: true,

@@ -8,6 +8,7 @@ declare global {
   const CanvasDrawer: typeof import('../utils/canvas-drawer/index')['CanvasDrawer']
   const EffectScope: typeof import('vue')['EffectScope']
   const EventEmitter: typeof import('../utils/helpers/EventEmitter')['EventEmitter']
+  const IdleTimer: typeof import('../utils/helpers/IdleTimer')['IdleTimer']
   const Router: typeof import('../utils/router')['Router']
   const addPrefixUrl: typeof import('../utils/helpers/addPrefixUrl')['addPrefixUrl']
   const appExtractStreamContent: typeof import('../hooks/useAi/index')['appExtractStreamContent']
@@ -228,6 +229,9 @@ declare global {
   // @ts-ignore
   export type { EventEmitter } from '../utils/helpers/EventEmitter'
   import('../utils/helpers/EventEmitter')
+  // @ts-ignore
+  export type { IdleTimer } from '../utils/helpers/IdleTimer'
+  import('../utils/helpers/IdleTimer')
   // @ts-ignore
   export type { CanvasDrawer } from '../utils/canvas-drawer/index'
   import('../utils/canvas-drawer/index')

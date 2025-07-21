@@ -221,6 +221,7 @@ const canStartIdleTimer = computed(() => {
  * 静默模式触发操作
  */
 const isSilence = ref(false)
+const isAutoPlay = ref(false)
 // 使用变量统一控制时间
 const SILENCE_DELAY = 10 * 1000 // 10秒
 
@@ -230,6 +231,7 @@ const silenceTimer = new IdleTimer({
   isLog: false,
   onTimeout: () => {
     isSilence.value = true
+    isAutoPlay.value = true
     console.warn('当前页面空闲中，触发静默模式')
   },
 })
@@ -923,6 +925,8 @@ watch(() => textRes.value, async (newVal) => {
   await nextTick() // 确保视图更新完成
   // replyForm.value.content = modelPrefix.value + newVal as string
   replyForm.value.content = newVal?.startsWith(modelPrefix.value) ? newVal : modelPrefix.value + newVal
+  isSilence.value = false // 重置静默模式状态
+  isAutoPlay.value = false // 重置自动播放状态
 })
 
 watch(() => replyForm.value.content, (newVal) => {
@@ -1010,6 +1014,7 @@ usePageExpose('pages/recorder-ai/index', {
           <chat-video
             ref="chatVideoRef"
             v-model:silence="isSilence"
+            v-model:play="isAutoPlay"
             :is-reset="!(isStreamPlaying && isAudioPlaying)"
             :is-play="(isStreamPlaying && isAudioPlaying)"
           />

@@ -14,6 +14,12 @@ const props = defineProps<{
 
 // 视频播放器引用
 const DomVideoPlayerRef = ref<InstanceType<typeof DomVideoPlayer>>()
+
+const isAutoPlay = defineModel('play', {
+  type: Boolean,
+  default: true,
+})
+
 const isChatVideo = defineModel('show', {
   type: Boolean,
   default: true,
@@ -69,12 +75,14 @@ function handleEnded() {
   if (isSilence.value) {
     initRandomVideo()
     nextTick(() => {
+      // 如果是静默模式，继续播放随机视频
       DomVideoPlayerRef.value?.play?.()
     })
   }
   else {
     currentVideoSrc.value = `${STATIC_URL}/kezai/video/ai-chat-2.mp4`
     nextTick(() => {
+      // 非静默模式直接播放视频
       DomVideoPlayerRef.value?.play?.()
     })
   }
@@ -104,9 +112,20 @@ watch(() => isSilence.value, (newVal) => {
 
   if (newVal) {
     initRandomVideo()
+    isAutoPlay.value = true
+
+    nextTick(() => {
+      // 如果是静默模式，继续播放随机视频
+      DomVideoPlayerRef.value?.play?.()
+    })
   }
   else {
     currentVideoSrc.value = `${STATIC_URL}/kezai/video/ai-chat-2.mp4`
+    isAutoPlay.value = false
+    nextTick(() => {
+      // 如果是静默模式，继续播放随机视频
+      DomVideoPlayerRef.value?.reset?.()
+    })
   }
 }, {
   immediate: true,
@@ -129,7 +148,7 @@ defineExpose({
     <DomVideoPlayer
       ref="DomVideoPlayerRef"
       :src="currentVideoSrc"
-      autoplay
+      :autoplay="isAutoPlay"
       :is-loading="false"
       :controls="false"
       :poster="`${STATIC_URL}/kezai/aiPageBg-quiet.png`"

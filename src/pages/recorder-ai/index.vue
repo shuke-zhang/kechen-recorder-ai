@@ -228,7 +228,7 @@ const SILENCE_DELAY = 10 * 1000 // 10秒
 const silenceTimer = new IdleTimer({
   text: `当前无操作，静默模式`,
   delay: SILENCE_DELAY,
-  isLog: false,
+  isLog: true,
   onTimeout: () => {
     isSilence.value = true
     isAutoPlay.value = true
@@ -242,7 +242,7 @@ const silenceTimer = new IdleTimer({
 const screensaverTimer = new IdleTimer({
   text: '监听到用户无操作',
   delay: IDLE_DELAY, // 你原本的 IDLE_DELAY 值
-  isLog: false,
+  isLog: true,
   onTimeout: async () => {
     console.log('⏳ 空闲超时触发，执行屏保逻辑')
 
@@ -522,11 +522,6 @@ async function onScreensaverTrigger() {
     // 等待 initialLoadPending 为 true 再继续
     try {
       await waitUntil(() => initialLoadPending.value)
-      // streamData.value = {
-      //   buffer: aiCall.callAudioData.audioData,
-      //   text: aiCall.callAudioData.text,
-      //   id: aiCall.callAudioData.id,
-      // }
       playDefaultAudioData()
       console.log('等待初始化完成啦')
     }

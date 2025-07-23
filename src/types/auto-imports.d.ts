@@ -19,7 +19,6 @@ declare global {
   const createApp: typeof import('vue')['createApp']
   const createArrayProp: typeof import('../utils/helpers/props')['createArrayProp']
   const createBooleanProp: typeof import('../utils/helpers/props')['createBooleanProp']
-  const createIdleTimer: typeof import('../utils/dayjs/index')['createIdleTimer']
   const createNumberProp: typeof import('../utils/helpers/props')['createNumberProp']
   const createNumericProp: typeof import('../utils/helpers/props')['createNumericProp']
   const createProvider: typeof import('../hooks/useContext/index')['createProvider']

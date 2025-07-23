@@ -43,7 +43,6 @@ import chatVideo from './components/chat-video.vue'
 import useRecorder from './hooks/useRecorder'
 import usePlayAudio, { type PlayAudioCallbackModel } from './hooks/usePlayAudio'
 import useAiPage from './hooks/useAiPage'
-import useAutoScroll from './hooks/useAutoScroll'
 import { useAiCall } from '@/store/modules/ai-call'
 import { doubaoSpeechSynthesisFormat } from '@/api/audio'
 import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
@@ -146,9 +145,6 @@ const handleTouchStart = debounce(() => {
 
   console.log('🟢 触发发送消息', content.value)
   handleConfirm()
-  nextTick(() => {
-    resetAndScrollToBottom()
-  })
 }, 300)
 const {
   textRes,
@@ -165,21 +161,6 @@ const {
   sendMessage: handleTouchStart,
   recorderAddText,
   userAudioUploadSuccess,
-})
-
-const {
-  scrollTop,
-  handleScroll,
-  resetAndScrollToBottom,
-  initHeights,
-  scrollToBottom,
-  scrolltolower,
-} = useAutoScroll({
-  contentList: content,
-  vueInstance,
-  scrollViewSelector: '.scroll-view',
-  scrollContentSelector: '.scroll-content',
-  immediate: true,
 })
 
 const { processText, textReset } = useTextFormatter()
@@ -205,6 +186,7 @@ const assistantAudioBuffers = ref<{
   buffers: ArrayBuffer
   id: number
 }[]>([])
+const scrollTop = ref(0)
 // 全局变量存储格式化器实例和当前处理的消息索引
 let lastProcessedIndex: number | null = null
 /** 代表当点击了音频小图标时 ，如果此时ai消息还没回复完音频也在播放时为true 否则为false 主要是用于判断ai回复中点击了音频图标后不再需要自动播放 */
@@ -859,7 +841,8 @@ watch(
   () => {
     if (content.value.length > 0) {
       nextTick(() => {
-        scrollToBottom()
+        console.log('scrollTop变化了')
+        scrollTop.value = Date.now() + 500
       })
 
       // 检查最后一条消息是否是AI的回复
@@ -893,7 +876,7 @@ watch(
     console.log('content变化了', newVal)
 
     nextTick(() => {
-      scrollToBottom()
+      scrollTop.value = Date.now() + 500
     })
   },
   { deep: true },
@@ -941,7 +924,7 @@ onMounted(() => {
     console.log(err, '请求权限拒绝')
   })
   addChatHistoryId.value = 0
-  initHeights()
+  // initHeights()
 })
 
 onShow(() => {
@@ -1000,12 +983,6 @@ usePageExpose('pages/recorder-ai/index', {
         <view
           class="w-full h-70%  pointer-events-none"
         >
-          <!-- <image
-            :src="(isStreamPlaying && isAudioPlaying) ? '/static/images/aiPageBg.gif' : '/static/images/aiPageBg-quiet.png'"
-            mode="aspectFit"
-            class="size-100%"
-          /> -->
-
           <chat-video
             ref="chatVideoRef"
             v-model:silence="isSilence"
@@ -1019,10 +996,9 @@ usePageExpose('pages/recorder-ai/index', {
             ref="scrollViewRef"
             scroll-y
             :scroll-top="scrollTop"
-            class=" scroll-view pr-20rpx pl-20rpx  h-full"
+            class=" scroll-view pr-20rpx pl-20rpx  "
+            :style="{ height: '300rpx' }"
             :scroll-with-animation="true"
-            @scroll="handleScroll"
-            @scrolltolower="scrolltolower"
           >
             <view class="scroll-content">
               <!--  content.length === 0 -->

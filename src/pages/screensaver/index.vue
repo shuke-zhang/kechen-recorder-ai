@@ -41,10 +41,7 @@ const currentVideoIndex = ref(0)
 // 视频播放器引用
 const videoRef = ref<Video | null>(null)
 const DomVideoPlayerRef = ref<InstanceType<typeof DomVideoPlayer>>()
-const isScreensaver = defineModel('show', {
-  type: Boolean,
-  default: true,
-})
+
 
 // 初始化第一个随机视频
 function initRandomVideo() {
@@ -57,12 +54,7 @@ onMounted(() => {
   initRandomVideo()
 })
 
-watch(isScreensaver, (newVal) => {
-  if (!newVal) {
-    console.log('停止播放视频')
-    videoRef.value?.pause?.()
-  }
-})
+
 
 onMounted(() => {
   // 清理视频播放器
@@ -74,17 +66,18 @@ onMounted(() => {
 </script>
 
 <template>
-  <view v-if="isScreensaver" class="w-[100vw] h-[100vh] flex-center bg-#f9f4f7 screensaver-wrapper" :class="{ 'off-screen': !isScreensaver }">
+  <view class="w-[100vw] h-[100vh] flex-center bg-#f9f4f7 screensaver-wrapper" >
     <DomVideoPlayer
       ref="DomVideoPlayerRef"
       :src="`${STATIC_URL}/kezai/video/screensaver-1.mp4`"
-      autoplay
-      :is-loading="true"
-      loop
+      :is-loading="false"
       :controls="false"
-      poster="/static/images/aiPageBg-quiet.png"
+      :poster="`${STATIC_URL}/kezai/aiPageBg-quiet.png`"
+      autoplay
+      loop
       muted
     />
+  
 
     <view
       class="absolute top-0 left-0 w-full h-full z-[10]"
@@ -113,5 +106,15 @@ onMounted(() => {
   z-index: -9999;
   pointer-events: none;
   opacity: 0;
+}
+
+::v-deep(.uni-video-container)   {
+	background-color: transparent;
+  padding-top:400rpx ;
+}
+
+.uni-video-container {
+ 	background-color: transparent;
+
 }
 </style>

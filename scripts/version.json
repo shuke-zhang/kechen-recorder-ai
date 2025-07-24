@@ -1,9 +1,8 @@
 {
-  "version": "1.0.9",
+  "version": "1.0.10",
   "appUrl": "https://shuke-zhang.oss-cn-chengdu.aliyuncs.com/kezai/kezai-AI.zip",
   "updateList": [
     "优化屏保页面",
-    "优化页面逻辑",
-    "修复了部分bug"
+    "修复首页白屏bug"
   ]
 }

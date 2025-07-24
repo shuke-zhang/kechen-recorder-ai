@@ -5,7 +5,6 @@
 </route>
 
 <script setup lang="ts">
-import type { Video } from '@uni-helper/uni-app-types'
 import type DomVideoPlayer from '@/components/DomVideoPlayer/DomVideoPlayer.vue'
 
 const emit = defineEmits(['onTrigger'])
@@ -39,7 +38,6 @@ const videoLists = computed(() => {
 // 当前播放的视频索引
 const currentVideoIndex = ref(0)
 // 视频播放器引用
-const videoRef = ref<Video | null>(null)
 const DomVideoPlayerRef = ref<InstanceType<typeof DomVideoPlayer>>()
 
 

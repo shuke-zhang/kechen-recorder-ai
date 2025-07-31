@@ -69,6 +69,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
    */
   function recReq() {
     return new Promise((resolve, reject) => {
+      RecordApp.UniAppUseLicense = `我已获得UniAppID=__UNI__8F99B58的商用授权`
       RecordApp.UniWebViewActivate(vueInstance) // App环境下必须先切换成当前页面WebView
       RecordApp.RequestPermission(
         () => {

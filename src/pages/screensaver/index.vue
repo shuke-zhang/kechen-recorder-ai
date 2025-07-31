@@ -81,21 +81,17 @@ function handleEnded() {
   initRandomVideo()
 }
 
+function handlePlay() {
+  console.log('视频开始播放')
+}
+
 onMounted(() => {
   initRandomVideo()
   // 强制锁定竖屏（App 端）
   if (typeof plus !== 'undefined') {
     plus.screen.lockOrientation('portrait-primary')
   }
-})
-
-onMounted(() => {
-  // 清理视频播放器
-  // if (videoRef.value) {
-  //   videoRef.value.pause()
-  // }
-  checkNewVersion(false)
-  plus.navigator.setFullscreen(true)
+  console.log('屏保页面 mounted')
 })
 </script>
 
@@ -110,6 +106,7 @@ onMounted(() => {
       autoplay
       muted
       object-fit="cover"
+      @play="handlePlay"
       @ended="handleEnded"
     />
     <view

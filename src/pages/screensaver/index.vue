@@ -105,7 +105,7 @@ onMounted(() => {
       :poster="`${STATIC_URL}/kezai/black-bg.png`"
       autoplay
       muted
-      object-fit="cover"
+      object-fit="fill"
       @play="handlePlay"
       @ended="handleEnded"
     />

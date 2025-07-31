@@ -31,22 +31,32 @@ const isSilence = defineModel('silence', {
 })
 // 当前播放的视频索引
 const currentVideoIndex = ref(0)
+
+const sayVideoSrc = `${STATIC_URL}/kezai/video/compression/say-1.mp4`
 // 当前播放的视频地址
 const currentVideoSrc = ref('')
 /** 视频文件 */
 const videoLists = ref([
-  `${STATIC_URL}/kezai/video/screensaver-1.mp4`,
-  `${STATIC_URL}/kezai/video/screensaver-2.mp4`,
-  `${STATIC_URL}/kezai/video/screensaver-3.mp4`,
-  `${STATIC_URL}/kezai/video/screensaver-4.mp4`,
-  `${STATIC_URL}/kezai/video/screensaver-5.mp4`,
+  `${STATIC_URL}/kezai/video/compression/wait-1.mp4`,
+  `${STATIC_URL}/kezai/video/compression/wait-2.mp4`,
 ])
 
 function initRandomVideo() {
-  const randomIndex = Math.floor(Math.random() * videoLists.value.length)
-  currentVideoIndex.value = randomIndex
-  currentVideoSrc.value = videoLists.value[randomIndex]
-  console.log('初始化随机视频:', currentVideoSrc.value)
+  let nextIndex = currentVideoIndex.value
+  const total = videoLists.value.length
+
+  if (total <= 1) {
+    currentVideoSrc.value = videoLists.value[0] || ''
+    return
+  }
+
+  // 保证新的视频索引与当前不一样
+  while (nextIndex === currentVideoIndex.value) {
+    nextIndex = Math.floor(Math.random() * total)
+  }
+
+  currentVideoIndex.value = nextIndex
+  currentVideoSrc.value = videoLists.value[nextIndex]
 }
 
 /**
@@ -80,7 +90,7 @@ function handleEnded() {
     })
   }
   else {
-    currentVideoSrc.value = `${STATIC_URL}/kezai/video/ai-chat-2.mp4`
+    currentVideoSrc.value = sayVideoSrc
     nextTick(() => {
       // 非静默模式直接播放视频
       DomVideoPlayerRef.value?.play?.()
@@ -120,7 +130,7 @@ watch(() => isSilence.value, (newVal) => {
     })
   }
   else {
-    currentVideoSrc.value = `${STATIC_URL}/kezai/video/ai-chat-2.mp4`
+    currentVideoSrc.value = sayVideoSrc
     isAutoPlay.value = false
     nextTick(() => {
       // 如果是静默模式，继续播放随机视频
@@ -151,6 +161,7 @@ defineExpose({
       :autoplay="isAutoPlay"
       :is-loading="false"
       :controls="false"
+      object-fit="fill"
       :poster="`${STATIC_URL}/kezai/aiPageBg-quiet.png`"
       muted
       @ended="handleEnded"

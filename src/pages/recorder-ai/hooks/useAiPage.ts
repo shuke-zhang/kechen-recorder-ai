@@ -6,7 +6,7 @@ export const defaultSendMsgPre = '你叫柯仔，你只能叫柯仔，不能使�
 /**
  * 整合页面ai回复逻辑
  */
-export default function useAiPage(height: string) {
+export default function useAiPage() {
   const replyForm = ref({ content: '', role: 'user' })
   const popupVisible = ref(false)
   const popupRef = ref<any>(null)
@@ -18,9 +18,6 @@ export default function useAiPage(height: string) {
   const aiCurrentIndex = ref(0)
   const aiInited = ref(false)
 
-  const aiScrollView = computed(() => ({
-    height: `calc(100vh - ${height} - 120rpx - 40rpx)`,
-  }))
   const modelName = computed(() => aiModelList[aiCurrentIndex.value]?.name || '')
   const modelSubTitle = computed(() => aiModelList[aiCurrentIndex.value]?.subTitle || '')
   const modelPrefix = computed(() => aiModelList[aiCurrentIndex.value]?.sendMsgPrefix || defaultSendMsgPre)
@@ -162,7 +159,6 @@ export default function useAiPage(height: string) {
     aiNameList,
     aiModelInstanceList,
     popupVisible,
-    aiScrollView,
     aiCurrentIndex,
     chatSSEClientRef,
     modelName,

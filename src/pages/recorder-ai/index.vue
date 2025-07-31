@@ -82,6 +82,8 @@ const initialLoadPending = ref(false)
  * - 当ai在回复并且自己已经说话完成的时候 stopped   表示说话或者点击打断ai回复
  */
 const recorderStatus = ref<StatusModel >('pending')
+console.log(`当前页面的高度`, pageHeight.value)
+
 /**
  * 音频播放组件实例
  */
@@ -90,30 +92,32 @@ const streamPlayerRef = ref<InstanceType<typeof StreamPlayer>>()
  * 视频播放组件实例
  */
 const chatVideoRef = ref<InstanceType<typeof chatVideo>>()
-/**
- * 状态栏高度
- */
-const navbarHeight = computed(() => '45px')
+
+const systemInfo = uni.getSystemInfoSync()
+const windowHeight = systemInfo.windowHeight // 单位是 px，不是 rpx
 const inputHeight = computed(() => {
-  return isPad ? '150px' : '200rpx'
+  return isPad ? '50px' : '200rpx'
 })
+const scrollViewHeight = `${windowHeight * 0.15}px`
+console.log(scrollViewHeight, 'scrollViewHeight')
+
 const isAutoPlaying = ref(false)
-const { handleMultiClick } = useMultiClickTrigger({
-  onTrigger: () => {
-    // router.push('/pages/test/index', { id: 123 })
-    isAutoPlaying.value = !isAutoPlaying.value
-    if (isAutoPlaying.value) {
-      showToastSuccess('开启自动识别').then(() => {
-        handleRecorderStart()
-      })
-    }
-    else {
-      showToastSuccess('关闭自动识别').then(() => {
-        isAutoRecognize.value = false
-      })
-    }
-  },
-})
+// const { handleMultiClick } = useMultiClickTrigger({
+//   onTrigger: () => {
+//     // router.push('/pages/test/index', { id: 123 })
+//     isAutoPlaying.value = !isAutoPlaying.value
+//     if (isAutoPlaying.value) {
+//       showToastSuccess('开启自动识别').then(() => {
+//         handleRecorderStart()
+//       })
+//     }
+//     else {
+//       showToastSuccess('关闭自动识别').then(() => {
+//         isAutoRecognize.value = false
+//       })
+//     }
+//   },
+// })
 
 const { base64ToArrayBuffer, playAudioInit, uploadFileAudio, saveAndPlayBase64MP3 } = usePlayAudio(RecordAppInstance)
 
@@ -123,7 +127,6 @@ const {
   isAiMessageEnd,
   loading,
   modelName,
-  modelSubTitle,
   modelPrefix,
   replyForm,
   onSuccess,
@@ -136,7 +139,7 @@ const {
   handleSendMsg,
   handleCopy,
   setAiContent,
-} = useAiPage(pageHeight.value)
+} = useAiPage()
 const startTime = ref(0)
 const handleTouchStart = debounce(() => {
   removeEmptyMessagesByRole('assistant')
@@ -950,13 +953,7 @@ usePageExpose('pages/recorder-ai/index', {
 </script>
 
 <template>
-  <view class="bg-[#fdf9f6]" @touchstart="resetIdleTimer" @touchmove="resetIdleTimer" @touchend="resetIdleTimer" @click="resetIdleTimer" @scroll="resetIdleTimer">
-    <nav-bar :show-back="false" transparent>
-      <text class="opacity-0" @click="handleMultiClick">
-        柯仔AI
-      </text>
-    </nav-bar>
-
+  <view class="h-100vh" @touchstart="resetIdleTimer" @touchmove="resetIdleTimer" @touchend="resetIdleTimer" @click="resetIdleTimer" @scroll="resetIdleTimer">
     <!-- 流式流式ai消息 -->
     <GaoChatSSEClient
       ref="chatSSEClientRef"
@@ -978,10 +975,10 @@ usePageExpose('pages/recorder-ai/index', {
     <!-- #endif -->
 
     <!-- <view v-show="!isScreensaver"> -->
-    <view>
-      <view :style="{ height: `calc(100vh - ${inputHeight} - ${navbarHeight})` }">
+    <view class="size-full ">
+      <view :style="{ height: `calc(100% - ${inputHeight}  ` }" class="">
         <view
-          class="w-full h-70%  pointer-events-none"
+          class="w-full h-85%  pointer-events-none"
         >
           <chat-video
             ref="chatVideoRef"
@@ -991,33 +988,17 @@ usePageExpose('pages/recorder-ai/index', {
             :is-play="(isStreamPlaying && isAudioPlaying)"
           />
         </view>
-        <view class="h-30% pb-120rpx">
+        <view class="h-15% pb-120rpx ">
           <scroll-view
             ref="scrollViewRef"
             scroll-y
             :scroll-top="scrollTop"
-            class=" scroll-view pr-20rpx pl-20rpx  "
-            :style="{ height: '300rpx' }"
+            class=" pr-20rpx pl-20rpx "
+            :style="{ height: scrollViewHeight,
+            }"
             :scroll-with-animation="true"
           >
-            <view class="scroll-content">
-              <!--  content.length === 0 -->
-              <view v-if="false" class="h-full flex justify-end flex-col items-center ">
-                <view>
-                  <image
-                    class="ai-img"
-                    src="/static/images/ai-logo/kezai-default.png"
-                    mode="aspectFill"
-                  />
-                </view>
-                <view class="font-size-60rpx mt-20rpx">
-                  我是{{ modelSubTitle }}
-                </view>
-                <view class="mt-20rpx w-80%">
-                  我可以帮你搜索、答疑、写作、请在下方输入你的内容~
-                </view>
-              </view>
-
+            <view class="scroll-content ">
               <view v-for="(msg, index) in content" :key="index" class="py-16rpx">
                 <!-- 用户消息 -->
                 <view v-if="msg.role === 'user'" class=" flex  flex-justify-end opacity-60">

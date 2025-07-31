@@ -274,6 +274,12 @@ export default {
       videoEl.muted = muted
       videoEl.playbackRate = playbackRate
       videoEl.id = this.playerId
+      videoEl.style.position = 'absolute'
+      videoEl.style.top = '0'
+      videoEl.style.left = '0'
+      videoEl.style.width = '100%'
+      videoEl.style.height = '100%'
+      videoEl.style.objectFit = objectFit
       // videoEl.setAttribute('x5-video-player-type', 'h5')
       videoEl.setAttribute('preload', 'auto')
       videoEl.setAttribute('playsinline', true)
@@ -308,6 +314,7 @@ export default {
         loadingEl.style.width = '100%'
         loadingEl.style.height = '100%'
         loadingEl.style.backgroundColor = 'black'
+
         document.getElementById(this.wrapperId).appendChild(loadingEl)
 
         // 创建 loading 动画
@@ -603,9 +610,10 @@ export default {
 
 <style scoped>
 .player-wrapper {
-  overflow: hidden;
+  position: relative;
+  width: 100%;
   height: 100%;
   padding: 0;
-  position: relative;
+  overflow: hidden;
 }
 </style>

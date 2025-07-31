@@ -1,6 +1,20 @@
 <route lang="json"  type="home">
   {
-       "style": { "navigationBarTitleText": "录音","navigationStyle": "custom" }
+       "style": {
+       "navigationBarTitleText": "录音",
+       "navigationStyle": "custom" ,
+       "orientation": ["portrait"],
+        "app-plus": {
+        "safearea": {
+          "bottom": false
+           }
+         },
+         "distribute": {
+          "android": {
+            "immersed": true
+             }
+          }
+       }
   }
 </route>
 
@@ -17,22 +31,18 @@ const { visible, downloadUrl, updateList, downloadApp, checkNewVersion } = useCh
 function onRecorder() {
   router.replace('/pages/recorder-ai/index')
 }
+const currentVideoSrc = ref('')
 /** 视频文件 */
 const videoLists = computed(() => {
-  if (isApp) {
-    return [
-      '/static/video/screensaver-1.mp4',
-    ]
-  }
-  else {
-    return [
-      `${STATIC_URL}/kezai/video/screensaver-1.mp4`,
-      `${STATIC_URL}/kezai/video/screensaver-2.mp4`,
-      `${STATIC_URL}/kezai/video/screensaver-3.mp4`,
-      `${STATIC_URL}/kezai/video/screensaver-4.mp4`,
-      `${STATIC_URL}/kezai/video/screensaver-5.mp4`,
-    ]
-  }
+  return [
+    `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-1.mp4`,
+    `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-2.mp4`,
+    `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-3.mp4`,
+    `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-4.mp4`,
+    `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-5.mp4`,
+    `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-6.mp4`,
+    `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-7.mp4`,
+  ]
 })
 
 // 当前播放的视频索引
@@ -40,19 +50,44 @@ const currentVideoIndex = ref(0)
 // 视频播放器引用
 const DomVideoPlayerRef = ref<InstanceType<typeof DomVideoPlayer>>()
 
-
 // 初始化第一个随机视频
 function initRandomVideo() {
-  const randomIndex = Math.floor(Math.random() * videoLists.value.length)
-  currentVideoIndex.value = randomIndex
-  // currentVideoSrc.value = videoLists.value[randomIndex]
+  let nextIndex = currentVideoIndex.value
+  const total = videoLists.value.length
+
+  if (total <= 1) {
+    currentVideoSrc.value = videoLists.value[0] || ''
+    return
+  }
+
+  // 保证新的视频索引与当前不一样
+  while (nextIndex === currentVideoIndex.value) {
+    nextIndex = Math.floor(Math.random() * total)
+  }
+
+  currentVideoIndex.value = nextIndex
+  currentVideoSrc.value = videoLists.value[nextIndex]
+  // currentVideoSrc.value = ''
+  console.log(currentVideoSrc.value, '切换地址了')
+}
+
+/**
+ * 监听到视频播放结束
+ */
+function handleEnded() {
+  // 播放结束后，随机播放下一个视频
+  console.log('播放结束了')
+
+  initRandomVideo()
 }
 
 onMounted(() => {
   initRandomVideo()
+  // 强制锁定竖屏（App 端）
+  if (typeof plus !== 'undefined') {
+    plus.screen.lockOrientation('portrait-primary')
+  }
 })
-
-
 
 onMounted(() => {
   // 清理视频播放器
@@ -60,23 +95,23 @@ onMounted(() => {
   //   videoRef.value.pause()
   // }
   checkNewVersion(false)
+  plus.navigator.setFullscreen(true)
 })
 </script>
 
 <template>
-  <view class="w-[100vw] h-[100vh] flex-center bg-#f9f4f7 screensaver-wrapper" >
+  <view class=" w-[100vw] h-[100vh] flex-center screensaver-wrapper p-0! m-0!">
     <DomVideoPlayer
       ref="DomVideoPlayerRef"
-      :src="`${STATIC_URL}/kezai/video/screensaver-1.mp4`"
+      :src="currentVideoSrc"
       :is-loading="false"
       :controls="false"
-      :poster="`${STATIC_URL}/kezai/aiPageBg-quiet.png`"
+      :poster="`${STATIC_URL}/kezai/black-bg.png`"
       autoplay
-      loop
       muted
+      object-fit="cover"
+      @ended="handleEnded"
     />
-  
-
     <view
       class="absolute top-0 left-0 w-full h-full z-[10]"
       @click="handleMultiClick"
@@ -88,31 +123,11 @@ onMounted(() => {
 </template>
 
 <style lang="scss">
-.screensaver-wrapper {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 999; // 或适当值
-  transition: transform 0.4s ease;
-}
-
-.off-screen {
-  transform: translateX(-10000px); // 也可用 translateY(10000px)
-  position: absolute;
-  z-index: -9999;
-  pointer-events: none;
-  opacity: 0;
-}
-
-::v-deep(.uni-video-container)   {
-	background-color: transparent;
-  padding-top:400rpx ;
-}
-
-.uni-video-container {
- 	background-color: transparent;
-
+html,
+body {
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+  height: 100%;
+  overflow: hidden;
 }
 </style>

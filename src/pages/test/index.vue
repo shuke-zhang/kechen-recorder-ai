@@ -8,6 +8,7 @@
 import chatVideo from '@/pages/recorder-ai/components/chat-video.vue'
 
 const chatVideoRef = ref()
+const res = ref(222)
 const isSilence = ref(false)
 </script>
 

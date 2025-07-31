@@ -19,7 +19,20 @@
       "type": "home",
       "style": {
         "navigationBarTitleText": "录音",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "orientation": [
+          "portrait"
+        ],
+        "app-plus": {
+          "safearea": {
+            "bottom": false
+          }
+        },
+        "distribute": {
+          "android": {
+            "immersed": true
+          }
+        }
       }
     },
     {

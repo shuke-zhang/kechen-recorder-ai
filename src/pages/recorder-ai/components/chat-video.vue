@@ -39,6 +39,9 @@ const currentVideoSrc = ref('')
 const videoLists = ref([
   `${STATIC_URL}/kezai/video/compression/wait-1.mp4`,
   `${STATIC_URL}/kezai/video/compression/wait-2.mp4`,
+  `${STATIC_URL}/kezai/video/compression/wait-3.mp4`,
+  `${STATIC_URL}/kezai/video/compression/wait-4.mp4`,
+  `${STATIC_URL}/kezai/video/compression/wait-5.mp4`,
 ])
 
 function initRandomVideo() {

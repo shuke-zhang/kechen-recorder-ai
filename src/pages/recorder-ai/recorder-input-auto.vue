@@ -92,7 +92,7 @@ onHide(() => {
   <view
     class="comment-input-container bg-#dcebfb flex flex-col items-center" :style="{
       bottom: inputBottom,
-      height: `${isPad ? '50px' : '200rpx'}`,
+      height: `${isPad ? '50px' : '140rpx'}`,
     }"
   >
     <!-- 正常模式 -->

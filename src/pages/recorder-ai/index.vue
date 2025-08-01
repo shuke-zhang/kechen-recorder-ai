@@ -96,7 +96,7 @@ const chatVideoRef = ref<InstanceType<typeof chatVideo>>()
 const systemInfo = uni.getSystemInfoSync()
 const windowHeight = systemInfo.windowHeight // 单位是 px，不是 rpx
 const inputHeight = computed(() => {
-  return isPad ? '50px' : '200rpx'
+  return isPad ? '50px' : '140rpx'
 })
 const scrollViewHeight = `${windowHeight * 0.15}px`
 console.log(scrollViewHeight, 'scrollViewHeight')
@@ -1002,7 +1002,7 @@ usePageExpose('pages/recorder-ai/index', {
               <view v-for="(msg, index) in content" :key="index" class="py-16rpx">
                 <!-- 用户消息 -->
                 <view v-if="msg.role === 'user'" class=" flex  flex-justify-end opacity-60">
-                  <view class="message-bubble  border-rd-16rpx   bg-#07c160 color-white max-w-80%" :class="[isPad ? 'p-16px!' : 'p-32rpx!']">
+                  <view class="message-bubble  border-rd-16rpx flex-center   bg-#07c160 color-white max-w-80% " :class="[isPad ? 'p-16px!' : 'p-32rpx!']">
                     <text
                       selectable :class="{
                         ['font-size-14px!']: isPad,
@@ -1048,17 +1048,18 @@ usePageExpose('pages/recorder-ai/index', {
                         <view class="h-2rpx  bg-black-3 my-10rpx" />
 
                         <view class="flex items-center justify-end ">
-                          <view class="border-rd-16rpx size-60rpx bg-#e8ecf5 flex-center" @click="handleCopy(msg.content as string)">
+                          <view class="  bg-#e8ecf5 flex-center" :class="[isPad ? 'size-30px border-rd-8px' : 'size-60rpx border-rd-16rpx']" @click="handleCopy(msg.content as string)">
                             <icon-font name="copy" :color="COLOR_PRIMARY" :size="28" />
                           </view>
-                          <view class="border-rd-16rpx size-60rpx  bg-#e8ecf5 flex-center  ml-20rpx" @click="handleRecorder(msg.content as string, index)">
+                          <view class="  bg-#e8ecf5 flex-center  ml-20rpx" :class="[isPad ? 'size-30px border-rd-8px ' : 'size-60rpx border-rd-16rpx ']" @click="handleRecorder(msg.content as string, index)">
                             <audio-wave
                               v-if="isStreamPlaying && currentIndex === index"
                               status="playing"
                               :color="COLOR_PRIMARY"
-                              :bar-width="6"
-                              :bar-max-height="24"
-                              :gap="4"
+                              :bar-width="isPad ? 4 : 10"
+                              :bar-max-height="isPad ? 20 : 40"
+                              :gap="isPad ? 4 : 6"
+                              :dot-size="isPad ? 4 : 18"
                             />
                             <icon-font v-else name="sound" :color="COLOR_PRIMARY" :size="28" />
                           </view>
@@ -1084,7 +1085,7 @@ usePageExpose('pages/recorder-ai/index', {
         placeholder="请输入您的问题..."
         btn-text="发送"
         @confirm="onConfirm"
-        @click-stopped="stopAll, recorderStatus = 'pending'"
+        @click-stopped="stopAll(), recorderStatus = 'pending'"
       />
     </view>
 

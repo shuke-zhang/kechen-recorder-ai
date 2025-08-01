@@ -32,7 +32,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['click'])
 
-const iconSize = computed(() => getNumericValue(props.size))
+const iconSize = computed(() => isPad ? `${Number(props.size) / 2}px` : getNumericValue(props.size))
 function handleClick() {
   emit('click')
 }

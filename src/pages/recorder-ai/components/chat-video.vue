@@ -162,7 +162,7 @@ defineExpose({
       :is-loading="false"
       :controls="false"
       object-fit="fill"
-      :poster="`${STATIC_URL}/kezai/aiPageBg-quiet.png`"
+      :poster="`${STATIC_URL}/kezai/cover.png.png`"
       muted
       @ended="handleEnded"
     />

@@ -12,6 +12,8 @@ const props = defineProps<{
   isPlay?: boolean
 }>()
 
+const { localWaitingVideoList, localSpeakingVideoList, localVideoStatus, initFolder } = useLocalPlayVideo()
+
 // 视频播放器引用
 const DomVideoPlayerRef = ref<InstanceType<typeof DomVideoPlayer>>()
 
@@ -35,31 +37,67 @@ const currentVideoIndex = ref(0)
 const sayVideoSrc = `${STATIC_URL}/kezai/video/compression/say-1.mp4`
 // 当前播放的视频地址
 const currentVideoSrc = ref('')
-/** 视频文件 */
-const videoLists = ref([
-  `${STATIC_URL}/kezai/video/compression/wait-1.mp4`,
-  `${STATIC_URL}/kezai/video/compression/wait-2.mp4`,
-  `${STATIC_URL}/kezai/video/compression/wait-3.mp4`,
-  `${STATIC_URL}/kezai/video/compression/wait-4.mp4`,
-  `${STATIC_URL}/kezai/video/compression/wait-5.mp4`,
-])
+/** 说话视频文件 */
+const speakingVideoLists = ref<string[]>([sayVideoSrc])
+/** 静默视频文件 */
+const waitingVideoLists = ref<string[]>([])
+/**
+ * 获取视频源列表：优先本地视频，其次使用网络视频
+ */
+async function initVideoSource() {
+  if (localVideoStatus.value === 'uninitialized') {
+    console.log('⚙️ 正在初始化本地视频目录...')
+    await initFolder()
+  }
 
-function initRandomVideo() {
-  let nextIndex = currentVideoIndex.value
-  const total = videoLists.value.length
+  if (localVideoStatus.value === 'has') {
+    console.log('🎬 使用本地视频')
+    waitingVideoLists.value = localWaitingVideoList.value
+    speakingVideoLists.value = localSpeakingVideoList.value
+  }
+  else {
+    console.log('🌐 使用网络视频')
+    waitingVideoLists.value = [
+      `${STATIC_URL}/kezai/video/compression/wait-1.mp4`,
+      `${STATIC_URL}/kezai/video/compression/wait-2.mp4`,
+      `${STATIC_URL}/kezai/video/compression/wait-3.mp4`,
+      `${STATIC_URL}/kezai/video/compression/wait-4.mp4`,
+      `${STATIC_URL}/kezai/video/compression/wait-5.mp4`,
+    ]
+    speakingVideoLists.value = [
+      `${STATIC_URL}/kezai/video/compression/say-1.mp4`,
+    ]
+  }
+}
 
-  if (total <= 1) {
-    currentVideoSrc.value = videoLists.value[0] || ''
+/**
+ * 播放随机视频（不重复当前）
+ */
+async function playRandomVideo() {
+  await initVideoSource()
+
+  const list = isSilence.value ? waitingVideoLists.value : speakingVideoLists.value
+
+  if (!list || list.length === 0) {
+    console.warn('⚠️ 无可播放视频')
     return
   }
 
-  // 保证新的视频索引与当前不一样
-  while (nextIndex === currentVideoIndex.value) {
-    nextIndex = Math.floor(Math.random() * total)
+  let nextIndex = currentVideoIndex.value
+  const total = list.length
+
+  if (total === 1) {
+    nextIndex = 0
+  }
+  else {
+    while (nextIndex === currentVideoIndex.value) {
+      nextIndex = Math.floor(Math.random() * total)
+    }
   }
 
   currentVideoIndex.value = nextIndex
-  currentVideoSrc.value = videoLists.value[nextIndex]
+  currentVideoSrc.value = list[nextIndex]
+  console.log('📺 切换播放地址:', currentVideoSrc.value)
 }
 
 /**
@@ -84,21 +122,7 @@ function handlePlay() {
  */
 function handleEnded() {
   console.error('视频播放完成', isSilence.value)
-
-  if (isSilence.value) {
-    initRandomVideo()
-    nextTick(() => {
-      // 如果是静默模式，继续播放随机视频
-      DomVideoPlayerRef.value?.play?.()
-    })
-  }
-  else {
-    currentVideoSrc.value = sayVideoSrc
-    nextTick(() => {
-      // 非静默模式直接播放视频
-      DomVideoPlayerRef.value?.play?.()
-    })
-  }
+  playRandomVideo()
 }
 
 watch(
@@ -120,28 +144,8 @@ watch(
   { immediate: true },
 )
 
-watch(() => isSilence.value, (newVal) => {
-  console.log('isSilence changed:', newVal)
-
-  if (newVal) {
-    initRandomVideo()
-    isAutoPlay.value = true
-
-    nextTick(() => {
-      // 如果是静默模式，继续播放随机视频
-      DomVideoPlayerRef.value?.play?.()
-    })
-  }
-  else {
-    currentVideoSrc.value = sayVideoSrc
-    isAutoPlay.value = false
-    nextTick(() => {
-      // 如果是静默模式，继续播放随机视频
-      DomVideoPlayerRef.value?.reset?.()
-    })
-  }
-}, {
-  immediate: true,
+onMounted(() => {
+  playRandomVideo()
 })
 
 defineExpose({

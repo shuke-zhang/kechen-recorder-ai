@@ -143,6 +143,19 @@ watch(
   },
   { immediate: true },
 )
+watch(
+  () => isSilence.value,
+  (val) => {
+    if (val) {
+      console.log('切换到静默视频')
+    }
+    else {
+      console.log('切换到说话视频')
+    }
+    playRandomVideo()
+  },
+  { immediate: true },
+)
 
 onMounted(() => {
   playRandomVideo()

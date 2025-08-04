@@ -191,6 +191,7 @@ declare global {
   const useDicts: typeof import('../hooks/useDicts/index')['useDicts']
   const useId: typeof import('vue')['useId']
   const useListData: typeof import('../hooks/useListData/index')['useListData']
+  const useLocalPlayVideo: typeof import('../hooks/useLocalPlayVideo/index')['useLocalPlayVideo']
   const useModel: typeof import('vue')['useModel']
   const useMultiClickTrigger: typeof import('../hooks/useMultiClickTrigger/index')['useMultiClickTrigger']
   const usePageExpose: typeof import('../hooks/usePageExpose/index')['usePageExpose']

@@ -1,21 +1,21 @@
-<route lang="json"  type="home">
-  {
-       "style": {
-       "navigationBarTitleText": "录音",
-       "navigationStyle": "custom" ,
-       "orientation": ["portrait"],
-        "app-plus": {
-        "safearea": {
-          "bottom": false
-           }
-         },
-         "distribute": {
-          "android": {
-            "immersed": true
-             }
-          }
-       }
+<route lang="json" type="home">
+{
+  "style": {
+    "navigationBarTitleText": "录音",
+    "navigationStyle": "custom",
+    "orientation": ["portrait"],
+    "app-plus": {
+      "safearea": {
+        "bottom": false
+      }
+    },
+    "distribute": {
+      "android": {
+        "immersed": true
+      }
+    }
   }
+}
 </route>
 
 <script setup lang="ts">
@@ -27,13 +27,35 @@ const { handleMultiClick } = useMultiClickTrigger({
   targetCount: 2,
   onTrigger: onRecorder,
 })
+const { localScreensaverVideoList, localVideoStatus, initFolder } = useLocalPlayVideo()
 const { visible, downloadUrl, updateList, downloadApp, checkNewVersion } = useCheckAppVersion()
+
 function onRecorder() {
   router.replace('/pages/recorder-ai/index')
 }
+
+// 视频播放器引用
+const DomVideoPlayerRef = ref<InstanceType<typeof DomVideoPlayer>>()
+// 当前播放的视频地址
 const currentVideoSrc = ref('')
-/** 视频文件 */
-const videoLists = computed(() => {
+// 当前播放索引
+const currentVideoIndex = ref(0)
+
+/**
+ * 获取视频源列表：优先本地视频，其次使用网络视频
+ */
+async function initVideoSource(): Promise<string[]> {
+  if (localVideoStatus.value === 'uninitialized') {
+    console.log('⚙️ 正在初始化本地视频目录...')
+    await initFolder()
+  }
+
+  if (localVideoStatus.value === 'has') {
+    console.log('🎬 使用本地视频', localScreensaverVideoList.value)
+    return localScreensaverVideoList.value
+  }
+
+  console.log('🌐 使用网络视频')
   return [
     `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-1.mp4`,
     `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-2.mp4`,
@@ -43,60 +65,73 @@ const videoLists = computed(() => {
     `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-6.mp4`,
     `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-7.mp4`,
   ]
-})
-
-// 当前播放的视频索引
-const currentVideoIndex = ref(0)
-// 视频播放器引用
-const DomVideoPlayerRef = ref<InstanceType<typeof DomVideoPlayer>>()
-
-// 初始化第一个随机视频
-function initRandomVideo() {
-  let nextIndex = currentVideoIndex.value
-  const total = videoLists.value.length
-
-  if (total <= 1) {
-    currentVideoSrc.value = videoLists.value[0] || ''
-    return
-  }
-
-  // 保证新的视频索引与当前不一样
-  while (nextIndex === currentVideoIndex.value) {
-    nextIndex = Math.floor(Math.random() * total)
-  }
-
-  currentVideoIndex.value = nextIndex
-  currentVideoSrc.value = videoLists.value[nextIndex]
-  // currentVideoSrc.value = ''
-  console.log(currentVideoSrc.value, '切换地址了')
 }
 
 /**
- * 监听到视频播放结束
+ * 播放随机视频（不重复当前）
+ */
+async function playRandomVideo() {
+  const list = await initVideoSource()
+
+  if (!list || list.length === 0) {
+    console.warn('⚠️ 无可播放视频')
+    return
+  }
+
+  let nextIndex = currentVideoIndex.value
+  const total = list.length
+
+  if (total === 1) {
+    nextIndex = 0
+  }
+  else {
+    while (nextIndex === currentVideoIndex.value) {
+      nextIndex = Math.floor(Math.random() * total)
+    }
+  }
+
+  currentVideoIndex.value = nextIndex
+  currentVideoSrc.value = list[nextIndex]
+  console.log('📺 切换播放地址:', currentVideoSrc.value)
+}
+
+/**
+ * 播放结束后切换
  */
 function handleEnded() {
-  // 播放结束后，随机播放下一个视频
-  console.log('播放结束了')
+  console.log('📽️ 播放结束，切换下一个视频')
+  playRandomVideo()
+}
 
-  initRandomVideo()
+/**
+ * 视频可播放
+ */
+function handleCanPlay() {
+  console.log('🎥 视频可以播放了')
+  setTimeout(() => {
+    DomVideoPlayerRef.value?.play()
+  }, 100)
 }
 
 function handlePlay() {
-  console.log('视频开始播放')
+  console.log('▶️ 视频开始播放')
 }
 
 onMounted(() => {
-  initRandomVideo()
-  // 强制锁定竖屏（App 端）
+  playRandomVideo()
+  checkNewVersion()
+
+  // 强制竖屏（App）
   if (typeof plus !== 'undefined') {
     plus.screen.lockOrientation('portrait-primary')
   }
-  console.log('屏保页面 mounted')
+
+  console.log('📱 屏保页面 mounted')
 })
 </script>
 
 <template>
-  <view class=" w-[100vw] h-[100vh] flex-center screensaver-wrapper p-0! m-0!">
+  <view class="w-[100vw] h-[100vh] flex-center screensaver-wrapper p-0! m-0!">
     <DomVideoPlayer
       ref="DomVideoPlayerRef"
       :src="currentVideoSrc"
@@ -107,14 +142,18 @@ onMounted(() => {
       muted
       object-fit="fill"
       @play="handlePlay"
+      @canplay="handleCanPlay"
       @ended="handleEnded"
     />
     <view
       class="absolute top-0 left-0 w-full h-full z-[10]"
       @click="handleMultiClick"
     >
-      <!-- 可放提示、按钮等内容 -->
-      <check-app-page v-model="visible" :update-list="updateList" @update-now="downloadApp(downloadUrl)" />
+      <check-app-page
+        v-model="visible"
+        :update-list="updateList"
+        @update-now="downloadApp(downloadUrl)"
+      />
     </view>
   </view>
 </template>

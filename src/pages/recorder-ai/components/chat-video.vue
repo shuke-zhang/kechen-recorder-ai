@@ -11,8 +11,10 @@ const props = defineProps<{
    */
   isPlay?: boolean
 }>()
-
-const { localWaitingVideoList, localSpeakingVideoList, localVideoStatus, initFolder } = useLocalPlayVideo()
+const isSilence = defineModel('silence', {
+  type: Boolean,
+  default: false,
+})
 
 // 视频播放器引用
 const DomVideoPlayerRef = ref<InstanceType<typeof DomVideoPlayer>>()
@@ -27,10 +29,6 @@ const isChatVideo = defineModel('show', {
   default: true,
 })
 
-const isSilence = defineModel('silence', {
-  type: Boolean,
-  default: false,
-})
 // 当前播放的视频索引
 const currentVideoIndex = ref(0)
 
@@ -52,6 +50,11 @@ const httpWaitingVideoLists = [
 const httpSpeakingVideoLists = [
   `${STATIC_URL}/kezai/video/compression/say-1.mp4`,
 ]
+const { localWaitingVideoList, localSpeakingVideoList, localVideoStatus, initFolder } = useLocalPlayVideo(
+  isSilence.value ? httpWaitingVideoLists : httpSpeakingVideoLists,
+  isSilence.value ? 'waiting' : 'speaking',
+)
+
 /**
  * 获取视频源列表：优先本地视频，其次使用网络视频
  */

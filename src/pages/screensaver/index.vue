@@ -16,7 +16,16 @@ const { handleMultiClick } = useMultiClickTrigger({
   targetCount: 2,
   onTrigger: onRecorder,
 })
-const { localScreensaverVideoList, localVideoStatus, initFolder } = useLocalPlayVideo()
+const networkVideo = [
+  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-1.mp4`,
+  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-2.mp4`,
+  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-3.mp4`,
+  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-4.mp4`,
+  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-5.mp4`,
+  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-6.mp4`,
+  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-7.mp4`,
+]
+const { localScreensaverVideoList, localVideoStatus, initFolder } = useLocalPlayVideo(networkVideo, 'screensaver')
 const { visible, downloadUrl, updateList, downloadApp, checkNewVersion } = useCheckAppVersion()
 
 function onRecorder() {
@@ -45,15 +54,7 @@ async function initVideoSource(): Promise<string[]> {
   }
 
   console.log('🌐 使用网络视频')
-  return [
-    `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-1.mp4`,
-    `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-2.mp4`,
-    `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-3.mp4`,
-    `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-4.mp4`,
-    `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-5.mp4`,
-    `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-6.mp4`,
-    `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-7.mp4`,
-  ]
+  return networkVideo
 }
 
 /**
@@ -125,6 +126,7 @@ onMounted(() => {
       ref="DomVideoPlayerRef"
       :src="currentVideoSrc"
       is-loading
+      loading-transparent
       :controls="false"
       :poster="`${STATIC_URL}/kezai/black-bg.png`"
       autoplay

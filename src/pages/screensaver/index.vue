@@ -2,18 +2,7 @@
 {
   "style": {
     "navigationBarTitleText": "录音",
-    "navigationStyle": "custom",
-    "orientation": ["portrait"],
-    "app-plus": {
-      "safearea": {
-        "bottom": false
-      }
-    },
-    "distribute": {
-      "android": {
-        "immersed": true
-      }
-    }
+    "navigationStyle": "custom"
   }
 }
 </route>
@@ -50,7 +39,7 @@ async function initVideoSource(): Promise<string[]> {
     await initFolder()
   }
 
-  if (localVideoStatus.value === 'has') {
+  if (localVideoStatus.value === 'has' && localScreensaverVideoList.value.length > 0) {
     console.log('🎬 使用本地视频', localScreensaverVideoList.value)
     return localScreensaverVideoList.value
   }
@@ -135,7 +124,7 @@ onMounted(() => {
     <DomVideoPlayer
       ref="DomVideoPlayerRef"
       :src="currentVideoSrc"
-      :is-loading="false"
+      is-loading
       :controls="false"
       :poster="`${STATIC_URL}/kezai/black-bg.png`"
       autoplay

@@ -19,20 +19,7 @@
       "type": "home",
       "style": {
         "navigationBarTitleText": "录音",
-        "navigationStyle": "custom",
-        "orientation": [
-          "portrait"
-        ],
-        "app-plus": {
-          "safearea": {
-            "bottom": false
-          }
-        },
-        "distribute": {
-          "android": {
-            "immersed": true
-          }
-        }
+        "navigationStyle": "custom"
       }
     },
     {
@@ -109,10 +96,6 @@
     },
     {
       "path": "pages/recorder-ai/components/chat-video",
-      "type": "page"
-    },
-    {
-      "path": "pages/recorder-ai/components/screensaver",
       "type": "page"
     }
   ],

@@ -41,6 +41,17 @@ const currentVideoSrc = ref('')
 const speakingVideoLists = ref<string[]>([sayVideoSrc])
 /** 静默视频文件 */
 const waitingVideoLists = ref<string[]>([])
+
+const httpWaitingVideoLists = [
+  `${STATIC_URL}/kezai/video/compression/wait-1.mp4`,
+  `${STATIC_URL}/kezai/video/compression/wait-2.mp4`,
+  `${STATIC_URL}/kezai/video/compression/wait-3.mp4`,
+  `${STATIC_URL}/kezai/video/compression/wait-4.mp4`,
+  `${STATIC_URL}/kezai/video/compression/wait-5.mp4`,
+]
+const httpSpeakingVideoLists = [
+  `${STATIC_URL}/kezai/video/compression/say-1.mp4`,
+]
 /**
  * 获取视频源列表：优先本地视频，其次使用网络视频
  */
@@ -52,21 +63,13 @@ async function initVideoSource() {
 
   if (localVideoStatus.value === 'has') {
     console.log('🎬 使用本地视频')
-    waitingVideoLists.value = localWaitingVideoList.value
-    speakingVideoLists.value = localSpeakingVideoList.value
+    waitingVideoLists.value = localWaitingVideoList.value.length > 0 ? localWaitingVideoList.value : httpWaitingVideoLists
+    speakingVideoLists.value = localSpeakingVideoList.value && localSpeakingVideoList.value.length > 0 ? localSpeakingVideoList.value : httpSpeakingVideoLists
   }
   else {
     console.log('🌐 使用网络视频')
-    waitingVideoLists.value = [
-      `${STATIC_URL}/kezai/video/compression/wait-1.mp4`,
-      `${STATIC_URL}/kezai/video/compression/wait-2.mp4`,
-      `${STATIC_URL}/kezai/video/compression/wait-3.mp4`,
-      `${STATIC_URL}/kezai/video/compression/wait-4.mp4`,
-      `${STATIC_URL}/kezai/video/compression/wait-5.mp4`,
-    ]
-    speakingVideoLists.value = [
-      `${STATIC_URL}/kezai/video/compression/say-1.mp4`,
-    ]
+    waitingVideoLists.value = httpWaitingVideoLists
+    speakingVideoLists.value = httpSpeakingVideoLists
   }
 }
 

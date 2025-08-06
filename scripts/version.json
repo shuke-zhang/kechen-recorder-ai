@@ -1,8 +1,9 @@
 {
-  "version": "1.0.10",
+  "version": "1.0.11",
   "appUrl": "https://shuke-zhang.oss-cn-chengdu.aliyuncs.com/kezai/kezai-AI.zip",
   "updateList": [
     "优化屏保页面",
+    "添加本地视频播放功能",
     "修复首页白屏bug"
   ]
 }

@@ -50,11 +50,14 @@ const httpWaitingVideoLists = [
 const httpSpeakingVideoLists = [
   `${STATIC_URL}/kezai/video/compression/say-1.mp4`,
 ]
-const { localWaitingVideoList, localSpeakingVideoList, localVideoStatus, initFolder } = useLocalPlayVideo(
-  isSilence.value ? httpWaitingVideoLists : httpSpeakingVideoLists,
-  isSilence.value ? 'waiting' : 'speaking',
-)
-
+const speakingVideoHook = useLocalPlayVideo(httpSpeakingVideoLists, 'speaking')
+const waitingVideoHook = useLocalPlayVideo(httpWaitingVideoLists, 'waiting')
+const localWaitingVideoList = computed(() => waitingVideoHook.localWaitingVideoList.value)
+const localSpeakingVideoList = computed(() => speakingVideoHook.localSpeakingVideoList.value)
+const localVideoStatus = computed(() => (isSilence.value ? waitingVideoHook.localVideoStatus.value : speakingVideoHook.localVideoStatus.value))
+async function initFolder() {
+  await (isSilence.value ? waitingVideoHook.initFolder() : speakingVideoHook.initFolder())
+}
 /**
  * 获取视频源列表：优先本地视频，其次使用网络视频
  */
@@ -102,8 +105,16 @@ async function playRandomVideo() {
   }
 
   currentVideoIndex.value = nextIndex
+  if (currentVideoSrc.value === list[nextIndex]) {
+    console.log('当前视频与上次相同，不切换,手动播放')
+    DomVideoPlayerRef.value?.play()
+    return false
+  }
   currentVideoSrc.value = list[nextIndex]
   console.log('📺 切换播放地址:', currentVideoSrc.value)
+  if (!isSilence.value) {
+    DomVideoPlayerRef.value?.play()
+  }
 }
 
 /**
@@ -130,6 +141,10 @@ function handleEnded() {
   console.error('视频播放完成', isSilence.value)
   playRandomVideo()
 }
+
+/**
+ * 视频可播放
+ */
 
 watch(
   () => props.isReset,
@@ -162,10 +177,6 @@ watch(
   },
   { immediate: true },
 )
-
-onMounted(() => {
-  playRandomVideo()
-})
 
 defineExpose({
   /**

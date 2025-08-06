@@ -217,7 +217,7 @@ const silenceTimer = new IdleTimer({
   onTimeout: () => {
     isSilence.value = true
     isAutoPlay.value = true
-    console.warn('当前页面空闲中，触发静默模式')
+    console.warn('当前页面空闲中，触发静默模式', isSilence.value)
   },
 })
 
@@ -621,7 +621,8 @@ const handleRecorder = debounce((text: string, index: number) => {
   console.log('🟢 开始播放新消息')
   isStreamPlaying.value = true
   currentIndex.value = index
-
+  isSilence.value = false // 关闭静默模式
+  isAutoPlay.value = false // 关闭自动播放 因为此时还没有真正的播放视频
   const longTexts = processText({
     text,
     isFullText: true,
@@ -655,6 +656,9 @@ function onStreamPlayStart() {
   isAudioPlaying.value = true
   // 防止由于播放器停止时触发延迟，所以这儿也要设置状态
   isStreamPlaying.value = true
+  // 关闭静默模式
+  isSilence.value = false
+  isAutoPlay.value = true
   recorderStatus.value = 'stopped'
 }
 
@@ -662,6 +666,8 @@ function onStreamPlayStart() {
  * 语音播放结束
  */
 function onStreamPlayEnd() {
+  console.log('语音播放结束')
+
   /**
    * 这儿使用  isSwitchingNewMessage 来控制立即更新 isStreamPlaying 的状态的
    * 已知当我前几切换新的消息播放时 ， 会触发该函数，此时会关闭 isStreamPlaying 的状态

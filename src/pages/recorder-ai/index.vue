@@ -208,7 +208,7 @@ const canStartIdleTimer = computed(() => {
 const isSilence = ref(false)
 const isAutoPlay = ref(false)
 // 使用变量统一控制时间
-const SILENCE_DELAY = 10 * 1000 // 10秒
+const SILENCE_DELAY = 6 * 1000 // 10秒
 
 const silenceTimer = new IdleTimer({
   text: `当前无操作，静默模式`,

@@ -1,9 +1,9 @@
 {
-  "version": "1.1.1",
+  "version": "1.1.2",
   "appUrl": "https://shuke-zhang.oss-cn-chengdu.aliyuncs.com/kezai/kezai-AI.zip",
   "updateList": [
     "优化屏保页面",
-    "添加模型聊天限制",
-    "修复网络视频"
+    "优化授权逻辑",
+    "修复现有bug"
   ]
 }

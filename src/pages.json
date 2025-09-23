@@ -57,6 +57,14 @@
       }
     },
     {
+      "path": "pages/expired/index",
+      "type": "page",
+      "style": {
+        "navigationBarTitleText": "柯臣",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/home/index",
       "type": "page",
       "style": {

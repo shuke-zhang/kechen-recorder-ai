@@ -10,6 +10,7 @@ interface NavigateToOptions {
        "/pages/ai-history/detail" |
        "/pages/ai-history/index" |
        "/pages/auth/index" |
+       "/pages/expired/index" |
        "/pages/home/index" |
        "/pages/mine/index" |
        "/pages/recorder-ai/index" |

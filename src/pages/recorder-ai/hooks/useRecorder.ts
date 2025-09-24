@@ -75,10 +75,12 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
         () => {
           console.log('✅ 已获得录音权限，可以开始录音了')
           resolve(true)
+          fileLog('已获得录音权限，可以开始录音了---RecordApp.RequestPermission')
         },
         (msg: string, isUserNotAllow: boolean) => {
           const errMsg = `请求录音权限失败：${msg} - ${isUserNotAllow ? '用户拒绝' : '其他原因'}`
           console.error(errMsg)
+          fileLog(`请求录音权限失败：${msg} - ${isUserNotAllow ? '用户拒绝' : '其他原因'}`)
           reject(new Error(errMsg))
         },
       )
@@ -99,7 +101,9 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
         if (lastIdx > _newBufferIdx) {
           chunk = null // 重新录音了，重置环境
         }
-
+        fileLog(`onProcess... buffers.length: ${buffers.length}`)
+        fileLog(`录音中... 音量：${powerLevel}`)
+        fileLog(`录音中... duration：${duration}`)
         lastIdx = _newBufferIdx
 
         // 连续采样处理

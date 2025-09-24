@@ -7,9 +7,6 @@ interface NavigateToOptions {
   url: "/pages/screensaver/index" |
        "/pages/ai/deepseek" |
        "/pages/ai/index" |
-       "/pages/ai-history/detail" |
-       "/pages/ai-history/index" |
-       "/pages/auth/index" |
        "/pages/expired/index" |
        "/pages/home/index" |
        "/pages/mine/index" |

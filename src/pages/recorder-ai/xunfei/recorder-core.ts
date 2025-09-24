@@ -109,6 +109,7 @@ export default class RecorderCoreManager extends EventEmitter {
 
       this.socketTask.on('open', () => {
         this.emit('log', '✅ WebSocket已连接')
+        fileLog('讯飞---WebSocket已连接')
         setTimeout(() => this.sendAudioData(), 100)
       })
 
@@ -153,7 +154,7 @@ export default class RecorderCoreManager extends EventEmitter {
 
     this.emit('log', `📤 发送第一帧 ${firstFrame}`)
     console.warn(`📤 发送第一帧 ${firstFrame.data.status}`)
-
+    fileLog(`讯飞-📤 发送第一帧 ${firstFrame.data.status}`)
     this.handlerInterval = setInterval(() => {
       if (!this.socketTask?.isConnect || this.hasSentLastFrame) {
         this.clearHandlerInterval()
@@ -193,7 +194,7 @@ export default class RecorderCoreManager extends EventEmitter {
     this.socketTask.sendMessage(lastFrame)
     // this.emit('log', '📤 发送最后一帧')
     console.log(`📤 发送最后一帧 `)
-
+    fileLog(`讯飞-📤 发送最后一帧 `)
     this.hasSentLastFrame = true
   }
 

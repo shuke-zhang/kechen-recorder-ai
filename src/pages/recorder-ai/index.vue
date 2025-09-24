@@ -927,13 +927,17 @@ watch(() => replyForm.value.content, (newVal) => {
 
 onMounted(() => {
   (vueInstance as any).isMounted = true
+  fileLog('onMounted触发，进入对话页面')
   RecordAppInstance.UniPageOnShow(vueInstance)
   recReq().then((res) => {
+    fileLog(`请求权限成功：${res}`)
     setTimeout(() => {
       initialLoadPending.value = true
     }, 1500)
     onScreensaverTrigger()
   }).catch((err) => {
+    fileLog(`请求权限拒绝：${err}`)
+
     showToastError(err)
     console.log(err, '请求权限拒绝')
   })
@@ -945,6 +949,7 @@ onShow(() => {
   if ((vueInstance as any)?.isMounted) {
     RecordAppInstance.UniPageOnShow(vueInstance)
   }
+  fileLog('onShow')
 })
 onHide(() => {
   console.log('触发onHide')
@@ -954,6 +959,7 @@ onHide(() => {
 
 router.ready(() => {
   handleChangeAiModel()
+  fileLog('router.ready')
 })
 
 usePageExpose('pages/recorder-ai/index', {

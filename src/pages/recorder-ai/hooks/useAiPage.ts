@@ -122,7 +122,8 @@ export default function useAiPage() {
     const isVoicePlaceholder = last?.isRecordingPlaceholder === true
     // 判断没有内容 并且不是语音识别的加载状态
     if (!text?.trim() && !isVoicePlaceholder) {
-      return showToastError('请输入内容')
+      // showToastError('请输入内容')
+      return 
     }
 
     if (last?.isRecordingPlaceholder) {

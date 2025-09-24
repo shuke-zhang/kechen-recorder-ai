@@ -443,6 +443,11 @@ async function autoPlayAiMessage(_text: string, index: number) {
       text: longText,
       id: tempFormattedTexts.value.findIndex(t => t === longText) || 0,
     }, tempFormattedTexts.value.findIndex(t => t === longText) === 0).then((res) => {
+      // ✅ 如果用户已经点了停止/切换，直接丢弃
+      if (!isStreamPlaying.value || currentIndex.value !== index) {
+        console.log('丢弃过期的音频', res)
+        return
+      }
       const { audio_base64, text, id } = res
       streamData.value = {
         buffer: audio_base64,

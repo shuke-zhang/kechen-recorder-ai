@@ -90,14 +90,14 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
   /**
    * 开始录音
    */
-  function recStart() {
+  async function recStart() {
     let lastIdx = 1e9
     let chunk: any = null
     const set = {
       type: 'pcm',
       sampleRate: 16000,
       bitRate: 16,
-      setSpeakerOff: { off: false, headset: true }, // true表示听筒模式，false表示扬声器模式，headset表示是否耳机插入时也强制使用听筒模式
+      // setSpeakerOff: { off: false, headset: true }, // true表示听筒模式，false表示扬声器模式，headset表示是否耳机插入时也强制使用听筒模式
       onProcess: (buffers: ArrayBuffer[], powerLevel: number, duration: any, sampleRate: number, _newBufferIdx: any, _asyncEnd: any) => {
         if (lastIdx > _newBufferIdx) {
           chunk = null // 重新录音了，重置环境
@@ -188,7 +188,14 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
       console.error(`开始录音失败：${msg}`)
     })
 
-    RecordApp.UniNativeUtsPluginCallAsync('setSpeakerOff', { off: false })
+    await RecordApp.UniNativeUtsPluginCallAsync('setSpeakerOff', { off: false, headset: true })
+    const err = RecordApp.UniCheckNativeUtsPluginConfig()
+    if (err) {
+      console.warn('未启用原生插件，错误信息:', err)
+    }
+    else {
+      console.log('✅ 已启用原生插件，可以使用 setSpeakerOff / androidNotifyService 等功能')
+    }
   }
   /**
    * 停止录音

@@ -175,6 +175,9 @@ export default class StreamAudioPlayer {
     }
     this.isPlaying = true
 
+    // ✅ 每次播放前强制扬声器
+    this.enableSpeaker()
+
     const source = this.audioContext.createBufferSource()
     source.buffer = buffer
     source.connect(this.audioContext.destination)

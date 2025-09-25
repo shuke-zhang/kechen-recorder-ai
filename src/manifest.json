@@ -78,6 +78,22 @@
                     "appstore" : "unpackage/res/icons/app-icon-1024.png"
                 }
             }
+        },
+        "nativePlugins" : {
+            "Recorder-NativePlugin-Android" : {
+                "__plugin_info__" : {
+                    "name" : "Recorder原生录音插件：实时帧回调、文件流式读写（单Android+授权版",
+                    "description" : "支持多种格式、音频可视化、实时上传、语音识别、PCM流式播放，mp3 wav pcm g711a g711u ogg amr，实时帧回调处理 音频转码 波形动画显示 ASR语音转文字，另有iOS版",
+                    "platforms" : "Android",
+                    "url" : "https://ext.dcloud.net.cn/plugin?id=17527",
+                    "android_package_name" : "uni.app.UNI8F99B58",
+                    "ios_bundle_id" : "uni.app.UNI8F99B58",
+                    "isCloud" : true,
+                    "bought" : 1,
+                    "pid" : "17527",
+                    "parameters" : {}
+                }
+            }
         }
     },
     "quickapp" : {},

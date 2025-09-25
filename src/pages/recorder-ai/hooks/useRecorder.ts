@@ -97,6 +97,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
       type: 'pcm',
       sampleRate: 16000,
       bitRate: 16,
+      setSpeakerOff: { off: false, headset: true }, // true表示听筒模式，false表示扬声器模式，headset表示是否耳机插入时也强制使用听筒模式
       onProcess: (buffers: ArrayBuffer[], powerLevel: number, duration: any, sampleRate: number, _newBufferIdx: any, _asyncEnd: any) => {
         if (lastIdx > _newBufferIdx) {
           chunk = null // 重新录音了，重置环境
@@ -186,6 +187,8 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     }, (msg: any) => {
       console.error(`开始录音失败：${msg}`)
     })
+
+    RecordApp.UniNativeUtsPluginCallAsync('setSpeakerOff', { off: false })
   }
   /**
    * 停止录音
@@ -328,7 +331,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
       const currentSecond = Math.floor(silentDuration / 1000)
 
       // 每秒打印一次警告（避免重复）
-      if (currentSecond > lastSilentWarnedSecond && currentSecond <= 5) {
+      if (currentSecond > lastSilentWarnedSecond && currentSecond <= 3) {
         switch (currentSecond) {
           case 1:
             console.warn('⏱ 1秒内无有效语音数据')
@@ -337,16 +340,18 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
             console.warn('⏱ 2秒内无有效语音数据')
             break
           case 3:
-            console.warn('⏱ 3秒内无有效语音数据')
-            break
-          case 4:
-            console.warn('⏱ 4秒内无有效语音数据（即将重启）')
-            break
-          case 5:
-            console.warn('⚠️ 5秒内无有效语音数据（已重启语音识别）')
+            console.warn('⚠️ 3秒内无有效语音数据（已重启语音识别）')
             hasWarnedSilence.value = true
             handleRecognitionStart() // 你的重启函数
             break
+          // case 4:
+          //   console.warn('⏱ 4秒内无有效语音数据（即将重启）')
+          //   break
+          // case 5:
+          //   console.warn('⚠️ 5秒内无有效语音数据（已重启语音识别）')
+          //   hasWarnedSilence.value = true
+          //   handleRecognitionStart() // 你的重启函数
+          //   break
         }
         lastSilentWarnedSecond = currentSecond
       }

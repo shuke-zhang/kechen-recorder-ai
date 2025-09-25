@@ -101,7 +101,7 @@ export async function fileLog(msg: string) {
     plus.android.invoke(osw, 'flush')
     plus.android.invoke(osw, 'close')
 
-    console.log('✅ 日志写入成功:', logText.trim())
+    // console.log('✅ 日志写入成功:', logText.trim())
   }
   catch (e) {
     console.error('❌ 写日志失败:', e)

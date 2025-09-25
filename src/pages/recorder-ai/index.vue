@@ -928,6 +928,14 @@ watch(() => replyForm.value.content, (newVal) => {
 onMounted(() => {
   (vueInstance as any).isMounted = true
   fileLog('onMounted触发，进入对话页面')
+  RecordAppInstance.UniNativeUtsPlugin = { nativePlugin: true } // 启用原生插件
+  RecordAppInstance.UniNativeUtsPluginCallAsync('resolvePath', { path: '' }).then((data: any) => {
+    // this.test()
+    console.log('测试原生插件调用，可以进行原生插件测试', data)
+  }).catch((_e: any) => {
+    // this.addMsg('err', `测试原生插件调用失败，不可以进行原生插件测试：${e.message}`, 1)
+    console.log('测试原生插件调用失败，不可以进行原生插件测试', _e)
+  })
   RecordAppInstance.UniPageOnShow(vueInstance)
   recReq().then((res) => {
     fileLog(`请求权限成功：${res}`)

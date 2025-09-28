@@ -951,6 +951,23 @@ onMounted(() => {
   })
   addChatHistoryId.value = 0
   // initHeights()
+  let unlocked = false
+  const unlockAudio = () => {
+    if (unlocked)
+      return
+    unlocked = true
+
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const osc = ctx.createOscillator()
+    osc.connect(ctx.destination)
+    osc.start()
+    osc.stop()
+    console.log('🔓 AudioContext 已解锁')
+
+    // 只需要执行一次，解锁后解绑监听
+    document.removeEventListener('touchstart', unlockAudio)
+    document.removeEventListener('click', unlockAudio)
+  }
 })
 
 onShow(() => {

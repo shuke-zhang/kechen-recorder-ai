@@ -98,7 +98,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
       sampleRate: 16000,
       bitRate: 16,
       // setSpeakerOff: { off: false, headset: true }, // true表示听筒模式，false表示扬声器模式，headset表示是否耳机插入时也强制使用听筒模式
-      android_audioSource: 0, // 0 DEFAULT 默认音频源，1 MIC 主麦克风，5 CAMCORDER 相机方向的麦，6 VOICE_RECOGNITION 语音识别，7 VOICE_COMMUNICATION 语音通信(带回声消除)
+      // android_audioSource: 0, // 0 DEFAULT 默认音频源，1 MIC 主麦克风，5 CAMCORDER 相机方向的麦，6 VOICE_RECOGNITION 语音识别，7 VOICE_COMMUNICATION 语音通信(带回声消除)
       onProcess: (buffers: ArrayBuffer[], powerLevel: number, duration: any, sampleRate: number, _newBufferIdx: any, _asyncEnd: any) => {
         if (lastIdx > _newBufferIdx) {
           chunk = null // 重新录音了，重置环境

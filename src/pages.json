@@ -80,6 +80,20 @@
       }
     },
     {
+      "path": "pages/test/native-audio-test",
+      "type": "page",
+      "style": {
+        "navigationBarTitleText": "测试页面2"
+      }
+    },
+    {
+      "path": "pages/test/recorder-test",
+      "type": "page",
+      "style": {
+        "navigationBarTitleText": "音频测试页面"
+      }
+    },
+    {
       "path": "pages/recorder-ai/components/chat-video",
       "type": "page"
     }

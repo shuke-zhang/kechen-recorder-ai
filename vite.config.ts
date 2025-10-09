@@ -76,6 +76,7 @@ export default defineConfig(async ({ mode, command }) => {
       // preserveSymlinks: true,
       alias: {
         '@': path.resolve(__dirname, 'src'),
+        '@uni_modules': path.resolve(__dirname, 'uni_modules'),
       },
     },
     css: {

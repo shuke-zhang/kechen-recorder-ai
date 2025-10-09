@@ -2,7 +2,7 @@
 <!-- eslint-disable import/no-duplicates -->
  <!-- #ifdef APP-PLUS -->
 <script module="recorderCore" lang="renderjs">
-// @ts-ignore
+// @ts-expect-error
 import Recorder from 'recorder-core'
 import 'recorder-core/src/extensions/buffer_stream.player.js'
 
@@ -11,7 +11,7 @@ import RecordApp from 'recorder-core/src/app-support/app'
 import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
 import 'recorder-core/src/engine/pcm'
 import 'recorder-core/src/extensions/waveview'
-// @ts-ignore
+// @ts-expect-error
 
 export default {
   data() {

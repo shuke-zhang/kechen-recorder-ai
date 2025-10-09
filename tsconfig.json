@@ -5,7 +5,8 @@
     "baseUrl": ".",
     "rootDir": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@uni_modules/*": ["uni_modules/*"]
     },
     "resolveJsonModule": true,
     "types": [

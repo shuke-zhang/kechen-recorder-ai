@@ -15,11 +15,10 @@
   "__esModule": true,
   "pages": [
     {
-      "path": "pages/screensaver/index",
+      "path": "pages/test/recorder-test",
       "type": "home",
       "style": {
-        "navigationBarTitleText": "录音",
-        "navigationStyle": "custom"
+        "navigationBarTitleText": "舒克音频测试"
       }
     },
     {
@@ -73,6 +72,14 @@
       "type": "page"
     },
     {
+      "path": "pages/screensaver/index",
+      "type": "page",
+      "style": {
+        "navigationBarTitleText": "录音",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/test/index",
       "type": "page",
       "style": {
@@ -84,13 +91,6 @@
       "type": "page",
       "style": {
         "navigationBarTitleText": "测试页面2"
-      }
-    },
-    {
-      "path": "pages/test/recorder-test",
-      "type": "page",
-      "style": {
-        "navigationBarTitleText": "音频测试页面"
       }
     },
     {

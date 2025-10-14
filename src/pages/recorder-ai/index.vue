@@ -2,16 +2,10 @@
 <!-- eslint-disable import/no-duplicates -->
  <!-- #ifdef APP-PLUS -->
 <script module="recorderCore" lang="renderjs">
-// @ts-expect-error
-// import Recorder from 'recorder-core'
 import 'recorder-core/src/extensions/buffer_stream.player.js'
 
-// import RecordApp from 'recorder-core/src/app-support/app'
-// import '../../../../uni_modules/Recorder-UniCore/app-uni-support.js'
-import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
 import 'recorder-core/src/engine/pcm'
 import 'recorder-core/src/extensions/waveview'
-// @ts-expect-error
 
 export default {
   data() {
@@ -903,18 +897,14 @@ watch(() => replyForm.value.content, (newVal) => {
 
 onMounted(() => {
   (vueInstance as any).isMounted = true
-  fileLog('onMounted触发，进入对话页面')
   RecordAppInstance.UniNativeUtsPlugin = { nativePlugin: true } // 启用原生插件
   RecordAppInstance.UniPageOnShow(vueInstance)
   recReq().then((res) => {
-    fileLog(`请求权限成功：${res}`)
     setTimeout(() => {
       initialLoadPending.value = true
     }, 1500)
     onScreensaverTrigger()
   }).catch((err) => {
-    fileLog(`请求权限拒绝：${err}`)
-
     showToastError(err)
     console.log(err, '请求权限拒绝')
   })
@@ -944,7 +934,6 @@ onShow(() => {
   if ((vueInstance as any)?.isMounted) {
     RecordAppInstance.UniPageOnShow(vueInstance)
   }
-  fileLog('onShow')
 })
 onHide(() => {
   console.log('触发onHide')

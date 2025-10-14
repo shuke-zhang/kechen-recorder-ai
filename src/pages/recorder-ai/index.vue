@@ -46,20 +46,13 @@ import useAiPage from './hooks/useAiPage'
 import { useAiCall } from '@/store/modules/ai-call'
 import { doubaoSpeechSynthesisFormat } from '@/api/audio'
 import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
-// import screensaver from './components/screensaver.vue'
-/** 需要编译成微信小程序时，引入微信小程序支持文件 */
-// #ifdef MP-WEIXIN
-import 'recorder-core/src/app-support/app-miniProgram-wx-support.js'
-// #endif
 
 import 'recorder-core/src/engine/pcm'
-import 'recorder-core/src/extensions/waveview'
 import type { StatusModel } from '@/components/audio-wave/audio-wave'
-// import type { AiMessage } from '@/hooks'
 import type { ChatHistoryModel } from '@/model/chat'
 import type { UploadFileModel } from '@/model/chat'
 import { addChatHistory } from '@/api/chat-history'
-// import usePlayAudio from './hooks/usePlayAudio'
+
 const vueInstance = getCurrentInstance()?.proxy as any // 必须定义到最外面，getCurrentInstance得到的就是当前实例this
 const pageHeight = computed(() => {
   return `${getStatusBarHeight() + NAV_BAR_HEIGHT + 1}px`
@@ -102,22 +95,6 @@ const scrollViewHeight = `${windowHeight * 0.15}px`
 console.log(scrollViewHeight, 'scrollViewHeight')
 
 const isAutoPlaying = ref(false)
-// const { handleMultiClick } = useMultiClickTrigger({
-//   onTrigger: () => {
-//     // router.push('/pages/test/index', { id: 123 })
-//     isAutoPlaying.value = !isAutoPlaying.value
-//     if (isAutoPlaying.value) {
-//       showToastSuccess('开启自动识别').then(() => {
-//         handleRecorderStart()
-//       })
-//     }
-//     else {
-//       showToastSuccess('关闭自动识别').then(() => {
-//         isAutoRecognize.value = false
-//       })
-//     }
-//   },
-// })
 
 const { base64ToArrayBuffer, playAudioInit, uploadFileAudio, saveAndPlayBase64MP3 } = usePlayAudio(RecordAppInstance)
 
@@ -146,7 +123,6 @@ const handleTouchStart = debounce(() => {
   startTime.value = Date.now()
   stopAll()
 
-  console.log('🟢 触发发送消息', content.value)
   handleConfirm()
 }, 300)
 const {
@@ -929,13 +905,6 @@ onMounted(() => {
   (vueInstance as any).isMounted = true
   fileLog('onMounted触发，进入对话页面')
   RecordAppInstance.UniNativeUtsPlugin = { nativePlugin: true } // 启用原生插件
-  RecordAppInstance.UniNativeUtsPluginCallAsync('resolvePath', { path: '' }).then((data: any) => {
-    // this.test()
-    console.log('测试原生插件调用，可以进行原生插件测试', data)
-  }).catch((_e: any) => {
-    // this.addMsg('err', `测试原生插件调用失败，不可以进行原生插件测试：${e.message}`, 1)
-    console.log('测试原生插件调用失败，不可以进行原生插件测试', _e)
-  })
   RecordAppInstance.UniPageOnShow(vueInstance)
   recReq().then((res) => {
     fileLog(`请求权限成功：${res}`)
@@ -968,6 +937,7 @@ onMounted(() => {
     document.removeEventListener('touchstart', unlockAudio)
     document.removeEventListener('click', unlockAudio)
   }
+  handleChangeAiModel()
 })
 
 onShow(() => {
@@ -980,11 +950,6 @@ onHide(() => {
   console.log('触发onHide')
   isAutoPlaying.value = false
   isAutoRecognizerEnabled.value = false
-})
-
-router.ready(() => {
-  handleChangeAiModel()
-  fileLog('router.ready')
 })
 
 usePageExpose('pages/recorder-ai/index', {

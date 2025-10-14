@@ -3,10 +3,10 @@
  <!-- #ifdef APP-PLUS -->
 <script module="recorderCore" lang="renderjs">
 // @ts-expect-error
-import Recorder from 'recorder-core'
+// import Recorder from 'recorder-core'
 import 'recorder-core/src/extensions/buffer_stream.player.js'
 
-import RecordApp from 'recorder-core/src/app-support/app'
+// import RecordApp from 'recorder-core/src/app-support/app'
 // import '../../../../uni_modules/Recorder-UniCore/app-uni-support.js'
 import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
 import 'recorder-core/src/engine/pcm'
@@ -1146,7 +1146,7 @@ usePageExpose('pages/recorder-ai/index', {
 }
 </style>
 
-<route lang="json"  type="page">
+<route lang="json"  type="home">
   {
        "style": { "navigationBarTitleText": "录音","navigationStyle": "custom" }
   }

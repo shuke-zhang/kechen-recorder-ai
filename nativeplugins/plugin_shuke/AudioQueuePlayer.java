@@ -12,11 +12,13 @@ import android.util.Log;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
- * 🎧 音频任务队列播放器（MediaPlayer 纯系统版）
+ * 🎧 顺序音频任务播放器：严格按 ID 顺序播放（0,1,2,...）
+ * - 缺口等待：只有 expectedNextId 到齐才开始/继续播放
+ * - startPlayId：可配置起始 ID，小于它的任务一律忽略
  */
 public class AudioQueuePlayer {
 
@@ -38,16 +40,26 @@ public class AudioQueuePlayer {
     private final Context ctx;
     private final AudioManager audioManager;
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private final Queue<AudioTask> queue = new LinkedList<>();
+
+    /** 任务池：按 ID 排序存放到达的任务（可能乱序到达） */
+    private final TreeMap<Integer, AudioTask> taskMap = new TreeMap<>();
 
     private MediaPlayer player;
-    private boolean isPlaying = false;
     private Listener listener;
 
+    /** 播放状态控制 */
+    private boolean isPlaying = false;
+    private boolean isManualClear = false;
+
+    /** 起始 ID 与下一个期望播放的 ID 指针 */
+    private int startPlayId = 0;
+    private int expectedNextId = 0;
+
+    /** 单个任务结构 */
     private static class AudioTask {
-        final String id;
+        final int id;
         final String base64;
-        AudioTask(String id, String base64) {
+        AudioTask(int id, String base64) {
             this.id = id;
             this.base64 = base64;
         }
@@ -56,30 +68,73 @@ public class AudioQueuePlayer {
     public AudioQueuePlayer(Context context) {
         this.ctx = context.getApplicationContext();
         this.audioManager = (AudioManager) ctx.getSystemService(Context.AUDIO_SERVICE);
+        resetPointers(0);
     }
 
     public void setListener(Listener l) { this.listener = l; }
 
-    public void enqueue(String id, String base64) {
-        if (base64 == null || base64.isEmpty()) {
-            if (listener != null) listener.onError(id, "empty_input");
-            return;
-        }
-        queue.offer(new AudioTask(id, base64));
-        if (listener != null) listener.onQueued(id, queue.size());
-        if (!isPlaying) playNext();
+    /** 设置起始 ID，并重置指针 */
+    public synchronized void setStartPlayId(int id) {
+        resetPointers(id);
+        Log.i(TAG, "🎯 startPlayId set to " + id + ", expectedNextId=" + expectedNextId);
     }
 
-    private void playNext() {
-        final AudioTask task = queue.poll();
-        if (task == null) {
-            isPlaying = false;
-            if (listener != null) listener.onQueueEmpty();
+    private void resetPointers(int startId) {
+        this.startPlayId = startId;
+        this.expectedNextId = startId;
+    }
+
+    /** 入队：只存储，不允许插队播放；等到 expectedNextId 到达才播放 */
+    public synchronized void enqueue(String idStr, String base64) {
+        if (base64 == null || base64.isEmpty()) {
+            if (listener != null) listener.onError(idStr, "empty_input");
             return;
         }
 
+        final int id;
+        try {
+            id = Integer.parseInt(idStr);
+        } catch (Exception e) {
+            if (listener != null) listener.onError(idStr, "invalid_id");
+            return;
+        }
+
+        // 忽略比起点小的任务
+        if (id < startPlayId) {
+            Log.w(TAG, "⚠️ ignore id=" + id + " < startPlayId=" + startPlayId);
+            return;
+        }
+
+        taskMap.put(id, new AudioTask(id, base64));
+        if (listener != null) listener.onQueued(idStr, taskMap.size());
+        Log.i(TAG, "✅ enqueued id=" + id + ", queueSize=" + taskMap.size()
+                + ", expectedNextId=" + expectedNextId);
+
+        // 只有当“刚好等到 expectedNextId” 且当前不在播放，才启动
+        if (!isPlaying && taskMap.containsKey(expectedNextId)) {
+            playNextIfReady();
+        }
+    }
+
+    /** 仅当 expectedNextId 到齐时才真正开播；否则保持等待 */
+    private synchronized void playNextIfReady() {
+        if (!taskMap.containsKey(expectedNextId)) {
+            // 缺口：等待更小的 ID 到齐；不发 queueEmpty
+            Log.i(TAG, "⏳ waiting for id=" + expectedNextId + ", currentTop="
+                    + (taskMap.isEmpty() ? "none" : taskMap.firstKey()));
+            isPlaying = false;
+            return;
+        }
+
+        final AudioTask task = taskMap.remove(expectedNextId);
+        startPlayTask(task);
+    }
+
+    /** 启动播放指定任务 */
+    private void startPlayTask(AudioTask task) {
+        isManualClear = false;  // 进入播放序列
+        stopInternal();         // 停掉上一个
         isPlaying = true;
-        stop();
 
         try {
             player = new MediaPlayer();
@@ -94,6 +149,7 @@ public class AudioQueuePlayer {
                 int idx = b64.indexOf("base64,");
                 if (idx != -1) b64 = b64.substring(idx + 7);
             }
+
             byte[] data = Base64.decode(b64, Base64.DEFAULT);
             File tmp = File.createTempFile("audio_", ".mp3", ctx.getCacheDir());
             try (FileOutputStream fos = new FileOutputStream(tmp)) {
@@ -102,21 +158,48 @@ public class AudioQueuePlayer {
 
             player.setDataSource(tmp.getAbsolutePath());
             player.setOnPreparedListener(mp -> {
-                if (listener != null) listener.onStart(task.id, queue.size());
+                if (listener != null) listener.onStart(String.valueOf(task.id), taskMap.size());
                 mp.start();
                 startProgress();
             });
 
             player.setOnCompletionListener(mp -> {
                 stopProgress();
-                if (listener != null) listener.onComplete(task.id, queue.size());
-                playNext();
+                if (listener != null) listener.onComplete(String.valueOf(task.id), taskMap.size());
+                // 当前任务完成，推进期望 ID
+                synchronized (AudioQueuePlayer.this) {
+                    expectedNextId++;
+                    // 尝试继续播下一个（如果下一个期望 ID 已经到齐）
+                    if (taskMap.containsKey(expectedNextId)) {
+                        playNextIfReady();
+                    } else {
+                        // 没有下一个期望 ID 的任务，当前不在播放，等待后续入队
+                        isPlaying = false;
+                        // 如果任务池也为空，且没有缺口（此时“缺口”定义：expectedNextId 不存在于 taskMap，且 taskMap 为空）
+                        // 则自然结束发 queueEmpty
+                        if (taskMap.isEmpty() && !isManualClear) {
+                            if (listener != null) listener.onQueueEmpty();
+                            Log.i(TAG, "🎉 queue empty (natural)");
+                        }
+                    }
+                }
             });
 
             player.setOnErrorListener((mp, what, extra) -> {
                 stopProgress();
-                if (listener != null) listener.onError(task.id, "MediaPlayer error: " + what);
-                playNext();
+                if (listener != null) listener.onError(String.valueOf(task.id), "MediaPlayer error: " + what);
+                synchronized (AudioQueuePlayer.this) {
+                    expectedNextId++; // 出错也推进，避免卡住
+                    if (taskMap.containsKey(expectedNextId)) {
+                        playNextIfReady();
+                    } else {
+                        isPlaying = false;
+                        if (taskMap.isEmpty() && !isManualClear) {
+                            if (listener != null) listener.onQueueEmpty();
+                            Log.i(TAG, "🎉 queue empty (after error)");
+                        }
+                    }
+                }
                 return true;
             });
 
@@ -124,35 +207,42 @@ public class AudioQueuePlayer {
 
         } catch (IOException e) {
             Log.e(TAG, "播放失败: " + e.getMessage());
-            if (listener != null) listener.onError(task.id, e.getMessage());
-            playNext();
+            if (listener != null) listener.onError(String.valueOf(task.id), e.getMessage());
+            synchronized (AudioQueuePlayer.this) {
+                expectedNextId++;
+                if (taskMap.containsKey(expectedNextId)) {
+                    playNextIfReady();
+                } else {
+                    isPlaying = false;
+                    if (taskMap.isEmpty() && !isManualClear) {
+                        if (listener != null) listener.onQueueEmpty();
+                        Log.i(TAG, "🎉 queue empty (after exception)");
+                    }
+                }
+            }
         }
     }
 
-    private void stop() {
-        stopProgress();
-        if (player != null) {
-            try {
-                player.stop();
-                player.release();
-            } catch (Throwable ignored) {}
-            player = null;
-        }
+    /** 外部 STOP：不触发 queueEmpty（手动语义） */
+    public synchronized void clear() {
+        isManualClear = true;
+        stopInternal();
+        taskMap.clear();
+        // 重置为起点等待
+        expectedNextId = startPlayId;
+        isPlaying = false;
+        Log.i(TAG, "🧹 cleared. reset expectedNextId=" + expectedNextId);
     }
 
-    public void clear() {
-        stop();
-        queue.clear();
-        if (listener != null) listener.onQueueEmpty();
+    public synchronized void release() {
+        stopInternal();
+        taskMap.clear();
+        Log.i(TAG, "🧩 released");
     }
 
-    public void release() {
-        stop();
-        queue.clear();
-    }
+    public synchronized int getQueueSize() { return taskMap.size(); }
 
-    public int getQueueSize() { return queue.size(); }
-
+    /** 音频路由 */
     public void setOutputMode(OutputMode mode) {
         try {
             switch (mode) {
@@ -185,6 +275,19 @@ public class AudioQueuePlayer {
         } catch (Throwable ignored) {}
     }
 
+    /** 只做内部停止，不改 expectedNextId */
+    private void stopInternal() {
+        stopProgress();
+        if (player != null) {
+            try {
+                player.stop();
+                player.release();
+            } catch (Throwable ignored) {}
+            player = null;
+        }
+    }
+
+    // 进度上报
     private final Runnable tick = new Runnable() {
         @Override
         public void run() {

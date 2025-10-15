@@ -27,7 +27,6 @@ export default {
 
 <!-- eslint-disable import/first, import/order, import/no-named-default,import/no-duplicates -->
 <script setup lang='ts'>
-import type StreamPlayer from '@/components/StreamPlayer/StreamPlayer.vue'
 import { NAV_BAR_HEIGHT, getStatusBarHeight } from '@/components/nav-bar/nav-bar'
 import { default as RecorderInstance } from 'recorder-core'
 import { default as RecordAppInstance } from 'recorder-core/src/app-support/app'
@@ -46,15 +45,13 @@ import type { StatusModel } from '@/components/audio-wave/audio-wave'
 import type { ChatHistoryModel } from '@/model/chat'
 import type { UploadFileModel } from '@/model/chat'
 import { addChatHistory } from '@/api/chat-history'
+import { usePluginShuke } from './hooks/usePluginShuke'
 
 const vueInstance = getCurrentInstance()?.proxy as any // 必须定义到最外面，getCurrentInstance得到的就是当前实例this
 const pageHeight = computed(() => {
   return `${getStatusBarHeight() + NAV_BAR_HEIGHT + 1}px`
 })
-/**
- * 音频是否正在播放
- */
-const isStreamPlaying = ref(false)
+
 const router = useRouter<{
   modelName: string
 }>()
@@ -72,9 +69,20 @@ const recorderStatus = ref<StatusModel >('pending')
 console.log(`当前页面的高度`, pageHeight.value)
 
 /**
- * 音频播放组件实例
+ * 音频播放
  */
-const streamPlayerRef = ref<InstanceType<typeof StreamPlayer>>()
+const { isAudioRunning, playAudio, stopAudio } = usePluginShuke({
+  onStart: () => {
+    onStreamPlayStart()
+  },
+  onStop: () => {
+    onStreamStop()
+  },
+  onQueueEmpty: () => {
+    onStreamPlayEnd()
+  },
+})
+
 /**
  * 视频播放组件实例
  */
@@ -142,14 +150,9 @@ const scrollViewRef = ref(null)
 const animatedDots = ref('')
 let dotTimer: NodeJS.Timeout | null = null
 const currentIndex = ref<number | null>(null)
-const isAudioPlaying = ref(false) // 音频播放真正的开始
 const tempBuffers = ref<{ audio_data: string, text: string }[]>([])
 const tempFormattedTexts = ref<string[]>([])
-const streamData = ref<{
-  text: string
-  buffer: string
-  id: number
-}>()
+
 // 是否切换到新的消息进行播放
 const isSwitchingNewMessage = ref(false)
 /** 控制屏保 */
@@ -169,7 +172,7 @@ const lastAiMsgEnd = ref(false)
 const idleTimeout = ref< ReturnType<typeof setTimeout> | null>(null)
 const IDLE_DELAY = 2 * 60 * 1000 // 5秒
 const canStartIdleTimer = computed(() => {
-  return !isStreamPlaying.value && !loading.value
+  return !isAudioRunning.value && !loading.value
 })
 
 /**
@@ -209,12 +212,6 @@ const screensaverTimer = new IdleTimer({
     // 跳转屏保页面
     router.replace('/pages/screensaver/index')
 
-    // 清空内容
-    streamData.value = {
-      text: '',
-      buffer: '',
-      id: 0,
-    }
     content.value = []
     resetAi.value()
     replyForm.value = { content: '', role: 'user' }
@@ -239,6 +236,7 @@ const assistantAudioTime = ref('')
  */
 const ttsPendingCount = ref(0)
 const hasPrepared = ref(false)
+
 // 每次发送 TTS（音频）接口时，+1
 function ttsRequestStart() {
   ttsPendingCount.value++
@@ -401,7 +399,7 @@ async function autoPlayAiMessage(_text: string, index: number) {
     tempFormattedTexts.value.push(longText)
     //  判断是不是新的ai消息
     if (tempFormattedTexts.value.findIndex(t => t === longText) === 0 && !isAiMessageEnd.value) {
-      streamPlayerRef.value?.onStreamStop()
+      stopAudio()
       assistantAudioBuffers.value = []
     }
     console.log('查看文本longText', longText, longText.length)
@@ -414,16 +412,16 @@ async function autoPlayAiMessage(_text: string, index: number) {
       id: tempFormattedTexts.value.findIndex(t => t === longText) || 0,
     }, tempFormattedTexts.value.findIndex(t => t === longText) === 0).then((res) => {
       // ✅ 如果用户已经点了停止/切换，直接丢弃
-      if (!isStreamPlaying.value || currentIndex.value !== index) {
+      if (currentIndex.value !== index) {
         console.log('丢弃过期的音频', res)
         return
       }
-      const { audio_base64, text, id } = res
-      streamData.value = {
-        buffer: audio_base64,
-        text,
+      const { audio_base64, id } = res
+
+      playAudio({
         id,
-      }
+        base64: audio_base64,
+      })
       const audio_buffer = base64ToArrayBuffer(audio_base64)
       assistantAudioBuffers.value.push({
         buffers: audio_buffer,
@@ -437,14 +435,12 @@ async function autoPlayAiMessage(_text: string, index: number) {
         hasUserInterruptedAutoPlay.value = false
       }
     }).catch((error) => {
-      isStreamPlaying.value = false
-      isAudioPlaying.value = false
+      isAudioRunning.value = false
       console.log(error, 'ai自动播放音频错误')
     }).finally(() => {
       ttsRequestEnd()
     })
   }
-  isStreamPlaying.value = true
 }
 
 /**
@@ -550,13 +546,13 @@ function userMsgFormat(prefix: string, text: string, isFormat = true) {
  * 发送消息确认按钮
  */
 async function handleConfirm() {
-  streamPlayerRef.value?.onStreamStop()
+  stopAudio()
   tempFormattedTexts.value = []
   tempBuffers.value = []
   removeEmptyMessagesByRole('assistant') // 移除assistant角色的空消息
 
   //  点击时如果ai消息没有返回完 ，并且正在播放，直接停止
-  if ((!isAiMessageEnd.value && loading.value) || isStreamPlaying.value) {
+  if ((!isAiMessageEnd.value && loading.value) || isAudioRunning.value) {
     await stopAll()
     // 停止音频播放
     handleSendMsg()
@@ -576,25 +572,22 @@ const handleRecorder = debounce((text: string, index: number) => {
     hasUserInterruptedAutoPlay.value = true
   }
   // 当前已经在播放此条消息
-  if (currentIndex.value === index && isStreamPlaying.value) {
+  if (currentIndex.value === index && isAudioRunning.value) {
     console.log('🟡 再次点击同一条，执行停止')
-    streamPlayerRef.value?.onStreamStop()
+    stopAudio()
     currentIndex.value = null
-    isStreamPlaying.value = false
     return
   }
 
   // 如果正在播放且是新的消息，先停止当前播放
-  if (currentIndex.value !== null && isStreamPlaying.value) {
+  if (currentIndex.value !== null && isAudioRunning.value) {
     isSwitchingNewMessage.value = true
     console.log('🔴 切换新消息，先停止已播放的消息')
-    streamPlayerRef.value?.onStreamStop()
-    isStreamPlaying.value = false
+    stopAudio()
   }
 
   // ✅ 开始新的播放
   console.log('🟢 开始播放新消息')
-  isStreamPlaying.value = true
   currentIndex.value = index
   isSilence.value = false // 关闭静默模式
   isAutoPlay.value = false // 关闭自动播放 因为此时还没有真正的播放视频
@@ -609,15 +602,13 @@ const handleRecorder = debounce((text: string, index: number) => {
         text: longText,
         id: i,
       }).then((res) => {
-        const { audio_base64, text, id } = res
-        streamData.value = {
-          buffer: audio_base64,
-          text,
+        const { audio_base64, id } = res
+        playAudio({
           id,
-        }
+          base64: audio_base64,
+        })
       }).catch((e) => {
         console.log('点击时捕获到错误', e)
-        isStreamPlaying.value = false
         currentIndex.value = null
       })
     }
@@ -628,9 +619,7 @@ const handleRecorder = debounce((text: string, index: number) => {
  * 语音播放真正的开始
  */
 function onStreamPlayStart() {
-  isAudioPlaying.value = true
-  // 防止由于播放器停止时触发延迟，所以这儿也要设置状态
-  isStreamPlaying.value = true
+  isAudioRunning.value = true
   // 关闭静默模式
   isSilence.value = false
   isAutoPlay.value = true
@@ -638,7 +627,7 @@ function onStreamPlayStart() {
 }
 
 /**
- * 语音播放结束
+ * 语音任务队列播放结束
  */
 function onStreamPlayEnd() {
   console.log('语音播放结束')
@@ -653,18 +642,16 @@ function onStreamPlayEnd() {
     isSwitchingNewMessage.value = false
   }
   else {
-    isStreamPlaying.value = false
     currentIndex.value = null
   }
-  isAudioPlaying.value = false
+  isAudioRunning.value = false
   recorderStatus.value = 'pending'
 }
 /**
- * 语音播放停止
+ * 语音播放主动停止
  */
 function onStreamStop() {
-  isStreamPlaying.value = false
-  isAudioPlaying.value = false
+  isAudioRunning.value = false
   currentIndex.value = null
 }
 
@@ -792,14 +779,12 @@ async function stopAll() {
   // 停止ai回复的消息
   await stopChat.value()
   // 停止音频播放 实际上这儿并不是同步的，只是触发了stop方法
-  await streamPlayerRef.value?.onStreamStop()
+  await stopAudio()
   currentIndex.value = null
   // 重置格式化器
   textReset()
-  // 重置播放状态
-  isStreamPlaying.value = false
   // 重置音频播放真正的状态
-  isAudioPlaying.value = false
+  isAudioRunning.value = false
   hasPrepared.value = false
   ttsPendingCount.value = 0
   console.error('清空user和助手内容')
@@ -808,7 +793,7 @@ async function stopAll() {
   console.log('关闭逻辑函数结束-----')
 }
 
-watch([isStreamPlaying, loading], ([isPlaying, isLoading]) => {
+watch([isAudioRunning, loading], ([isPlaying, isLoading]) => {
   if (!isPlaying || !isLoading) {
     // 都结束了才开始倒计时
     resetIdleTimer()
@@ -960,15 +945,13 @@ usePageExpose('pages/recorder-ai/index', {
     />
 
     <!-- 音频播放组件 -->
-    <!-- #ifdef APP-PLUS -->
-    <StreamPlayer
+    <!-- <StreamPlayer
       ref="streamPlayerRef"
       :stream-data="streamData"
       @on-stream-play-start="onStreamPlayStart"
       @on-stream-play-end="onStreamPlayEnd"
       @on-stream-stop="onStreamStop"
-    />
-    <!-- #endif -->
+    /> -->
 
     <!-- <view v-show="!isScreensaver"> -->
     <view class="size-full ">
@@ -980,8 +963,8 @@ usePageExpose('pages/recorder-ai/index', {
             ref="chatVideoRef"
             v-model:silence="isSilence"
             v-model:play="isAutoPlay"
-            :is-reset="!(isStreamPlaying && isAudioPlaying)"
-            :is-play="(isStreamPlaying && isAudioPlaying)"
+            :is-reset="!isAudioRunning"
+            :is-play="isAudioRunning"
           />
         </view>
         <view class="h-15% pb-120rpx ">
@@ -1049,7 +1032,7 @@ usePageExpose('pages/recorder-ai/index', {
                           </view>
                           <view class="  bg-#e8ecf5 flex-center  ml-20rpx" :class="[isPad ? 'size-30px border-rd-8px ' : 'size-60rpx border-rd-16rpx ']" @click="handleRecorder(msg.content as string, index)">
                             <audio-wave
-                              v-if="isStreamPlaying && currentIndex === index"
+                              v-if="isAudioRunning && currentIndex === index"
                               status="playing"
                               :color="COLOR_PRIMARY"
                               :bar-width="isPad ? 4 : 10"
@@ -1100,7 +1083,7 @@ usePageExpose('pages/recorder-ai/index', {
 }
 </style>
 
-<route lang="json"  type="home">
+<route lang="json"  type="page">
   {
        "style": { "navigationBarTitleText": "录音","navigationStyle": "custom" }
   }

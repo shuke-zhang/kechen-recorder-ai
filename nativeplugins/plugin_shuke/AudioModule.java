@@ -6,19 +6,20 @@ import android.os.Looper;
 import android.util.Log;
 
 import com.alibaba.fastjson.JSONObject;
+
 import java.lang.ref.WeakReference;
+
 import io.dcloud.feature.uniapp.annotation.UniJSMethod;
 import io.dcloud.feature.uniapp.bridge.UniJSCallback;
 import io.dcloud.feature.uniapp.common.UniModule;
 
 /**
- * 🔌 音频模块 - UniApp 插件入口
- * 被 UniApp 框架动态加载（无需直接引用）
+ * 🔌 UniApp 插件入口
+ * - 支持 init({ startPlayId })
+ * - addTask(id, base64)
+ * - clear(), release(), setOutputMode(mode)
  */
-@SuppressWarnings({
-        "unused", // ✅ 消除 “never used”
-        "RedundantDefaultParameterValue" // ✅ 消除默认参数重复赋值
-})
+@SuppressWarnings({ "unused", "RedundantDefaultParameterValue" })
 public class AudioModule extends UniModule {
     private static final String TAG = "AudioModule";
     private static WeakReference<AudioQueuePlayer> weakRef = new WeakReference<>(null);
@@ -69,6 +70,19 @@ public class AudioModule extends UniModule {
                 emit("modeChanged", json(o -> o.put("mode", mode.name())));
             }
         });
+    }
+
+    /** 初始化：可设置起始播放 ID */
+    @UniJSMethod(uiThread = true)
+    public void init(JSONObject options, UniJSCallback callback) {
+        AudioQueuePlayer p = getPlayer();
+        if (p == null) {
+            if (callback != null) callback.invoke("初始化失败");
+            return;
+        }
+        int startId = options != null ? options.getIntValue("startPlayId") : 0;
+        p.setStartPlayId(startId);
+        if (callback != null) callback.invoke("startPlayId=" + startId);
     }
 
     @UniJSMethod(uiThread = true)
@@ -132,6 +146,7 @@ public class AudioModule extends UniModule {
         eventCallback = null;
     }
 
+    // ===== 工具函数 =====
     private interface Filler { void fill(JSONObject o); }
     private static JSONObject json(Filler f) {
         JSONObject o = new JSONObject();

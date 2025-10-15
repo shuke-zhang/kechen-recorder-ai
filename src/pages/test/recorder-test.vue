@@ -8,6 +8,7 @@
 import { onUnmounted, ref } from 'vue'
 import { onReady, onUnload } from '@dcloudio/uni-app' // ✅ 用 onReady，而不是 uni.ready
 import { audio1, audio2, audio3 } from './audio'
+import { doubaoSpeechSynthesisFormat } from '@/api/audio'
 
 // 原生插件
 const plugin = uni.requireNativePlugin('plugin_shuke')
@@ -20,9 +21,9 @@ const progress = ref(0)
 const outputMode = ref<'speaker' | 'earpiece' | 'bluetooth'>('speaker')
 
 const audioList = ref([
-  { id: 1, text: '音频任务 1', base64: audio1, mime: 'audio/mp4' },
-  { id: 2, text: '音频任务 2', base64: audio2, mime: 'audio/mp4' },
-  { id: 3, text: '音频任务 3', base64: audio3, mime: 'audio/mp4' },
+  { id: 0, text: '今天是个好日子', base64: audio1, mime: 'audio/mp4' },
+  { id: 1, text: '天气很不错', base64: audio2, mime: 'audio/mp4' },
+  { id: 2, text: '很适合睡觉', base64: audio3, mime: 'audio/mp4' },
 ])
 
 /** 注册事件监听（保持只注册一次） */
@@ -99,10 +100,27 @@ function startPlayProcess() {
     progress.value = 0
 
     // 注意：AudioModule.addTask 的签名是 (id, base64, callback)
-    for (const item of audioList.value) {
-      plugin.addTask(String(item.id), item.base64, (ret: any) => {
-      // 这里第三参传回调，避免把 mime 字符串误传给原生
-        console.log('入队回调：', ret)
+    // for (const item of audioList.value) {
+    //   plugin.addTask(String(item.id), item.base64, (ret: any) => {
+    //   // 这里第三参传回调，避免把 mime 字符串误传给原生
+    //     console.log('入队回调：', ret)
+    //   })
+    // }
+    for (let i = 0; i < audioList.value.length; i++) {
+      const element = audioList.value[i]
+      // plugin.addTask(String(element.id), element.base64, (ret: any) => {
+      //   console.log('入队回调：', ret)
+      // })
+
+      doubaoSpeechSynthesisFormat({
+        text: element.text,
+        id: element.id,
+      }).then((res) => {
+        const { audio_base64, text, id } = res
+        console.log(`合成文本${text}`)
+        plugin.addTask(id, audio_base64, (ret: any) => {
+          console.log('入队回调：', ret)
+        })
       })
     }
   }

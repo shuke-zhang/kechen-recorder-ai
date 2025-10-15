@@ -15,7 +15,7 @@
   "__esModule": true,
   "pages": [
     {
-      "path": "pages/recorder-ai/index",
+      "path": "pages/screensaver/index",
       "type": "home",
       "style": {
         "navigationBarTitleText": "录音",
@@ -57,20 +57,20 @@
       }
     },
     {
+      "path": "pages/recorder-ai/index",
+      "type": "page",
+      "style": {
+        "navigationBarTitleText": "录音",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/recorder-ai/recorder-input-auto",
       "type": "page"
     },
     {
       "path": "pages/recorder-ai/recorder-input",
       "type": "page"
-    },
-    {
-      "path": "pages/screensaver/index",
-      "type": "page",
-      "style": {
-        "navigationBarTitleText": "录音",
-        "navigationStyle": "custom"
-      }
     },
     {
       "path": "pages/test/index",

@@ -129,7 +129,7 @@ const handleTouchStart = debounce(() => {
 }, 300)
 const {
   textRes,
-  isRunning,
+  isRecording,
   isAutoRecognize,
   isAutoRecognizerEnabled,
   recReq,
@@ -852,7 +852,7 @@ watch(
 )
 
 // 监听语音识别开始和结束 添加省略号动画
-watch(() => isRunning.value, (val: boolean) => {
+watch(() => isRecording.value, (val: boolean) => {
   if (val) {
     animatedDots.value = '.'
     dotTimer = setInterval(() => {
@@ -920,16 +920,10 @@ onShow(() => {
     RecordAppInstance.UniPageOnShow(vueInstance)
   }
 })
-onHide(() => {
-  console.log('触发onHide')
+onUnmounted(() => {
+  console.log('onUnmounted')
   isAutoPlaying.value = false
   isAutoRecognizerEnabled.value = false
-})
-
-usePageExpose('pages/recorder-ai/index', {
-  init() {
-    onScreensaverTrigger()
-  },
 })
 </script>
 
@@ -990,7 +984,7 @@ usePageExpose('pages/recorder-ai/index', {
                       <!-- 首先判断 用户消息临时加载状态 如果是则代表是语音识别消息 否则展示已经添加进去的消息 -->
                       {{
                         msg.isRecordingPlaceholder
-                          ? (textRes || '') + (isRunning && textRes ? animatedDots : '')
+                          ? (textRes || '') + (isRecording && textRes ? animatedDots : '')
                           : Array.isArray(msg.content)
                             ? userMsgFormat(modelPrefix, (msg.content as any)[0].text, true)
                             : userMsgFormat(modelPrefix, msg.content || '', true)
@@ -1067,9 +1061,6 @@ usePageExpose('pages/recorder-ai/index', {
         @click-stopped="stopAll(), recorderStatus = 'pending'"
       />
     </view>
-
-    <!-- 屏保 -->
-    <!-- <screensaver v-model:show="isScreensaver" @on-trigger="onScreensaverTrigger" /> -->
   </view>
 </template>
 

@@ -22,8 +22,10 @@ export default class RecorderCoreManager extends EventEmitter {
   public socketUrl = ''
   public resultText = ''
   public resultTextTemp = ''
-  // 是否正在录音
-  public isRunning = false
+  /**
+   * 是否正在录音
+   */
+  public isRecording = false
   public isReady = false
 
   constructor(
@@ -44,7 +46,7 @@ export default class RecorderCoreManager extends EventEmitter {
     console.log('recorder-core触发')
 
     this.reset()
-    this.isRunning = true
+    this.isRecording = true
     this.resultText = ''
     this.resultTextTemp = ''
     this.audioDataList = []
@@ -58,8 +60,8 @@ export default class RecorderCoreManager extends EventEmitter {
       try {
         console.log('触发class关闭')
 
-        // ❗ 无论如何都尝试停止识别（不要依赖 isRunning 判断）
-        this.isRunning = false
+        // ❗ 无论如何都尝试停止识别（不要依赖 isRecording 判断）
+        this.isRecording = false
         this.sendLastFrame()
         this.clearHandlerInterval()
 
@@ -86,10 +88,11 @@ export default class RecorderCoreManager extends EventEmitter {
 
   /** 推送一帧音频数据 */
   public pushAudioData(data: ArrayBuffer) {
-    // console.log(!this.isRunning, this.hasSentLastFrame, 'pushAudioData')
-
-    if (!this.isRunning || this.hasSentLastFrame)
+    console.log(!this.isRecording, this.hasSentLastFrame, 'pushAudioData')
+    // 如果没在录音 或者已经发送了最后一帧 则不再推送
+    if (!this.isRecording || this.hasSentLastFrame)
       return
+    console.log('推送音频')
 
     this.audioDataList.push(data)
   }

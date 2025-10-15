@@ -191,6 +191,7 @@ export function usePluginShuke(options: {
   onUnmounted(() => {
     stopAudio()
     plugin.release?.()
+    plugin.onEvent = (() => {}) as any
   })
 
   return {

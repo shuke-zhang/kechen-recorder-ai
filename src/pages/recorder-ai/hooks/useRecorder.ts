@@ -33,7 +33,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     APIKey,
     url,
     host,
-  }, onTextChanged)
+  }, onTextChange)
 
   // 全局缓存变量
   let lastPowerLevel = 0
@@ -41,7 +41,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
 
   const { playAudioInit, uploadFileAudio } = usePlayAudio(RecordApp)
   /** 识别是否关闭 */
-  const isRunning = ref(false)
+  const isRecording = ref(false)
   /** 输入框内容 */
   const content = ref('')
 
@@ -179,6 +179,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
 
     RecordApp.Start(set, () => {
       textRes.value = ''
+      console.log(isAutoRecognizerEnabled.value, 'recStart---isAutoRecognizerEnabled')
 
       handleRecognitionStart()
       RecorderCoreClass.on('log', (msg) => {
@@ -228,7 +229,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
    * 语音识别开启操作
    */
   function handleRecognitionStart() {
-    console.log('handleRecognitionStart', isAutoRecognizerEnabled.value)
+    console.log(isAutoRecognizerEnabled.value, 'handleRecognitionStart---isAutoRecognizerEnabled')
 
     if (!isAutoRecognizerEnabled.value) {
       return console.warn('语音识别功能已被禁用')
@@ -241,8 +242,8 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     hasWarnedSilence.value = false // 重置静音警告状态
     lastSilentWarnedSecond = 0 // 重置静音警告秒数
 
-    if (RecorderCoreClass.isRunning) {
-      isRunning.value = true
+    if (RecorderCoreClass.isRecording) {
+      isRecording.value = true
     }
   }
   /**
@@ -255,6 +256,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     }
 
     return RecorderCoreClass.stop().then(() => {
+      console.log('识别停止---handleRecognitionStop', RecorderCoreClass.isRecording)
     })
   }
 
@@ -265,6 +267,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     try {
       isAutoRecognize.value = true
       recStart()
+      console.log(isAutoRecognizerEnabled.value, 'handleRecorderStart---isAutoRecognizerEnabled')
     }
     catch (error: any) {
       showToastError(error)
@@ -314,7 +317,9 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
   /**
    * 识别结果实时返回
    */
-  function onTextChanged(text: string) {
+  function onTextChange(text: string) {
+    console.log('识别结果返回')
+
     textRes.value = text
   }
 
@@ -352,14 +357,6 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
             hasWarnedSilence.value = true
             handleRecognitionStart() // 你的重启函数
             break
-          // case 4:
-          //   console.warn('⏱ 4秒内无有效语音数据（即将重启）')
-          //   break
-          // case 5:
-          //   console.warn('⚠️ 5秒内无有效语音数据（已重启语音识别）')
-          //   hasWarnedSilence.value = true
-          //   handleRecognitionStart() // 你的重启函数
-          //   break
         }
         lastSilentWarnedSecond = currentSecond
       }
@@ -437,7 +434,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     /** 录音识别结果 */
     textRes,
     /** 是否正在录音 */
-    isRunning,
+    isRecording,
     /** 是否开启自动识别功能 */
     isAutoRecognize,
     /** 是否允许自动重启/自动启动语音识别 */

@@ -903,7 +903,7 @@ onMounted(() => {
      * wired - 设置输入源为有线麦克风
      * builtin - 设置输入源为内置麦克风
      */
-    plugin.setInputRoute('bluetooth', (res: any) => {
+    plugin.setInputRoute('usb', (res: any) => {
       // 根据 ok 判断结果
       if (res.ok) {
         console.log('✅ 成功切换到 USB 外置麦克风')

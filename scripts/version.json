@@ -1,8 +1,9 @@
 {
-  "version": "1.1.4",
+  "version": "1.1.5",
   "appUrl": "https://shuke-zhang.oss-cn-chengdu.aliyuncs.com/kezai/kezai-AI.zip",
   "updateList": [
     "优化屏保页面",
+    "优化音频输入通道",
     "修复现有bug"
   ]
 }

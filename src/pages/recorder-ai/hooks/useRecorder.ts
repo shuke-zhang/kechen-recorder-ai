@@ -179,7 +179,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
 
     RecordApp.UniWebViewActivate(vueInstance) // App环境下必须先切换成当前页面WebView
     // 调用原生插件切换到USB外置麦克风
-    plugin.setInputRoute('bluetooth', (res: any) => {
+    plugin.setInputRoute('usb', (res: any) => {
       // 根据 ok 判断结果
       if (res.ok) {
         console.log('✅ 成功切换到 USB 外置麦克风')

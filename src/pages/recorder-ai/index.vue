@@ -417,6 +417,7 @@ async function autoPlayAiMessage(_text: string, index: number) {
         return
       }
       const { audio_base64, id } = res
+      console.error('✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ 音频请求成功---请求成功推送音频.')
 
       playAudio({
         id,
@@ -807,7 +808,7 @@ watch([isAudioRunning, loading], ([isPlaying, isLoading]) => {
 // 添加一个监听最后一条消息内容的变化（对于流式输出非常有用）
 watch(
   () => content.value[content.value.length - 1]?.content,
-  () => {
+  (newVal, oldVal) => {
     if (content.value.length > 0) {
       nextTick(() => {
         console.log('scrollTop变化了')
@@ -816,7 +817,9 @@ watch(
 
       // 检查最后一条消息是否是AI的回复
       const lastMessage = content.value[content.value.length - 1]
+
       if (lastMessage?.role === 'assistant' && lastMessage?.streaming) {
+          console.error('✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ 监听到ai的消息', newVal)
         recorderStatus.value = 'stopped'
         // 自动播放
         autoPlayAiMessage(lastMessage.content as string || ' ', content.value.length - 1)
@@ -871,6 +874,7 @@ watch(() => isRecording.value, (val: boolean) => {
 watch(() => textRes.value, async (newVal) => {
   await nextTick() // 确保视图更新完成
   // replyForm.value.content = modelPrefix.value + newVal as string
+
   replyForm.value.content = newVal?.startsWith(modelPrefix.value) ? newVal : modelPrefix.value + newVal
   isSilence.value = false // 重置静默模式状态
   isAutoPlay.value = false // 重置自动播放状态

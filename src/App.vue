@@ -73,7 +73,7 @@ function checkAuth(expireAt: string) {
 
 onLaunch((): void => {
   // TODO: 这里替换为你的真实截止时间，或改为从服务端/本地存储获取
-  const expireAt: string = '2025-10-20 00:00:00'
+  const expireAt: string = '2025-10-21 00:00:00'
   checkAuth(expireAt)
 })
 </script>

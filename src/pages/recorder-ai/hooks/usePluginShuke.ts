@@ -193,7 +193,9 @@ export function usePluginShuke(options: {
     plugin.release?.()
     plugin.onEvent = (() => {}) as any
   })
-
+  watch(() => isAudioRunning.value, () => {
+    console.error('✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅音频播放成功啦')
+  })
   return {
     plugin,
     isAudioRunning,

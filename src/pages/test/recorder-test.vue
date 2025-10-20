@@ -1,4 +1,4 @@
-<route lang="json" type="home">
+<route lang="json" type="page">
 {
   "style": { "navigationBarTitleText": "舒克音频测试" }
 }

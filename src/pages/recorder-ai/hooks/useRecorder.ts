@@ -2,6 +2,8 @@ import RecorderCoreManager from '../xunfei/recorder-core'
 import usePlayAudio from './usePlayAudio'
 import type { UploadFileModel } from '@/model/chat'
 
+const plugin = uni.requireNativePlugin('shuke_microphone')
+
 const APPID = 'f9b52f87'
 const APISecret = 'ZDVkYzU5YmFhZmNlODVkM2RlNDMyNDhl'
 const APIKey = '287ae449056d33e0f4995f480737564a'
@@ -90,7 +92,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
   /**
    * 开始录音
    */
-  async function recStart() {
+  function recStart() {
     let lastIdx = 1e9
     let chunk: any = null
     const set = {
@@ -176,7 +178,22 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     }
 
     RecordApp.UniWebViewActivate(vueInstance) // App环境下必须先切换成当前页面WebView
+    // 调用原生插件切换到USB外置麦克风
+    plugin.setInputRoute('bluetooth', (res: any) => {
+      // 根据 ok 判断结果
+      if (res.ok) {
+        console.log('✅ 成功切换到 USB 外置麦克风')
+      }
+      else {
+        console.warn('❌ 切换失败：', res.msg)
+        plugin.setInputRoute('wired', () => {}) // 尝试切换到有线麦克风
+      }
 
+      // 打印设备信息（可选）
+      if (res.device) {
+        console.log('当前设备信息：', res.device)
+      }
+    })
     RecordApp.Start(set, () => {
       textRes.value = ''
       console.log(isAutoRecognizerEnabled.value, 'recStart---isAutoRecognizerEnabled')
@@ -190,7 +207,6 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
       console.error(`开始录音失败：${msg}`)
     })
 
-    await RecordApp.UniNativeUtsPluginCallAsync('setSpeakerOff', { off: false, headset: true })
     const err = RecordApp.UniCheckNativeUtsPluginConfig()
     if (err) {
       console.warn('未启用原生插件，错误信息:', err)

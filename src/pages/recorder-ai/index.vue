@@ -48,6 +48,8 @@ import { addChatHistory } from '@/api/chat-history'
 import { usePluginShuke } from './hooks/usePluginShuke'
 
 const vueInstance = getCurrentInstance()?.proxy as any // 必须定义到最外面，getCurrentInstance得到的就是当前实例this
+const plugin = uni.requireNativePlugin('shuke_microphone')
+
 const pageHeight = computed(() => {
   return `${getStatusBarHeight() + NAV_BAR_HEIGHT + 1}px`
 })
@@ -439,6 +441,8 @@ async function autoPlayAiMessage(_text: string, index: number) {
       isAudioRunning.value = false
       console.log(error, 'ai自动播放音频错误')
     }).finally(() => {
+      console.log('音频请求结束')
+
       ttsRequestEnd()
     })
   }
@@ -819,7 +823,7 @@ watch(
       const lastMessage = content.value[content.value.length - 1]
 
       if (lastMessage?.role === 'assistant' && lastMessage?.streaming) {
-          console.error('✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ 监听到ai的消息', newVal)
+        console.error('✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ 监听到ai的消息', newVal)
         recorderStatus.value = 'stopped'
         // 自动播放
         autoPlayAiMessage(lastMessage.content as string || ' ', content.value.length - 1)
@@ -893,6 +897,27 @@ onMounted(() => {
       initialLoadPending.value = true
     }, 1500)
     onScreensaverTrigger()
+    /**
+     * use - 设置输入源为USB麦克风
+     * bluetooth - 设置输入源为蓝牙麦克风
+     * wired - 设置输入源为有线麦克风
+     * builtin - 设置输入源为内置麦克风
+     */
+    plugin.setInputRoute('bluetooth', (res: any) => {
+      // 根据 ok 判断结果
+      if (res.ok) {
+        console.log('✅ 成功切换到 USB 外置麦克风')
+      }
+      else {
+        console.warn('❌ 切换失败：', res.msg)
+        plugin.setInputRoute('wired', () => {}) // 尝试切换到有线麦克风
+      }
+
+      // 打印设备信息（可选）
+      if (res.device) {
+        console.log('当前设备信息：', res.device)
+      }
+    })
   }).catch((err) => {
     showToastError(err)
     console.log(err, '请求权限拒绝')

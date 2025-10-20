@@ -1,4 +1,4 @@
-<route lang="json" type="page">
+<route lang="json" type="home">
 {
   "style": {
     "navigationBarTitleText": "录音",

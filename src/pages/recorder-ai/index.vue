@@ -48,7 +48,6 @@ import { addChatHistory } from '@/api/chat-history'
 import { usePluginShuke } from './hooks/usePluginShuke'
 
 const vueInstance = getCurrentInstance()?.proxy as any // 必须定义到最外面，getCurrentInstance得到的就是当前实例this
-const plugin = uni.requireNativePlugin('shuke_microphone')
 
 const pageHeight = computed(() => {
   return `${getStatusBarHeight() + NAV_BAR_HEIGHT + 1}px`
@@ -903,21 +902,6 @@ onMounted(() => {
      * wired - 设置输入源为有线麦克风
      * builtin - 设置输入源为内置麦克风
      */
-    plugin.setInputRoute('usb', (res: any) => {
-      // 根据 ok 判断结果
-      if (res.ok) {
-        console.log('✅ 成功切换到 USB 外置麦克风')
-      }
-      else {
-        console.warn('❌ 切换失败：', res.msg)
-        plugin.setInputRoute('wired', () => {}) // 尝试切换到有线麦克风
-      }
-
-      // 打印设备信息（可选）
-      if (res.device) {
-        console.log('当前设备信息：', res.device)
-      }
-    })
   }).catch((err) => {
     showToastError(err)
     console.log(err, '请求权限拒绝')

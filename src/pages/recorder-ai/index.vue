@@ -191,7 +191,7 @@ const silenceTimer = new IdleTimer({
   onTimeout: () => {
     isSilence.value = true
     isAutoPlay.value = true
-    console.warn('当前页面空闲中，触发静默模式', isSilence.value)
+    // console.warn('当前页面空闲中，触发静默模式', isSilence.value)
   },
 })
 
@@ -203,7 +203,7 @@ const screensaverTimer = new IdleTimer({
   delay: IDLE_DELAY, // 你原本的 IDLE_DELAY 值
   isLog: true,
   onTimeout: async () => {
-    console.log('⏳ 空闲超时触发，执行屏保逻辑')
+    // console.log('⏳ 空闲超时触发，执行屏保逻辑')
 
     // 停止语音识别
     await handleRecognitionStop()
@@ -268,7 +268,7 @@ function checkIfAllReady() {
 
 function assistantReplySuccess() {
   const id = chatOrder.value?.length ? chatOrder.value[addChatHistoryId.value] : 0
-  console.log('查看这该死的内容', chatOrder.value, addChatHistoryId.value, id)
+  // console.log('查看这该死的内容', chatOrder.value, addChatHistoryId.value, id)
 
   if (!content.value.length)
     return
@@ -317,10 +317,10 @@ function submitChatHistory(id: number) {
   // const id = addChatHistoryId.value
 
   try {
-    console.error('使用了user内容')
+    // console.error('使用了user内容')
     const dataByMap = chatHistoryMap.get(id) || {}
     // addChatHistoryId.value++
-    console.log('dataByMap', id, dataByMap)
+    // console.log('dataByMap', id, dataByMap)
     // 判断 dataByMap 的每一项都有内容才开始上传
     const requiredFields = [
       'userAudio',
@@ -335,11 +335,11 @@ function submitChatHistory(id: number) {
     ]
     const allFieldsFilled = requiredFields.every(field => !!dataByMap[field])
     if (!allFieldsFilled) {
-      console.warn('chatHistory未填写完整，跳过上传', dataByMap)
+      // console.warn('chatHistory未填写完整，跳过上传', dataByMap)
       return
     }
     addChatHistory(dataByMap).then((res) => {
-      console.log('新增历史记录成功——————————', res)
+      // console.log('新增历史记录成功——————————', res)
       chatHistoryMap.delete(id) // ✅ 上传成功后删除对应记录
     }).finally(() => {
       addChatHistoryId.value++
@@ -353,7 +353,7 @@ function submitChatHistory(id: number) {
 
 /** 重置定时器 */
 function resetIdleTimer() {
-  console.log('监听到用户操作，重置定时器')
+  // console.log('监听到用户操作，重置定时器')
 
   // 如果当前状态不允许开启定时器（如正在播放或AI回复中）
   if (!canStartIdleTimer.value) {
@@ -403,10 +403,10 @@ async function autoPlayAiMessage(_text: string, index: number) {
       stopAudio()
       assistantAudioBuffers.value = []
     }
-    console.log('查看文本longText', longText, longText.length)
+    // console.log('查看文本longText', longText, longText.length)
 
     ttsRequestStart()
-    console.log('请求音频接口', longText, tempFormattedTexts.value.findIndex(t => t === longText) || 0)
+    // console.log('请求音频接口', longText, tempFormattedTexts.value.findIndex(t => t === longText) || 0)
 
     doubaoSpeechSynthesisFormat({
       text: longText,
@@ -414,11 +414,10 @@ async function autoPlayAiMessage(_text: string, index: number) {
     }, tempFormattedTexts.value.findIndex(t => t === longText) === 0).then((res) => {
       // ✅ 如果用户已经点了停止/切换，直接丢弃
       if (currentIndex.value !== index) {
-        console.log('丢弃过期的音频', res)
+        // console.log('丢弃过期的音频', res)
         return
       }
       const { audio_base64, id } = res
-      console.error('✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ 音频请求成功---请求成功推送音频.')
 
       playAudio({
         id,
@@ -429,16 +428,16 @@ async function autoPlayAiMessage(_text: string, index: number) {
         buffers: audio_buffer,
         id,
       })
-      console.log('接口请求成功', res)
+      // console.log('接口请求成功', res)
 
       // ai返回的消息结束了
       if (isAiMessageEnd.value) {
         tempFormattedTexts.value = []
         hasUserInterruptedAutoPlay.value = false
       }
-    }).catch((error) => {
+    }).catch((_error) => {
       isAudioRunning.value = false
-      console.log(error, 'ai自动播放音频错误')
+      // console.log(_error, 'ai自动播放音频错误')
     }).finally(() => {
       console.log('音频请求结束')
 
@@ -473,7 +472,7 @@ async function onScreensaverTrigger() {
   // }
   isScreensaver.value = false
   resetIdleTimer()
-  console.log('进入操作页面')
+  // console.log('进入操作页面')
 
   if (initialLoadPending.value) {
     playDefaultAudioData()
@@ -483,7 +482,7 @@ async function onScreensaverTrigger() {
     try {
       await waitUntil(() => initialLoadPending.value)
       playDefaultAudioData()
-      console.log('等待初始化完成啦')
+      // console.log('等待初始化完成啦')
     }
     catch (e) {
       console.error('等待 initialLoadPending 超时', e)
@@ -814,15 +813,13 @@ watch(
   (newVal, oldVal) => {
     if (content.value.length > 0) {
       nextTick(() => {
-        console.log('scrollTop变化了')
-        scrollTop.value = Date.now() + 500
+        scrollTop.value = Date.now() + 1000
       })
 
       // 检查最后一条消息是否是AI的回复
       const lastMessage = content.value[content.value.length - 1]
 
       if (lastMessage?.role === 'assistant' && lastMessage?.streaming) {
-        console.error('✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ 监听到ai的消息', newVal)
         recorderStatus.value = 'stopped'
         // 自动播放
         autoPlayAiMessage(lastMessage.content as string || ' ', content.value.length - 1)

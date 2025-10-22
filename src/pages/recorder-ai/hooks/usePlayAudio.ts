@@ -160,7 +160,7 @@ export default function usePlayAudio(RecordApp?: any) {
       }
     })
     ctx.onTimeUpdate(() => {
-      console.log('音频播放进度更新事件')
+      // console.log('音频播放进度更新事件')
     })
     ctx.play()
   }

@@ -180,7 +180,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
 
     RecordApp.UniWebViewActivate(vueInstance) // App环境下必须先切换成当前页面WebView
     // 调用原生插件切换到USB外置麦克风
-    setInputMode('wired')
+    setInputMode('usb')
     RecordApp.Start(set, () => {
       textRes.value = ''
       console.log(isAutoRecognizerEnabled.value, 'recStart---isAutoRecognizerEnabled')
@@ -236,7 +236,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     if (!isAutoRecognizerEnabled.value) {
       return console.warn('语音识别功能已被禁用')
     }
-
+    setInputMode('usb')
     RecorderCoreClass.start() // 在这儿开始会发送第一帧
     isRecorderStopped.value = false // ② 开始录音时允许写入
     recorderBufferList.value = []

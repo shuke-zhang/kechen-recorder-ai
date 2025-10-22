@@ -87,6 +87,14 @@
       }
     },
     {
+      "path": "pages/test/plugin-test-all",
+      "type": "page",
+      "style": {
+        "navigationBarTitleText": "录音",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/test/recorder-core-test",
       "type": "page",
       "style": {

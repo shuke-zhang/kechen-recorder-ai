@@ -1,3 +1,4 @@
+import type { InputMode } from 'plugin_shuke'
 import RecorderCoreManager from '../xunfei/recorder-core'
 import usePlayAudio from './usePlayAudio'
 import type { UploadFileModel } from '@/model/chat'
@@ -34,6 +35,8 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     url,
     host,
   }, onTextChange)
+
+  const mic = uni.requireNativePlugin('shuke_microphone')
 
   // 全局缓存变量
   let lastPowerLevel = 0
@@ -177,7 +180,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
 
     RecordApp.UniWebViewActivate(vueInstance) // App环境下必须先切换成当前页面WebView
     // 调用原生插件切换到USB外置麦克风
-
+    setInputMode('wired')
     RecordApp.Start(set, () => {
       textRes.value = ''
       console.log(isAutoRecognizerEnabled.value, 'recStart---isAutoRecognizerEnabled')
@@ -190,7 +193,6 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     }, (msg: any) => {
       console.error(`开始录音失败：${msg}`)
     })
-    switchToInputRoute('usb') // 切换到蓝牙麦克风
     const err = RecordApp.UniCheckNativeUtsPluginConfig()
     if (err) {
       console.warn('未启用原生插件，错误信息:', err)
@@ -392,82 +394,19 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
   }
 
   /**
-   * 通用输入设备切换函数
-   * @param type 'usb' | 'bluetooth' | 'wired' | 'builtin'
+   * - usb - USB 外置麦克风
+   * - wired - 有线耳机麦克风
+   * - bluetooth - 蓝牙麦克风
+   * - builtin - 内置麦克风
    */
-  async function switchToInputRoute(type: 'usb' | 'bluetooth' | 'wired' | 'builtin') {
-    const plugin = uni.requireNativePlugin('shuke_microphone')
-
-    // 先查询输入设备列表
-    plugin.getInputDevices((res: any) => {
-      if (!res.ok) {
-        console.error('❌ 获取设备列表失败：', res.msg)
-        return
+  function setInputMode(type: InputMode) {
+    mic.getInputDevices((res: any) => {
+      if (res.ok) {
+        console.log('输入设备', res.devices)
       }
-
-      const devices = res.devices || []
-      console.log('🎧 当前输入设备列表：', devices)
-
-      // 定义类型与检测逻辑映射
-      const isMatch = (d: any) => {
-        const name = (d.typeName || '').toLowerCase()
-        switch (type) {
-          case 'usb':
-            return (
-              d.type === 22
-              || d.type === 27
-              || name.includes('usb')
-            )
-          case 'bluetooth':
-            return (
-              d.type === 7 // TYPE_BLUETOOTH_SCO
-              || name.includes('蓝牙')
-            )
-          case 'wired':
-            return (
-              d.type === 3 // TYPE_WIRED_HEADSET
-              || name.includes('耳机')
-            )
-          case 'builtin':
-            return (
-              d.type === 15 // TYPE_BUILTIN_MIC
-              || name.includes('内置')
-            )
-          default:
-            return false
-        }
-      }
-
-      // 查找匹配设备
-      const target = devices.find(isMatch)
-
-      // 如果找不到则提示
-      // if (!target) {
-      //   uni.showToast({
-      //     title: `未检测到 ${type === 'usb' ? 'USB外置' : type === 'bluetooth' ? '蓝牙' : type === 'wired' ? '有线耳机' : '内置'}麦克风`,
-      //     icon: 'none',
-      //   })
-      //   console.warn(`⚠️ 未检测到 ${type} 麦克风，跳过切换`)
-      //   return
-      // }
-
-      // 找到后再执行切换
-      plugin.setInputRoute(type, (res: any) => {
-        if (res.ok) {
-          // uni.showToast({
-          //   title: res.msg || `✅ 已切换到 ${type} 麦克风`,
-          //   icon: 'none',
-          // })
-          console.log(`✅ 切换音频成功`, res.device)
-        }
-        else {
-          uni.showToast({
-            title: res.msg || '❌ 切换失败',
-            icon: 'none',
-          })
-          console.warn('❌ 切换失败：', res.msg)
-        }
-      })
+    })
+    mic.setInputRoute?.(type, (ret: any) => {
+      console.log('🔄 输出通道切换：', ret)
     })
   }
 
@@ -531,7 +470,6 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     handleRecognitionStop,
     /** 录音按钮按下 */
     handleRecorderStart,
-    /** 切换到 USB 麦克风 */
-    switchToInputRoute,
+
   }
 }

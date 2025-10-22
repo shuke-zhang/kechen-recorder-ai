@@ -1,6 +1,11 @@
 declare module 'plugin_shuke' {
-  /** 输出模式 */
-  export type OutputMode = 'speaker' | 'earpiece' | 'bluetooth'
+  /**
+   * usb - USB 外置麦克风
+   * wired - 有线耳机麦克风
+   * bluetooth - 蓝牙麦克风
+   * builtin - 内置麦克风
+   */
+  export type InputMode = 'usb' | 'wired' | 'bluetooth' | 'builtin'
 
   /** 插件事件类型 */
   export type PluginEventType =

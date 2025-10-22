@@ -32,7 +32,6 @@ const { localScreensaverVideoList, localVideoStatus, initFolder } = useLocalPlay
 const { visible, downloadUrl, updateList, downloadApp, checkNewVersion } = useCheckAppVersion()
 
 function onRecorder() {
-  fileLog('用户点击屏保，进入录音页面')
   router.replace('/pages/recorder-ai/index')
 }
 

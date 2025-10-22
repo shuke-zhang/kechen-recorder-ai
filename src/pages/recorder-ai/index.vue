@@ -896,12 +896,6 @@ onMounted(() => {
       initialLoadPending.value = true
     }, 1500)
     onScreensaverTrigger()
-    /**
-     * use - 设置输入源为USB麦克风
-     * bluetooth - 设置输入源为蓝牙麦克风
-     * wired - 设置输入源为有线麦克风
-     * builtin - 设置输入源为内置麦克风
-     */
   }).catch((err) => {
     showToastError(err)
     console.log(err, '请求权限拒绝')

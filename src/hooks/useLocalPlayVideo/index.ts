@@ -47,7 +47,7 @@ export function useLocalPlayVideo(networkVideoUrls?: string[], videoType?: 'scre
     if (!exists) {
       const created = plus.android.invoke(file, 'mkdirs')
       if (!created) {
-        uni.showToast({ title: '❌ 目录创建失败', icon: 'none' })
+        // uni.showToast({ title: '❌ 目录创建失败', icon: 'none' })
         return
       }
       console.log('✅ chat_video 文件夹已创建')

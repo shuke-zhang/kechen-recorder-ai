@@ -63,7 +63,7 @@ export function usePluginShuke(options: {
    */
   onStop?: () => void
 } = {}) {
-  const plugin = uni.requireNativePlugin('plugin_shuke') as PluginShuke
+  const plugin = uni.requireNativePlugin('shuke_audio_play') as PluginShuke
 
   /** 当前播放状态 */
   const isAudioRunning = ref(false)
@@ -121,20 +121,6 @@ export function usePluginShuke(options: {
     currentId.value = null
     progress.value = 0
     queueSize.value = 0
-  }
-
-  /** 输出模式切换（speaker → earpiece → bluetooth） */
-  function toggleOutputMode() {
-    const next
-      = outputMode.value === 'speaker'
-        ? 'earpiece'
-        : outputMode.value === 'earpiece'
-          ? 'bluetooth'
-          : 'speaker'
-    outputMode.value = next
-    plugin.setOutputMode?.(next, (ret: any) => {
-      console.log('🔄 输出通道切换：', ret)
-    })
   }
 
   /** 注册事件监听 */
@@ -205,6 +191,5 @@ export function usePluginShuke(options: {
     outputMode,
     playAudio, // ✅ 可接收单对象或数组
     stopAudio,
-    toggleOutputMode,
   }
 }

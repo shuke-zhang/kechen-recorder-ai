@@ -10,7 +10,7 @@
         {
           "type": "module",
           "name": "plugin_shuke",
-          "class": "com.example.plugin_shuke.AudioModule"
+          "class": "com.example.plugin_shuke."
         }
       ],
       "integrateType": "aar",

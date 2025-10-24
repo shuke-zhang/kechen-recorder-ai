@@ -2,6 +2,9 @@ import { Base64 } from 'js-base64'
 import CryptoJS from 'crypto-js'
 import type { XunFeiRecorderOptions } from './types'
 import { WebSocket } from '@/store/modules/socket/webSocket'
+import { useLogger } from '@/hooks/useLog'
+
+const { writeLogger } = useLogger()
 
 /**
  * @description 讯飞语音识别class --- https://www.xfyun.cn/doc/asr/voicedictation/API.html#%E6%8E%A5%E5%8F%A3%E8%AF%B4%E6%98%8E
@@ -155,6 +158,7 @@ export default class RecorderCoreManager extends EventEmitter {
 
     this.emit('log', `📤 发送第一帧 ${firstFrame}`)
     console.warn(`📤 发送第一帧 ${firstFrame.data.status}`)
+    writeLogger({ event: '发送第一帧', frame: firstFrame })
     this.handlerInterval = setInterval(() => {
       if (!this.socketTask?.isConnect || this.hasSentLastFrame) {
         this.clearHandlerInterval()
@@ -194,6 +198,7 @@ export default class RecorderCoreManager extends EventEmitter {
     this.socketTask.sendMessage(lastFrame)
     // this.emit('log', '📤 发送最后一帧')
     console.log(`📤 发送最后一帧 `)
+    writeLogger({ event: '发送最后一帧', frame: lastFrame })
     this.hasSentLastFrame = true
   }
 
@@ -254,7 +259,7 @@ export default class RecorderCoreManager extends EventEmitter {
 
       // 实时触发变更回调
       this.onTextChange?.(this.resultTextTemp || this.resultText || '')
-
+      writeLogger({ event: '识别结果返回', text: this.resultTextTemp || this.resultText || '' })
       // 最后一帧
       if (json.data.status === 2) {
         this.sendLastFrame()

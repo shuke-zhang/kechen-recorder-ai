@@ -46,6 +46,7 @@ import type { ChatHistoryModel } from '@/model/chat'
 import type { UploadFileModel } from '@/model/chat'
 import { addChatHistory } from '@/api/chat-history'
 import { usePluginShuke } from './hooks/usePluginShuke'
+import { useLogger } from '@/hooks/useLog'
 
 const vueInstance = getCurrentInstance()?.proxy as any // 必须定义到最外面，getCurrentInstance得到的就是当前实例this
 
@@ -136,6 +137,7 @@ const {
   recReq,
   handleRecorderStart,
   handleRecognitionStop,
+  setInputMode,
 } = useRecorder({
   RecordApp: RecordAppInstance,
   Recorder: RecorderInstance,
@@ -893,6 +895,7 @@ onMounted(() => {
       initialLoadPending.value = true
     }, 1500)
     onScreensaverTrigger()
+    setInputMode('usb')
   }).catch((err) => {
     showToastError(err)
     console.log(err, '请求权限拒绝')

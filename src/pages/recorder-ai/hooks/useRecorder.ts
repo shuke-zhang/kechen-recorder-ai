@@ -2,6 +2,7 @@ import type { InputMode } from 'plugin_shuke'
 import RecorderCoreManager from '../xunfei/recorder-core'
 import usePlayAudio from './usePlayAudio'
 import type { UploadFileModel } from '@/model/chat'
+import { useLogger } from '@/hooks/useLog'
 
 const APPID = 'f9b52f87'
 const APISecret = 'ZDVkYzU5YmFhZmNlODVkM2RlNDMyNDhl'
@@ -37,6 +38,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
   }, onTextChange)
 
   const mic = uni.requireNativePlugin('shuke_microphone')
+  const { writeLogger } = useLogger()
 
   // 全局缓存变量
   let lastPowerLevel = 0
@@ -120,6 +122,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
         if (keep) {
           console.warn('✅ 音量合适，上传数据')
           RecorderCoreClass.pushAudioData(arrayBuffer)
+          writeLogger({ event: 'pushAudioData', powerLevel, duration })
           silentStartTime = null
           hasWarnedSilence.value = false
           lastSilentWarnedSecond = 0
@@ -180,7 +183,6 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
 
     RecordApp.UniWebViewActivate(vueInstance) // App环境下必须先切换成当前页面WebView
     // 调用原生插件切换到USB外置麦克风
-    setInputMode('usb')
     RecordApp.Start(set, () => {
       textRes.value = ''
       console.log(isAutoRecognizerEnabled.value, 'recStart---isAutoRecognizerEnabled')
@@ -236,7 +238,6 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     if (!isAutoRecognizerEnabled.value) {
       return console.warn('语音识别功能已被禁用')
     }
-    setInputMode('usb')
     RecorderCoreClass.start() // 在这儿开始会发送第一帧
     isRecorderStopped.value = false // ② 开始录音时允许写入
     recorderBufferList.value = []
@@ -403,10 +404,12 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     mic.getInputDevices((res: any) => {
       if (res.ok) {
         console.log('输入设备', res.devices)
+        writeLogger({ event: 'getInputDevices', devices: res.devices })
       }
     })
-    mic.setInputRoute?.(type, (ret: any) => {
+    mic.setInputRoute(type, (ret: any) => {
       console.log('🔄 输出通道切换：', ret)
+      writeLogger({ event: 'setInputRoute', type, result: ret })
     })
   }
 
@@ -470,6 +473,12 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     handleRecognitionStop,
     /** 录音按钮按下 */
     handleRecorderStart,
-
+    /**
+     * - usb - USB 外置麦克风
+     * - wired - 有线耳机麦克风
+     * - bluetooth - 蓝牙麦克风
+     * - builtin - 内置麦克风
+     */
+    setInputMode,
   }
 }

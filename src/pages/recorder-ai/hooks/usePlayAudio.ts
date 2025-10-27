@@ -115,56 +115,6 @@ export default function usePlayAudio(RecordApp?: ShukeRecorderPlugin) {
   }
 
   /**
-   * @description 播放文件
-   */
-  function playAudio(savePath: string, callBack?: PlayAudioCallbackModel) {
-    const ctx = uni.createInnerAudioContext()
-    ctx.src = savePath
-    // ctx.obeyMuteSwitch = false
-    ctx.onError((res) => {
-      console.log(res, '音频播放错误')
-      uni.removeSavedFile({
-        filePath: savePath,
-        success: () => {
-          console.log(`🗑️ 文件已删除: ${savePath}`)
-        },
-        fail: (err) => {
-          console.warn('⚠️ 文件删除失败:', err)
-        },
-      })
-      if (callBack) {
-        callBack.onError && callBack.onError(res)
-      }
-      ctx.destroy()
-    })
-    ctx.onEnded((res) => {
-      uni.removeSavedFile({
-        filePath: savePath,
-        success: () => {
-          console.log(`🗑️ 文件已删除: ${savePath}`)
-        },
-        fail: (err) => {
-          console.warn('⚠️ 文件删除失败:', err)
-        },
-      })
-      console.log(res.errMsg, '音频播放结束')
-      if (callBack) {
-        callBack.onEnded && callBack.onEnded(res)
-      }
-      ctx.destroy()
-    })
-    ctx.onPlay(() => {
-      console.log('音频开始播放')
-      if (callBack) {
-        callBack.onPlay && callBack.onPlay()
-      }
-    })
-    ctx.onTimeUpdate(() => {
-      // console.log('音频播放进度更新事件')
-    })
-    ctx.play()
-  }
-  /**
    * @description 生成文件名
    * - type 文件类型
    */
@@ -271,56 +221,13 @@ export default function usePlayAudio(RecordApp?: ShukeRecorderPlugin) {
     })
   }
 
-  /**
-   * 保存 buffer 为文件，使用 uni.recorder 播放后自动删除
-   */
-  async function saveAndPlayBase64MP3(options: {
-    base64: string // MP3 格式的 base64 音频
-    fileNamePre?: string // 临时文件前缀
-    audioCallback?: PlayAudioCallbackModel
-  }): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      const fileName = getFileName('mp3', options.fileNamePre)
-      const arrayBuffer = mp3Base64ToArrayBuffer(options.base64) // 将
-      RecordApp?.uniSaveLocalFile(
-        fileName,
-        arrayBuffer as any,
-        (res) => {
-          if (res.ok && res.path) {
-            console.log(`✅ MP3文件已保存: ${res.path}`)
-            playAudio(res.path, options.audioCallback)
-            resolve()
-          }
-          else {
-            reject(new Error(res.msg || '保存失败'))
-          }
-        },
-
-      )
-    })
-  }
-
-  function mp3Base64ToArrayBuffer(base64: string): ArrayBuffer {
-  // 去掉 data URI 头部（如果有）
-    const pureBase64 = base64.replace(/^data:audio\/\w+;base64,/, '')
-    const binaryString = atob(pureBase64) // base64 解码成二进制字符串
-
-    const len = binaryString.length
-    const bytes = new Uint8Array(len)
-    for (let i = 0; i < len; i++) {
-      bytes[i] = binaryString.charCodeAt(i)
-    }
-
-    return bytes.buffer // 返回 ArrayBuffer
-  }
   return {
     /** 合并多个ArrayBuffer */
     mergeArrayBuffers,
     /** 将PCM数据编码为WAV格式 */
     encodeBufferToWav,
     base64ToUint8Array,
-    /** 播放 */
-    playAudio,
+
     /**
      * @description 播放初始化 options
      * - pcmBuffers 传入pcm数据流数组
@@ -342,9 +249,6 @@ export default function usePlayAudio(RecordApp?: ShukeRecorderPlugin) {
      * @description 上传文件 仅限于传入 Buffer
      */
     uploadFileAudio,
-    /**
-     * @description 存 buffer 为文件，使用 uni.recorder 播放后自动删除
-     */
-    saveAndPlayBase64MP3,
+
   }
 }

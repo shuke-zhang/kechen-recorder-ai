@@ -333,7 +333,7 @@ export default function useRecorder(options: {
   }
 
   function shouldKeepAudio(currentPower: number): boolean {
-    const THRESHOLD = 40 // 基准音量阈值
+    const THRESHOLD = 10 // 基准音量阈值
     const KEEP_FRAMES = 2 // 音量下降后继续保留的帧数
 
     if (currentPower > THRESHOLD) {
@@ -401,7 +401,7 @@ export default function useRecorder(options: {
       const userInputTime = formatTime({ type: 'YYYY-MM-DD HH:mm:ss' })
 
       silenceTimer = setTimeout(() => {
-        console.warn('⏱️ 1.5秒内无新内容，自动停止录音', normNew, normOld)
+        console.warn('⏱️ 2秒内无新内容，自动停止录音', normNew, normOld)
         isAutoStop.value = true // 标记为自动停止
 
         options.sendMessage()
@@ -410,7 +410,7 @@ export default function useRecorder(options: {
           userInputTime,
         )
         console.log(id, '查看新增消息的id')
-      }, 1500)
+      }, 2 * 1000)
     }
   })
 

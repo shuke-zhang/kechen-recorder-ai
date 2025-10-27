@@ -3,7 +3,7 @@ import { useTextFormatter } from './hooks/useTextFormatter'
 import RecorderInputAuto from './recorder-input-auto.vue'
 import chatVideo from './components/chat-video.vue'
 import useRecorder from './hooks/useRecorder'
-import usePlayAudio, { type PlayAudioCallbackModel } from './hooks/usePlayAudio'
+import usePlayAudio from './hooks/usePlayAudio'
 import useAiPage from './hooks/useAiPage'
 import { usePluginShuke } from './hooks/usePluginShuke'
 import type { StatusModel } from '@/components/audio-wave/audio-wave'
@@ -66,7 +66,7 @@ console.log(scrollViewHeight, 'scrollViewHeight')
 
 const isAutoPlaying = ref(false)
 
-const { base64ToArrayBuffer, playAudioInit, uploadFileAudio, saveAndPlayBase64MP3 } = usePlayAudio(recorder)
+const { base64ToArrayBuffer, playAudioInit, uploadFileAudio } = usePlayAudio(recorder)
 
 const {
   chatSSEClientRef,
@@ -462,24 +462,9 @@ async function onScreensaverTrigger() {
  * 播放静默音频事件
  */
 function playDefaultAudioData() {
-  const callBack: PlayAudioCallbackModel = {
-    onPlay: () => {
-      onStreamPlayStart()
-    },
-    onStop: () => {
-      onStreamStop()
-    },
-    onError: () => {
-      onStreamStop()
-    },
-    onEnded: () => {
-      onStreamPlayEnd()
-    },
-  }
-  saveAndPlayBase64MP3({
+  playAudio({
+    id: 0,
     base64: aiCall.callAudioData.audioData,
-    fileNamePre: 'auto-recorder',
-    audioCallback: callBack,
   })
 }
 
@@ -900,16 +885,6 @@ onUnmounted(() => {
       @on-finish="onFinish"
     />
 
-    <!-- 音频播放组件 -->
-    <!-- <StreamPlayer
-      ref="streamPlayerRef"
-      :stream-data="streamData"
-      @on-stream-play-start="onStreamPlayStart"
-      @on-stream-play-end="onStreamPlayEnd"
-      @on-stream-stop="onStreamStop"
-    /> -->
-
-    <!-- <view v-show="!isScreensaver"> -->
     <view class="size-full ">
       <view :style="{ height: `calc(100% - ${inputHeight}  ` }" class="">
         <view

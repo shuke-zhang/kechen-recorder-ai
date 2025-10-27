@@ -94,7 +94,6 @@ export default class RecorderCoreManager extends EventEmitter {
     // 如果没在录音 或者已经发送了最后一帧 则不再推送
     if (!this.isRecording || this.hasSentLastFrame)
       return
-    console.log('推送音频')
 
     this.audioDataList.push(data)
   }
@@ -103,7 +102,6 @@ export default class RecorderCoreManager extends EventEmitter {
   private initSocket() {
     try {
       this.socketUrl = this.getWebSocketUrl() as string
-      console.log('讯飞socketUrl', this.socketUrl)
 
       if (!this.socketUrl)
         return
@@ -158,7 +156,7 @@ export default class RecorderCoreManager extends EventEmitter {
 
     this.emit('log', `📤 发送第一帧 ${firstFrame}`)
     console.warn(`📤 发送第一帧 ${firstFrame.data.status}`)
-    writeLogger({ event: '发送第一帧', frame: firstFrame })
+    // writeLogger({ event: '发送第一帧', frame: firstFrame })
     this.handlerInterval = setInterval(() => {
       if (!this.socketTask?.isConnect || this.hasSentLastFrame) {
         this.clearHandlerInterval()
@@ -179,6 +177,7 @@ export default class RecorderCoreManager extends EventEmitter {
       }
 
       this.socketTask.sendMessage(midFrame)
+
       // this.emit('log', '📤 发送中间帧')
     }, 40)
   }
@@ -198,7 +197,7 @@ export default class RecorderCoreManager extends EventEmitter {
     this.socketTask.sendMessage(lastFrame)
     // this.emit('log', '📤 发送最后一帧')
     console.log(`📤 发送最后一帧 `)
-    writeLogger({ event: '发送最后一帧', frame: lastFrame })
+    // writeLogger({ event: '发送最后一帧', frame: lastFrame })
     this.hasSentLastFrame = true
   }
 
@@ -259,7 +258,7 @@ export default class RecorderCoreManager extends EventEmitter {
 
       // 实时触发变更回调
       this.onTextChange?.(this.resultTextTemp || this.resultText || '')
-      writeLogger({ event: '识别结果返回', text: this.resultTextTemp || this.resultText || '' })
+      // writeLogger({ event: '识别结果返回', text: this.resultTextTemp || this.resultText || '' })
       // 最后一帧
       if (json.data.status === 2) {
         this.sendLastFrame()

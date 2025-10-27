@@ -1,54 +1,20 @@
-<!-- eslint-disable ts/ban-ts-comment -->
-<!-- eslint-disable import/no-duplicates -->
- <!-- #ifdef APP-PLUS -->
-<script module="recorderCore" lang="renderjs">
-import 'recorder-core/src/extensions/buffer_stream.player.js'
-
-import 'recorder-core/src/engine/pcm'
-import 'recorder-core/src/extensions/waveview'
-
-export default {
-  data() {
-    return {
-    }
-  },
-
-  mounted() {
-    // App的renderjs必须调用的函数，传入当前模块this
-    RecordApp.UniRenderjsRegister(this)
-  },
-  methods: {
-    // 这里定义的方法，在逻辑层中可通过 RecordApp.UniWebViewVueCall(this,'this.xxxFunc()') 直接调用
-    // 调用逻辑层的方法，请直接用 this.$ownerInstance.callMethod("xxxFunc",{args}) 调用，二进制数据需转成base64来传递
-  },
-}
-</script>
-<!-- #endif -->
-
-<!-- eslint-disable import/first, import/order, import/no-named-default,import/no-duplicates -->
 <script setup lang='ts'>
-import { NAV_BAR_HEIGHT, getStatusBarHeight } from '@/components/nav-bar/nav-bar'
-import { default as RecorderInstance } from 'recorder-core'
-import { default as RecordAppInstance } from 'recorder-core/src/app-support/app'
 import { useTextFormatter } from './hooks/useTextFormatter'
 import RecorderInputAuto from './recorder-input-auto.vue'
 import chatVideo from './components/chat-video.vue'
 import useRecorder from './hooks/useRecorder'
 import usePlayAudio, { type PlayAudioCallbackModel } from './hooks/usePlayAudio'
 import useAiPage from './hooks/useAiPage'
+import { usePluginShuke } from './hooks/usePluginShuke'
+import type { StatusModel } from '@/components/audio-wave/audio-wave'
+import type { ChatHistoryModel, UploadFileModel } from '@/model/chat'
+import { NAV_BAR_HEIGHT, getStatusBarHeight } from '@/components/nav-bar/nav-bar'
 import { useAiCall } from '@/store/modules/ai-call'
 import { doubaoSpeechSynthesisFormat } from '@/api/audio'
-import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
 
-import 'recorder-core/src/engine/pcm'
-import type { StatusModel } from '@/components/audio-wave/audio-wave'
-import type { ChatHistoryModel } from '@/model/chat'
-import type { UploadFileModel } from '@/model/chat'
 import { addChatHistory } from '@/api/chat-history'
-import { usePluginShuke } from './hooks/usePluginShuke'
-import { useLogger } from '@/hooks/useLog'
 
-const vueInstance = getCurrentInstance()?.proxy as any // 必须定义到最外面，getCurrentInstance得到的就是当前实例this
+const recorder = uni.requireNativePlugin('shuke_recorder') as ShukeRecorderPlugin
 
 const pageHeight = computed(() => {
   return `${getStatusBarHeight() + NAV_BAR_HEIGHT + 1}px`
@@ -100,7 +66,7 @@ console.log(scrollViewHeight, 'scrollViewHeight')
 
 const isAutoPlaying = ref(false)
 
-const { base64ToArrayBuffer, playAudioInit, uploadFileAudio, saveAndPlayBase64MP3 } = usePlayAudio(RecordAppInstance)
+const { base64ToArrayBuffer, playAudioInit, uploadFileAudio, saveAndPlayBase64MP3 } = usePlayAudio(recorder)
 
 const {
   chatSSEClientRef,
@@ -134,14 +100,11 @@ const {
   isRecording,
   isAutoRecognize,
   isAutoRecognizerEnabled,
-  recReq,
+  requestRecorderPermission,
   handleRecorderStart,
   handleRecognitionStop,
   setInputMode,
 } = useRecorder({
-  RecordApp: RecordAppInstance,
-  Recorder: RecorderInstance,
-  vueInstance,
   sendMessage: handleTouchStart,
   recorderAddText,
   userAudioUploadSuccess,
@@ -219,7 +182,7 @@ const screensaverTimer = new IdleTimer({
     resetAi.value()
     replyForm.value = { content: '', role: 'user' }
     isAutoRecognizerEnabled.value = false
-    recReq()
+    requestRecorderPermission()
   },
 })
 
@@ -887,10 +850,7 @@ watch(() => replyForm.value.content, (newVal) => {
 })
 
 onMounted(() => {
-  (vueInstance as any).isMounted = true
-  RecordAppInstance.UniNativeUtsPlugin = { nativePlugin: true } // 启用原生插件
-  RecordAppInstance.UniPageOnShow(vueInstance)
-  recReq().then((res) => {
+  requestRecorderPermission().then((res) => {
     setTimeout(() => {
       initialLoadPending.value = true
     }, 1500)
@@ -922,15 +882,10 @@ onMounted(() => {
   handleChangeAiModel()
 })
 
-onShow(() => {
-  if ((vueInstance as any)?.isMounted) {
-    RecordAppInstance.UniPageOnShow(vueInstance)
-  }
-})
 onUnmounted(() => {
-  console.log('onUnmounted')
   isAutoPlaying.value = false
   isAutoRecognizerEnabled.value = false
+  stopAudio()
 })
 </script>
 

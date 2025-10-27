@@ -24,7 +24,7 @@ export interface PlayAudioCallbackModel {
   onTimeUpdate?: () => void
 }
 
-export default function usePlayAudio(RecordApp?: any) {
+export default function usePlayAudio(RecordApp?: ShukeRecorderPlugin) {
   /**
    * @description 播放初始化
    * @options
@@ -226,50 +226,47 @@ export default function usePlayAudio(RecordApp?: any) {
   }): Promise<any> {
     return new Promise((resolve, reject) => {
       const fileName = options._fileName || getFileName(options.fileType, options.fileNamePre)
-      RecordApp.UniSaveLocalFile(
+      RecordApp?.uniSaveLocalFile(
         fileName,
-        options.wavBuffer,
-        (savedPath: string) => {
-          console.log(`✅ 文件已保存到本地: ${savedPath}`)
-          uni.uploadFile({
-            url: `${API_URL}/common/upload/v1`,
-            filePath: savedPath,
-            name: 'file',
-            header: {
-              'Content-Type': 'multipart/form-data',
-            },
-            success: (res) => {
-              try {
-                const data = JSON.parse(res.data)
-                console.log('✅ 文件上传成功:', data)
+        options.wavBuffer as any,
+        (res) => {
+          if (res.ok) {
+            console.log(`✅ 文件已保存到本地: ${res.path}`)
+            const savedPath = res.path as string
+            uni.uploadFile({
+              url: `${API_URL}/common/upload/v1`,
+              filePath: savedPath,
+              name: 'file',
+              header: {
+                'Content-Type': 'multipart/form-data',
+              },
+              success: (_res) => {
+                try {
+                  const data = JSON.parse(_res.data)
+                  console.log('✅ 文件上传成功:', data)
 
-                // 删除本地临时文件
-                uni.removeSavedFile({
-                  filePath: savedPath,
-                  success: () => {
-                    console.log(`🗑️ 文件已删除: ${savedPath}`)
-                    resolve(data)
-                  },
-                  fail: (err) => {
-                    console.warn('⚠️ 文件删除失败:', err)
-                    resolve(data) // 删除失败不影响上传成功
-                  },
-                })
-              }
-              catch (e) {
-                throw new Error (`文件上传响应解析失败: ${e}`)
-              }
-            },
-            fail: (err) => {
-              console.warn('❌ 文件上传失败:', err)
-              reject(err)
-            },
-          })
+                  RecordApp.uniRemoveLocalFile(savedPath, (res) => {
+                    if (res.ok) {
+                      resolve(data)
+                    }
+                    else {
+                      console.warn('⚠️ 文件删除失败:', res.msg)
+                      resolve(data) // 删除失败不影响上传成功
+                    }
+                  })
+                }
+                catch (e) {
+                  throw new Error (`文件上传响应解析失败: ${e}`)
+                }
+              },
+              fail: (err) => {
+                console.warn('❌ 文件上传失败:', err)
+                reject(err)
+              },
+            })
+          }
         },
-        (err: Error) => {
-          console.error('❌ 保存失败:', err)
-          reject(err)
-        },
+
       )
     })
   }
@@ -284,18 +281,21 @@ export default function usePlayAudio(RecordApp?: any) {
   }): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       const fileName = getFileName('mp3', options.fileNamePre)
-      const arrayBuffer = mp3Base64ToArrayBuffer(options.base64) // 将 base64 转为 ArrayBuffer
-      RecordApp.UniSaveLocalFile(
+      const arrayBuffer = mp3Base64ToArrayBuffer(options.base64) // 将
+      RecordApp?.uniSaveLocalFile(
         fileName,
-        arrayBuffer,
-        (savedPath: string) => {
-          console.log(`✅ MP3文件已保存: ${savedPath}`)
-          playAudio(savedPath, options.audioCallback)
+        arrayBuffer as any,
+        (res) => {
+          if (res.ok && res.path) {
+            console.log(`✅ MP3文件已保存: ${res.path}`)
+            playAudio(res.path, options.audioCallback)
+            resolve()
+          }
+          else {
+            reject(new Error(res.msg || '保存失败'))
+          }
         },
-        (err: Error) => {
-          console.error('❌ 保存失败:', err)
-          reject(err)
-        },
+
       )
     })
   }

@@ -2,7 +2,7 @@
     "name" : "柯仔AI",
     "appid" : "__UNI__8F99B58",
     "description" : "",
-    "versionName" : "1.1.6",
+    "versionName" : "1.1.7",
     "versionCode" : "100",
     "transformPx" : false,
     "app-plus" : {
@@ -34,6 +34,7 @@
                 "speechRecognition" : true,
                 "apkName" : "柯仔AI-${versionName}.apk",
                 "permissions" : [
+                    "<uses-permission android:name=\"android.permission.RECORD_AUDIO\" />",
                     "<uses-permission android:name=\"android.permission.CHANGE_NETWORK_STATE\"/>",
                     "<uses-permission android:name=\"android.permission.MOUNT_UNMOUNT_FILESYSTEMS\"/>",
                     "<uses-permission android:name=\"android.permission.VIBRATE\"/>",

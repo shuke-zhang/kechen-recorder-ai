@@ -3,7 +3,7 @@ import { onReady, onUnload } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import { showToastSuccess } from '@/utils'
 
-const recorder = uni.requireNativePlugin('shuke_recorder')
+const recorder = uni.requireNativePlugin('shuke_recorder') as ShukeRecorderPlugin
 const mic = uni.requireNativePlugin('shuke_microphone')
 const player = uni.requireNativePlugin('shuke_audio_play')
 
@@ -67,29 +67,14 @@ function checkMicPermission(): Promise<boolean> {
   })
 }
 
-async function waitPermissionAfterPrompt(maxWaitMs = 5000, intervalMs = 250): Promise<boolean> {
-  const start = Date.now()
-  while (Date.now() - start < maxWaitMs) {
-    const ok = await checkMicPermission()
-    if (ok)
-      return true
-    await new Promise(r => setTimeout(r, intervalMs))
-  }
-  return false
-}
-
-async function requestPermission() {
-  try {
-    awaitingPermission.value = true
-    recorder.requestPermission?.((_res: any) => {})
-  }
-  catch {}
-  const ok = await waitPermissionAfterPrompt()
-  awaitingPermission.value = false
-  hasPermission.value = ok
-  if (ok)
-    showToastSuccess('录音权限已授予')
-  else uni.showToast({ title: '未获得录音权限', icon: 'none' })
+function requestPermission() {
+  recorder.requestPermission((res) => {
+    if (res && res.granted) {
+      hasPermission.value = true
+      awaitingPermission.value = false
+      //   showToastSuccess('录音权限已授予')
+    }
+  })
 }
 
 // 🆕 统一提取原生“route”消息里的 RouteInfo
@@ -328,6 +313,10 @@ function arrayBufferToBase64Fallback(buffer: ArrayBuffer): Promise<string> {
     resolve(btoa(binary))
   })
 }
+
+onMounted(() => {
+  requestPermission()
+})
 
 onUnload(() => {
   recorder.stopRecord(() => {})

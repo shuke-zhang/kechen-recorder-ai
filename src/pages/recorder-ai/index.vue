@@ -54,7 +54,9 @@ const { isAudioRunning, playAudio, stopAudio } = usePluginShuke({
 /**
  * 视频播放组件实例
  */
-const chatVideoRef = ref<InstanceType<typeof chatVideo>>()
+const chatVideoRef = ref<InstanceType<typeof chatVideo> | null>(null)
+// 页面脚本：新增
+const canMountChatVideo = ref(false)
 
 const systemInfo = uni.getSystemInfoSync()
 const windowHeight = systemInfo.windowHeight // 单位是 px，不是 rpx
@@ -103,6 +105,7 @@ const {
   requestRecorderPermission,
   handleRecorderStart,
   handleRecognitionStop,
+  handleRecognitionStart,
   setInputMode,
 } = useRecorder({
   sendMessage: handleTouchStart,
@@ -836,14 +839,17 @@ watch(() => replyForm.value.content, (newVal) => {
 
 onMounted(() => {
   requestRecorderPermission().then((res) => {
-    setTimeout(() => {
-      initialLoadPending.value = true
-    }, 1500)
     onScreensaverTrigger()
+    handleRecognitionStart()
     setInputMode('usb')
   }).catch((err) => {
     showToastError(err)
     console.log(err, '请求权限拒绝')
+  }).finally(() => {
+    canMountChatVideo.value = true
+    setTimeout(() => {
+      initialLoadPending.value = true
+    }, 1500)
   })
   addChatHistoryId.value = 0
   // initHeights()
@@ -867,7 +873,7 @@ onMounted(() => {
   handleChangeAiModel()
 })
 
-onUnmounted(() => {
+onBeforeUnmount(() => {
   isAutoPlaying.value = false
   isAutoRecognizerEnabled.value = false
   stopAudio()
@@ -891,6 +897,7 @@ onUnmounted(() => {
           class="w-full h-85%  pointer-events-none"
         >
           <chat-video
+            v-if="canMountChatVideo"
             ref="chatVideoRef"
             v-model:silence="isSilence"
             v-model:play="isAutoPlay"

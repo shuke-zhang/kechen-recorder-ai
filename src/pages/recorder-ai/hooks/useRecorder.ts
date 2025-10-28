@@ -96,7 +96,6 @@ export default function useRecorder(options: {
         /** ✅ 录音开始 */
         case 'start': {
           console.log('🎙 开始录音')
-          RecorderCoreClass.start()
           break
         }
 
@@ -130,6 +129,9 @@ export default function useRecorder(options: {
 
           if (buffers && buffers.length > 0) {
             const firstBuffer = buffers[0]
+            // const waveform = Object.values(firstBuffer).map(Number)
+            // 例如绘制波形：drawWaveform(waveform)
+            // console.log('实时波形帧：', waveform.length)
             const frame = Object.values(firstBuffer).map(Number)
             const pcmInt16 = new Int16Array(frame)
             const arrayBuffer = pcmInt16.buffer
@@ -137,7 +139,7 @@ export default function useRecorder(options: {
             // 计算音量是否应保留
             const keep = shouldKeepAudio(volume)
             if (keep) {
-              // console.warn('✅ 音量合适，上传数据', volume)
+              console.warn('✅ 音量合适，上传数据', volume)
               RecorderCoreClass.pushAudioData(arrayBuffer)
               // writeLogger({ event: 'pushAudioData', powerLevel: volume, duration })
               silentStartTime = null
@@ -201,6 +203,8 @@ export default function useRecorder(options: {
    * 语音识别开启操作
    */
   function handleRecognitionStart() {
+    console.log(isAutoRecognizerEnabled.value, 'handleRecognitionStart---isAutoRecognizerEnabled')
+
     if (!isAutoRecognizerEnabled.value) {
       return console.warn('语音识别功能已被禁用')
     }
@@ -333,7 +337,7 @@ export default function useRecorder(options: {
   }
 
   function shouldKeepAudio(currentPower: number): boolean {
-    const THRESHOLD = 10 // 基准音量阈值
+    const THRESHOLD = 20 // 基准音量阈值
     const KEEP_FRAMES = 2 // 音量下降后继续保留的帧数
 
     if (currentPower > THRESHOLD) {
@@ -401,7 +405,7 @@ export default function useRecorder(options: {
       const userInputTime = formatTime({ type: 'YYYY-MM-DD HH:mm:ss' })
 
       silenceTimer = setTimeout(() => {
-        console.warn('⏱️ 2秒内无新内容，自动停止录音', normNew, normOld)
+        console.warn('⏱️ 1.5秒内无新内容，自动停止录音', normNew, normOld)
         isAutoStop.value = true // 标记为自动停止
 
         options.sendMessage()
@@ -410,7 +414,7 @@ export default function useRecorder(options: {
           userInputTime,
         )
         console.log(id, '查看新增消息的id')
-      }, 2 * 1000)
+      }, 1500)
     }
   })
 

@@ -92,9 +92,9 @@ export default class RecorderCoreManager extends EventEmitter {
   /** 推送一帧音频数据 */
   public pushAudioData(data: ArrayBuffer) {
     // 如果没在录音 或者已经发送了最后一帧 则不再推送
+    console.log('添加数据', !this.isRecording, this.hasSentLastFrame)
     if (!this.isRecording || this.hasSentLastFrame)
       return
-    console.log('添加数据')
 
     this.audioDataList.push(data)
   }

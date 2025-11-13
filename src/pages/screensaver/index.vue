@@ -17,16 +17,16 @@ const { handleMultiClick } = useMultiClickTrigger({
   onTrigger: onRecorder,
 })
 const networkVideo = [
-  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-1.mp4`,
-  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-2.mp4`,
-  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-3.mp4`,
-  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-4.mp4`,
-  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-5.mp4`,
-  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-6.mp4`,
-  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-7.mp4`,
-  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-8.mp4`,
-  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-9.mp4`,
-  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-10.mp4`,
+  `${STATIC_URL}/compression/chat-screensaver-safe-1.mp4`,
+  `${STATIC_URL}/compression/chat-screensaver-safe-2.mp4`,
+  `${STATIC_URL}/compression/chat-screensaver-safe-3.mp4`,
+  `${STATIC_URL}/compression/chat-screensaver-safe-4.mp4`,
+  `${STATIC_URL}/compression/chat-screensaver-safe-5.mp4`,
+  `${STATIC_URL}/compression/chat-screensaver-safe-6.mp4`,
+  `${STATIC_URL}/compression/chat-screensaver-safe-7.mp4`,
+  `${STATIC_URL}/compression/chat-screensaver-safe-8.mp4`,
+  `${STATIC_URL}/compression/chat-screensaver-safe-9.mp4`,
+  `${STATIC_URL}/compression/chat-screensaver-safe-10.mp4`,
 ]
 const { localScreensaverVideoList, localVideoStatus, initFolder } = useLocalPlayVideo(networkVideo, 'screensaver')
 const { visible, downloadUrl, updateList, downloadApp, checkNewVersion } = useCheckAppVersion()

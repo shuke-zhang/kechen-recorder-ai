@@ -41,14 +41,14 @@ const speakingVideoLists = ref<string[]>([sayVideoSrc])
 const waitingVideoLists = ref<string[]>([])
 
 const httpWaitingVideoLists = [
-  `${STATIC_URL}/kezai/video/compression/wait-1.mp4`,
-  `${STATIC_URL}/kezai/video/compression/wait-2.mp4`,
-  `${STATIC_URL}/kezai/video/compression/wait-3.mp4`,
-  `${STATIC_URL}/kezai/video/compression/wait-4.mp4`,
-  `${STATIC_URL}/kezai/video/compression/wait-5.mp4`,
+  `${STATIC_URL}/compression/wait-1.mp4`,
+  `${STATIC_URL}/compression/wait-2.mp4`,
+  `${STATIC_URL}/compression/wait-3.mp4`,
+  `${STATIC_URL}/compression/wait-4.mp4`,
+  `${STATIC_URL}/compression/wait-5.mp4`,
 ]
 const httpSpeakingVideoLists = [
-  `${STATIC_URL}/kezai/video/compression/say-1.mp4`,
+  `${STATIC_URL}/compression/say-1.mp4`,
 ]
 const speakingVideoHook = useLocalPlayVideo(httpSpeakingVideoLists, 'speaking')
 const waitingVideoHook = useLocalPlayVideo(httpWaitingVideoLists, 'waiting')
@@ -196,7 +196,7 @@ defineExpose({
       ref="DomVideoPlayerRef"
       :src="currentVideoSrc"
       :autoplay="isAutoPlay"
-      :is-loading="false"
+      :is-loading="true"
       :controls="false"
       object-fit="fill"
       :poster="`${STATIC_URL}/kezai/cover.png`"

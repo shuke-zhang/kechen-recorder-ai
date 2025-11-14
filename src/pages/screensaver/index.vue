@@ -8,6 +8,7 @@
 </route>
 
 <script setup lang="ts">
+import DomVideoPlayerV2 from '@/components/DomVideoPlayer-v2/DomVideoPlayer-v2.vue'
 import type DomVideoPlayer from '@/components/DomVideoPlayer/DomVideoPlayer.vue'
 
 const emit = defineEmits(['onTrigger'])
@@ -125,7 +126,7 @@ onMounted(() => {
 
 <template>
   <view class="w-[100vw] h-[100vh] flex-center screensaver-wrapper p-0! m-0!">
-    <DomVideoPlayer
+    <DomVideoPlayerV2
       ref="DomVideoPlayerRef"
       :src="currentVideoSrc"
       is-loading

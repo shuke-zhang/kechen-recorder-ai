@@ -1,3 +1,4 @@
+<!-- DomVideoPlayer.vue -->
 <!-- eslint-disable -->
 <script>
 export default {
@@ -7,74 +8,57 @@ export default {
       type: String,
       default: ''
     },
-  /**
-   * 是否自动播放  
-   *  - 默认值：false
-   */
+    /** 是否自动播放  */
     autoplay: {
       type: Boolean,
       default: false
     },
-    /**
-   * 是否循环播放  
-   *  - 默认值：false
-   */
+    /** 是否循环播放  */
     loop: {
       type: Boolean,
       default: false
     },
-    /**
-     * 是否显示视频控件
-     * - 默认值：false
-     */
+    /** 是否显示视频控件 */
     controls: {
       type: Boolean,
       default: false
     },
-    /**
-     * 视频的填充模式
-     * - 默认值：contain
-     */
+    /** 视频的填充模式 */
     objectFit: {
       type: String,
       default: 'contain'
     },
-    /**
-     * 是否静音
-     * - 默认值：false
-     */
+    /** 是否静音 */
     muted: {
       type: Boolean,
       default: false
     },
-    /**
-     * 播放速率
-     * - 默认值：1
-     */
+    /** 播放速率 */
     playbackRate: {
       type: Number,
       default: 1
     },
     /**
-     * Android系统加载时显示loading(为了遮挡安卓的黑色按钮)
-     * - 默认值：false
+     * 加载时是否显示黑色 loading 遮罩（Android/iOS 都生效）
+     * 主要是为了遮挡默认按钮 + 防止白屏
      */
     isLoading: {
       type: Boolean,
       default: false
     },
     /**
-     * 视频封面
-     * - 默认值：''
+     * loading 遮罩是否透明（可选）
      */
+    loadingTransparent: {
+      type: Boolean,
+      default: false
+    },
+    /** 视频封面 */
     poster: {
       type: String,
       default: ''
     },
-    /**
-     * 视频id
-     * - 默认值：''
-     */
+    /** 视频 id */
     id: {
       type: String,
       default: ''
@@ -84,14 +68,14 @@ export default {
     return {
       randomNum: Math.floor(Math.random() * 100000000),
       videoSrc: '',
-      // 父组件向子组件传递的事件指令（video的原生事件）
+      // 父组件向子组件传递的事件指令（video 原生事件）
       eventCommand: null,
-      // 父组件传递过来的，对 renderjs 层的函数执行（对视频控制的自定义事件）
+      // 父组件传递过来的自定义函数（renderjs 层）
       renderFunc: {
         name: null,
         params: null
       },
-      // 提供给父组件进行获取的视频属性
+      // 提供给父组件获取的视频属性
       currentTime: 0,
       duration: 0,
       playing: false
@@ -102,6 +86,7 @@ export default {
     src: {
       handler(val) {
         if (!val) return
+        // 让绑定的 videoSrc 改变，从而触发 renderjs 的 initVideoPlayer
         setTimeout(() => {
           this.videoSrc = val
         }, 0)
@@ -113,7 +98,7 @@ export default {
     videoWrapperId() {
       return `video-wrapper-${this.randomNum}`
     },
-    // 聚合视图层的所有数据变化，传给renderjs的渲染层
+    // 聚合视图层的所有数据变化，传给 renderjs 渲染层
     viewportProps() {
       return {
         autoplay: this.autoplay,
@@ -123,11 +108,11 @@ export default {
         objectFit: this.objectFit,
         poster: this.poster,
         isLoading: this.isLoading,
-        playbackRate: this.playbackRate
+        playbackRate: this.playbackRate,
+        loadingTransparent: this.loadingTransparent
       }
     }
   },
-  // 方法
   methods: {
     /**
      * 传递事件指令给父组件
@@ -136,7 +121,7 @@ export default {
       this.$emit(event, data)
     },
     /**
-     * 修改view视图层的data数据
+     * 修改 view 视图层的 data 数据
      */
     setViewData({ key, value }) {
       key && this.$set(this, key, value)
@@ -154,7 +139,7 @@ export default {
       this.eventCommand = 'play'
     },
     /**
-     * 暂停指令
+     * 暂停
      */
     pause() {
       this.eventCommand = 'pause'
@@ -199,17 +184,18 @@ export default {
      * 自定义函数 - 重置视频播放器状态
      */
     reset() {
-    this.renderFunc = {
-      name: 'resetHandler',
-      params: null
+      this.renderFunc = {
+        name: 'resetHandler',
+        params: null
+      }
     }
-}
   }
 }
 </script>
 
 <script module="domVideoPlayer" lang="renderjs">
 const PLAYER_ID = 'DOM_VIDEO_PLAYER'
+
 export default {
   data() {
     return {
@@ -234,39 +220,54 @@ export default {
       const ua = navigator.userAgent.toLowerCase()
       return ua.indexOf('iphone') !== -1 || ua.indexOf('ipad') !== -1
     },
-    resetHandler(){
+
+    resetHandler() {
       if (this.videoEl) {
-          this.videoEl.pause()
-          this.videoEl.currentTime = 0
-          this.$ownerInstance.callMethod('setViewData', {
-            key: 'currentTime',
-            value: 0
-          })
-          this.$ownerInstance.callMethod('setViewData', {
-            key: 'playing',
-            value: false
-          })
-        }
+        this.videoEl.pause()
+        this.videoEl.currentTime = 0
+        this.$ownerInstance.callMethod('setViewData', {
+          key: 'currentTime',
+          value: 0
+        })
+        this.$ownerInstance.callMethod('setViewData', {
+          key: 'playing',
+          value: false
+        })
+      }
     },
+
     async initVideoPlayer(src) {
       this.delayFunc = null
       await this.$nextTick()
       if (!src) return
+
+      // 已有 video 元素：只切换 src，切换前先把黑色遮罩显示出来，防止白屏
       if (this.videoEl) {
-        // 切换视频源
-        if (!this.isApple() && this.loadingEl) {
+        const props = this.renderProps || {}
+        if (props.isLoading && this.loadingEl) {
           this.loadingEl.style.display = 'block'
         }
         this.videoEl.src = src
         return
       }
 
+      // 首次创建 video
       const videoEl = document.createElement('video')
       this.videoEl = videoEl
+
       // 开始监听视频相关事件
       this.listenVideoEvent()
 
-      const { autoplay, muted, controls, loop, playbackRate, objectFit, poster } = this.renderProps
+      const {
+        autoplay,
+        muted,
+        controls,
+        loop,
+        playbackRate,
+        objectFit,
+        poster
+      } = this.renderProps || {}
+
       videoEl.src = src
       videoEl.autoplay = autoplay
       videoEl.controls = controls
@@ -279,87 +280,51 @@ export default {
       videoEl.style.left = '0'
       videoEl.style.width = '100%'
       videoEl.style.height = '100%'
-      videoEl.style.objectFit = objectFit
-      // videoEl.setAttribute('x5-video-player-type', 'h5')
+      videoEl.style.objectFit = objectFit || 'contain'
+      videoEl.style.backgroundColor = 'black' // 防止视频区域透出白色
       videoEl.setAttribute('preload', 'auto')
       videoEl.setAttribute('playsinline', true)
       videoEl.setAttribute('webkit-playsinline', true)
       videoEl.setAttribute('crossorigin', 'anonymous')
       videoEl.setAttribute('controlslist', 'nodownload')
       videoEl.setAttribute('disablePictureInPicture', true)
-      videoEl.style.objectFit = objectFit
-      poster && (videoEl.poster = poster)
-      videoEl.style.width = '100%'
-      videoEl.style.height = '100%'
 
-      // 插入视频元素
-      // document.getElementById(this.wrapperId).appendChild(videoEl)
+      if (poster) {
+        videoEl.poster = poster
+      }
+
       const playerWrapper = document.getElementById(this.wrapperId)
       playerWrapper.insertBefore(videoEl, playerWrapper.firstChild)
 
-      // 插入loading 元素（遮挡安卓的默认加载过程中的黑色播放按钮）
+      // 创建黑色 loading 遮罩（假隐藏，无动画）
       this.createLoading()
     },
-    // 创建 loading
+
+    // 创建 loading（纯黑或透明，无动画）
     createLoading() {
-      const { isLoading } = this.renderProps
-      if (!this.isApple() && isLoading) {
-        const loadingEl = document.createElement('div')
-        this.loadingEl = loadingEl
-        loadingEl.className = 'loading-wrapper'
-        loadingEl.style.position = 'absolute'
-        loadingEl.style.top = '0'
-        loadingEl.style.left = '0'
-        loadingEl.style.zIndex = '1'
-        loadingEl.style.width = '100%'
-        loadingEl.style.height = '100%'
-        loadingEl.style.backgroundColor = 'black'
+      const { isLoading, loadingTransparent } = this.renderProps || {}
+      if (!isLoading) return
 
-        document.getElementById(this.wrapperId).appendChild(loadingEl)
+      const loadingEl = document.createElement('div')
+      this.loadingEl = loadingEl
+      loadingEl.className = 'loading-wrapper'
+      loadingEl.style.position = 'absolute'
+      loadingEl.style.top = '0'
+      loadingEl.style.left = '0'
+      loadingEl.style.zIndex = '1'
+      loadingEl.style.width = '100%'
+      loadingEl.style.height = '100%'
+      loadingEl.style.backgroundColor = loadingTransparent ? 'transparent' : 'black'
+      // 不拦截点击，完全当背景用
+      loadingEl.style.pointerEvents = 'none'
 
-        // 创建 loading 动画
-        const animationEl = document.createElement('div')
-        animationEl.className = 'loading'
-        animationEl.style.zIndex = '2'
-        animationEl.style.position = 'absolute'
-        animationEl.style.top = '50%'
-        animationEl.style.left = '50%'
-        animationEl.style.marginTop = '-15px'
-        animationEl.style.marginLeft = '-15px'
-        animationEl.style.width = '30px'
-        animationEl.style.height = '30px'
-        animationEl.style.border = '2px solid #FFF'
-        animationEl.style.borderTopColor = 'rgba(255, 255, 255, 0.2)'
-        animationEl.style.borderRightColor = 'rgba(255, 255, 255, 0.2)'
-        animationEl.style.borderBottomColor = 'rgba(255, 255, 255, 0.2)'
-        animationEl.style.borderRadius = '100%'
-        animationEl.style.animation = 'circle infinite 0.75s linear'
-        loadingEl.appendChild(animationEl)
-
-        // 创建 loading 动画所需的 keyframes
-        const style = document.createElement('style')
-        const keyframes = `
-          @keyframes circle {
-            0% {
-              transform: rotate(0);
-            }
-            100% {
-              transform: rotate(360deg);
-            }
-          }
-        `
-        style.type = 'text/css'
-        if (style.styleSheet) {
-          style.styleSheet.cssText = keyframes
-        } else {
-          style.appendChild(document.createTextNode(keyframes))
-        }
-        document.head.appendChild(style)
-      }
+      document.getElementById(this.wrapperId).appendChild(loadingEl)
+      // ❌ 不再创建任何圆圈 / 动画，就是一层黑幕
     },
+
     // 监听视频相关事件
     listenVideoEvent() {
-      // 播放事件监听
+      // 播放事件
       const playHandler = () => {
         this.$ownerInstance.callMethod('eventEmit', { event: 'play' })
         this.$ownerInstance.callMethod('setViewData', {
@@ -367,14 +332,15 @@ export default {
           value: true
         })
 
-        if (this.loadingEl) {
+        // 播放时隐藏 loading 遮罩
+        if (this.loadingEl && (this.renderProps || {}).isLoading) {
           this.loadingEl.style.display = 'none'
         }
       }
       this.videoEl.removeEventListener('play', playHandler)
       this.videoEl.addEventListener('play', playHandler)
 
-      // 暂停事件监听
+      // 暂停事件
       const pauseHandler = () => {
         this.$ownerInstance.callMethod('eventEmit', { event: 'pause' })
         this.$ownerInstance.callMethod('setViewData', {
@@ -385,7 +351,7 @@ export default {
       this.videoEl.removeEventListener('pause', pauseHandler)
       this.videoEl.addEventListener('pause', pauseHandler)
 
-      // 结束事件监听
+      // 结束事件
       const endedHandler = () => {
         this.$ownerInstance.callMethod('eventEmit', { event: 'ended' })
         this.$ownerInstance.callMethod('resetEventCommand')
@@ -393,7 +359,7 @@ export default {
       this.videoEl.removeEventListener('ended', endedHandler)
       this.videoEl.addEventListener('ended', endedHandler)
 
-      // 加载完成事件监听
+      // canplay
       const canPlayHandler = () => {
         this.$ownerInstance.callMethod('eventEmit', { event: 'canplay' })
         this.execDelayFunc()
@@ -401,9 +367,10 @@ export default {
       this.videoEl.removeEventListener('canplay', canPlayHandler)
       this.videoEl.addEventListener('canplay', canPlayHandler)
 
-      // 加载失败事件监听
-      const errorHandler = (e) => {
-        if (this.loadingEl) {
+      // error
+      const errorHandler = () => {
+        // 出错时保持黑屏
+        if (this.loadingEl && (this.renderProps || {}).isLoading) {
           this.loadingEl.style.display = 'block'
         }
         this.$ownerInstance.callMethod('eventEmit', { event: 'error' })
@@ -411,45 +378,41 @@ export default {
       this.videoEl.removeEventListener('error', errorHandler)
       this.videoEl.addEventListener('error', errorHandler)
 
-      // loadedmetadata 事件监听
+      // loadedmetadata
       const loadedMetadataHandler = () => {
         this.$ownerInstance.callMethod('eventEmit', { event: 'loadedmetadata' })
-        // 获取视频的长度
+
         const duration = this.videoEl.duration
         this.$ownerInstance.callMethod('eventEmit', {
           event: 'durationchange',
           data: duration
         })
-
         this.$ownerInstance.callMethod('setViewData', {
           key: 'duration',
           value: duration
         })
 
-        // 加载首帧视频 模拟出封面图
         this.loadFirstFrame()
       }
       this.videoEl.removeEventListener('loadedmetadata', loadedMetadataHandler)
       this.videoEl.addEventListener('loadedmetadata', loadedMetadataHandler)
 
-      // 播放进度监听
+      // timeupdate
       const timeupdateHandler = (e) => {
         const currentTime = e.target.currentTime
         this.$ownerInstance.callMethod('eventEmit', {
           event: 'timeupdate',
           data: currentTime
         })
-
         this.$ownerInstance.callMethod('setViewData', {
           key: 'currentTime',
           value: currentTime
         })
-
       }
       this.videoEl.removeEventListener('timeupdate', timeupdateHandler)
       this.videoEl.addEventListener('timeupdate', timeupdateHandler)
 
-      // 倍速播放监听
+      // ratechange
       const ratechangeHandler = (e) => {
         const playbackRate = e.target.playbackRate
         this.$ownerInstance.callMethod('eventEmit', {
@@ -460,16 +423,11 @@ export default {
       this.videoEl.removeEventListener('ratechange', ratechangeHandler)
       this.videoEl.addEventListener('ratechange', ratechangeHandler)
 
-      // 全屏事件监听
+      // 全屏事件
       if (this.isApple()) {
         const webkitbeginfullscreenHandler = () => {
           const presentationMode = this.videoEl.webkitPresentationMode
-          let isFullScreen = null
-          if (presentationMode === 'fullscreen') {
-            isFullScreen = true
-          } else {
-            isFullScreen = false
-          }
+          const isFullScreen = presentationMode === 'fullscreen'
           this.$ownerInstance.callMethod('eventEmit', {
             event: 'fullscreenchange',
             data: isFullScreen
@@ -479,12 +437,7 @@ export default {
         this.videoEl.addEventListener('webkitpresentationmodechanged', webkitbeginfullscreenHandler)
       } else {
         const fullscreenchangeHandler = () => {
-          let isFullScreen = null
-          if (document.fullscreenElement) {
-            isFullScreen = true
-          } else {
-            isFullScreen = false
-          }
+          const isFullScreen = !!document.fullscreenElement
           this.$ownerInstance.callMethod('eventEmit', {
             event: 'fullscreenchange',
             data: isFullScreen
@@ -494,21 +447,16 @@ export default {
         document.addEventListener('fullscreenchange', fullscreenchangeHandler)
       }
     },
-    // 加载首帧视频，模拟出封面图
+
+    // 加载首帧视频，模拟封面
     loadFirstFrame() {
-      let { autoplay, muted } = this.renderProps
+      const { autoplay, muted } = this.renderProps || {}
       if (this.isApple()) {
         this.videoEl.play()
         if (!autoplay) {
           this.videoEl.pause()
         }
       } else {
-        // optimize: timeout 延迟调用是为了规避控制台的`https://goo.gl/LdLk22`这个报错
-        /**
-         * 原因：chromium 内核中，谷歌协议规定，视频不允许在非静音状态下进行自动播放
-         * 解决：在自动播放时，先将视频静音，然后延迟调用 play 方法，播放视频
-         * 说明：iOS 的 Safari 内核不会有这个，仅在 Android 设备出现，即使有这个报错也不影响的，所以不介意控制台报错的话是可以删掉这个 timeout 的
-         */
         this.videoEl.muted = true
         setTimeout(() => {
           this.videoEl.play()
@@ -521,12 +469,14 @@ export default {
         }, 10)
       }
     },
+
     triggerCommand(eventType) {
       if (eventType) {
         this.$ownerInstance.callMethod('resetEventCommand')
         this.videoEl && this.videoEl[eventType]()
       }
     },
+
     triggerFunc(func) {
       const { name, params } = func || {}
       if (name) {
@@ -534,6 +484,7 @@ export default {
         this.$ownerInstance.callMethod('resetFunc')
       }
     },
+
     removeHandler() {
       if (this.videoEl) {
         this.videoEl.pause()
@@ -545,6 +496,7 @@ export default {
         this.videoEl.load()
       }
     },
+
     fullScreenHandler() {
       if (this.isApple()) {
         this.videoEl.webkitEnterFullscreen()
@@ -552,28 +504,35 @@ export default {
         this.videoEl.requestFullscreen()
       }
     },
+
     toSeekHandler({ sec, isDelay }) {
       const func = () => {
         if (this.videoEl) {
           this.videoEl.currentTime = sec
         }
       }
-
-      // 延迟执行
       if (isDelay) {
         this.delayFunc = func
       } else {
         func()
       }
     },
+
     // 执行延迟函数
     execDelayFunc() {
       this.delayFunc && this.delayFunc()
       this.delayFunc = null
     },
+
     viewportChange(props) {
-      this.renderProps = props
-      const { autoplay, muted, controls, loop, playbackRate } = props
+      this.renderProps = props || {}
+      const {
+        autoplay,
+        muted,
+        controls,
+        loop,
+        playbackRate
+      } = this.renderProps
       if (this.videoEl) {
         this.videoEl.autoplay = autoplay
         this.videoEl.controls = controls
@@ -582,14 +541,15 @@ export default {
         this.videoEl.playbackRate = playbackRate
       }
     },
+
     randomNumChange(val) {
       this.num = val
     }
   }
 }
 </script>
-<!-- eslint-disable vue/attribute-hyphenation -->
 
+<!-- eslint-disable vue/attribute-hyphenation -->
 <template>
   <view
     :id="videoWrapperId"
@@ -615,5 +575,6 @@ export default {
   height: 100%;
   padding: 0;
   overflow: hidden;
+  background-color: #000; /* 容器也强制黑色，防止出现白底 */
 }
 </style>

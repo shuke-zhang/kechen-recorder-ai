@@ -46,10 +46,10 @@ export class IdleTimer {
         if (this.isLog) {
           if (/\$\{.*?\}/.test(this.text)) {
             // 支持模版语法替换
-            // console.log(this.text.replace(/\$\{.*?\}/g, `${remainingSeconds}`))
+            console.log(this.text.replace(/\$\{.*?\}/g, `${remainingSeconds}`))
           }
           else {
-            // console.log(`⌛ ${this.text} ${remainingSeconds} 秒后触发`)
+            console.log(`⌛ ${this.text} ${remainingSeconds} 秒后触发`)
           }
         }
 

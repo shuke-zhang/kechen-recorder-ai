@@ -49,6 +49,10 @@ const { isAudioRunning, playAudio, stopAudio } = usePluginShuke({
   onQueueEmpty: () => {
     onStreamPlayEnd()
   },
+  onProgress: () => {
+    // 播放中不允许跳转屏保
+    resetIdleTimer()
+  },
 })
 
 /**
@@ -107,10 +111,12 @@ const {
   handleRecognitionStop,
   handleRecognitionStart,
   setInputMode,
+  recStop,
 } = useRecorder({
   sendMessage: handleTouchStart,
   recorderAddText,
   userAudioUploadSuccess,
+  resetIdleTimer,
 })
 
 const { processText, textReset } = useTextFormatter()
@@ -139,7 +145,7 @@ const hasUserInterruptedAutoPlay = ref(false)
 const lastAiMsgEnd = ref(false)
 /** 无操作逻辑 */
 const idleTimeout = ref< ReturnType<typeof setTimeout> | null>(null)
-const IDLE_DELAY = 2 * 60 * 1000 // 5秒
+const IDLE_DELAY = 10 * 1000 // 2分钟
 const canStartIdleTimer = computed(() => {
   return !isAudioRunning.value && !loading.value
 })
@@ -877,6 +883,7 @@ onBeforeUnmount(() => {
   isAutoPlaying.value = false
   isAutoRecognizerEnabled.value = false
   stopAudio()
+  recStop()
 })
 </script>
 

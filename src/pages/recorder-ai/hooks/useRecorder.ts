@@ -13,6 +13,7 @@ export default function useRecorder(options: {
   userAudioUploadSuccess: (res: UploadFileModel & { id: number, userInputTime: string }) => void
   recorderAddText: (text: string) => { id: number }
   sendMessage: () => void
+  resetIdleTimer: () => void
 }) {
   /**
    * @description 语音识别的class
@@ -141,6 +142,7 @@ export default function useRecorder(options: {
             if (keep) {
               console.warn('✅ 音量合适，上传数据', volume)
               RecorderCoreClass.pushAudioData(arrayBuffer)
+              options.resetIdleTimer() // 重置定时器静默操作，防止还在说话也退出
               // writeLogger({ event: 'pushAudioData', powerLevel: volume, duration })
               silentStartTime = null
               hasWarnedSilence.value = false

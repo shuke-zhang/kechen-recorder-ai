@@ -145,7 +145,9 @@ const hasUserInterruptedAutoPlay = ref(false)
 const lastAiMsgEnd = ref(false)
 /** 无操作逻辑 */
 const idleTimeout = ref< ReturnType<typeof setTimeout> | null>(null)
-const IDLE_DELAY = 10 * 1000 // 2分钟
+const IDLE_DELAY = 30 * 1000 // 2分钟
+// 使用变量统一控制时间
+const SILENCE_DELAY = 10 * 1000
 const canStartIdleTimer = computed(() => {
   return !isAudioRunning.value && !loading.value
 })
@@ -155,8 +157,6 @@ const canStartIdleTimer = computed(() => {
  */
 const isSilence = ref(false)
 const isAutoPlay = ref(false)
-// 使用变量统一控制时间
-const SILENCE_DELAY = 6 * 1000 // 10秒
 
 const silenceTimer = new IdleTimer({
   text: `当前无操作，静默模式`,

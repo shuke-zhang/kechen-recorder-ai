@@ -1,8 +1,8 @@
 {
-    "name" : "柯仔AI",
+    "name" : "知言愈",
     "appid" : "__UNI__8F99B58",
     "description" : "",
-    "versionName" : "1.0.8",
+    "versionName" : "1.0.9",
     "versionCode" : "100",
     "transformPx" : false,
     "app-plus" : {
@@ -32,7 +32,7 @@
         "distribute" : {
             "android" : {
                 "speechRecognition" : true,
-                "apkName" : "柯仔AI-${versionName}.apk",
+                "apkName" : "知言愈-${versionName}.apk",
                 "permissions" : [
                     "<uses-permission android:name=\"android.permission.RECORD_AUDIO\" />",
                     "<uses-permission android:name=\"android.permission.CHANGE_NETWORK_STATE\"/>",

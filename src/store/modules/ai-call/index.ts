@@ -34,7 +34,7 @@ export const useAiCall = defineStore('aiCall', () => {
           id: res.id,
         }
         callAudioData.value = result
-        setCache('AI_GREETING_AUDIO_DATA', result, { day: 7 })
+        setCache('AI_GREETING_AUDIO_DATA', result, { day: 1 })
         logger.info('新语音数据已缓存')
         return callAudioData.value
       })

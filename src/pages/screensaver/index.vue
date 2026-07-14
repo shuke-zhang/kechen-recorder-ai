@@ -8,6 +8,7 @@
 </route>
 
 <script setup lang="ts">
+import DomVideoPlayerV2 from '@/components/DomVideoPlayer-v2/DomVideoPlayer-v2.vue'
 import type DomVideoPlayer from '@/components/DomVideoPlayer/DomVideoPlayer.vue'
 
 const emit = defineEmits(['onTrigger'])
@@ -17,22 +18,21 @@ const { handleMultiClick } = useMultiClickTrigger({
   onTrigger: onRecorder,
 })
 const networkVideo = [
-  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-1.mp4`,
-  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-2.mp4`,
-  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-3.mp4`,
-  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-4.mp4`,
-  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-5.mp4`,
-  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-6.mp4`,
-  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-7.mp4`,
-  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-8.mp4`,
-  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-9.mp4`,
-  `${STATIC_URL}/kezai/video/compression/chat-screensaver-safe-10.mp4`,
+  `${STATIC_URL}/compression/chat-screensaver-safe-1.mp4`,
+  `${STATIC_URL}/compression/chat-screensaver-safe-2.mp4`,
+  `${STATIC_URL}/compression/chat-screensaver-safe-3.mp4`,
+  `${STATIC_URL}/compression/chat-screensaver-safe-4.mp4`,
+  `${STATIC_URL}/compression/chat-screensaver-safe-5.mp4`,
+  `${STATIC_URL}/compression/chat-screensaver-safe-6.mp4`,
+  `${STATIC_URL}/compression/chat-screensaver-safe-7.mp4`,
+  `${STATIC_URL}/compression/chat-screensaver-safe-8.mp4`,
+  `${STATIC_URL}/compression/chat-screensaver-safe-9.mp4`,
+  `${STATIC_URL}/compression/chat-screensaver-safe-10.mp4`,
 ]
 const { localScreensaverVideoList, localVideoStatus, initFolder } = useLocalPlayVideo(networkVideo, 'screensaver')
 const { visible, downloadUrl, updateList, downloadApp, checkNewVersion } = useCheckAppVersion()
 
 function onRecorder() {
-  fileLog('用户点击屏保，进入录音页面')
   router.replace('/pages/recorder-ai/index')
 }
 
@@ -126,7 +126,7 @@ onMounted(() => {
 
 <template>
   <view class="w-[100vw] h-[100vh] flex-center screensaver-wrapper p-0! m-0!">
-    <DomVideoPlayer
+    <DomVideoPlayerV2
       ref="DomVideoPlayerRef"
       :src="currentVideoSrc"
       is-loading

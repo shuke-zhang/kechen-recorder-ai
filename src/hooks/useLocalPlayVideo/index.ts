@@ -38,7 +38,7 @@ export function useLocalPlayVideo(networkVideoUrls?: string[], videoType?: 'scre
   async function initFolder() {
     const hasPermission = await requestPermission()
     if (!hasPermission) {
-      uni.showToast({ title: '请先开启文件权限', icon: 'none' })
+      // uni.showToast({ title: '请先开启文件权限', icon: 'none' })
       return
     }
 
@@ -47,7 +47,7 @@ export function useLocalPlayVideo(networkVideoUrls?: string[], videoType?: 'scre
     if (!exists) {
       const created = plus.android.invoke(file, 'mkdirs')
       if (!created) {
-        uni.showToast({ title: '❌ 目录创建失败', icon: 'none' })
+        // uni.showToast({ title: '❌ 目录创建失败', icon: 'none' })
         return
       }
       console.log('✅ chat_video 文件夹已创建')

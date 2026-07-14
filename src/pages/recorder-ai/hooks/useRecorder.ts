@@ -1,3 +1,4 @@
+import type { InputMode } from 'plugin_shuke'
 import RecorderCoreManager from '../xunfei/recorder-core'
 import usePlayAudio from './usePlayAudio'
 import type { UploadFileModel } from '@/model/chat'
@@ -8,22 +9,12 @@ const APIKey = '287ae449056d33e0f4995f480737564a'
 const url = 'wss://iat-api.xfyun.cn/v2/iat'
 const host = 'iat-api.xfyun.cn'
 
-/**
- * 发送消息的逻辑
- */
-interface RecorderVoid {
-  sendMessage: () => void
-  recorderAddText: (text: string) => { id: number }
+export default function useRecorder(options: {
   userAudioUploadSuccess: (res: UploadFileModel & { id: number, userInputTime: string }) => void
-
-}
-
-export default function useRecorder(options: AnyObject & RecorderVoid) {
-  const {
-    RecordApp,
-    Recorder,
-    vueInstance,
-  } = options || {}
+  recorderAddText: (text: string) => { id: number }
+  sendMessage: () => void
+  resetIdleTimer: () => void
+}) {
   /**
    * @description 语音识别的class
    */
@@ -33,15 +24,19 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     APIKey,
     url,
     host,
-  }, onTextChanged)
+  }, onTextChange)
+  const recorder = uni.requireNativePlugin('shuke_recorder') as ShukeRecorderPlugin
+
+  const mic = uni.requireNativePlugin('shuke_microphone')
+  // const { writeLogger } = useLogger()
 
   // 全局缓存变量
   let lastPowerLevel = 0
   let keepCount = 0
 
-  const { playAudioInit, uploadFileAudio } = usePlayAudio(RecordApp)
+  const { playAudioInit, uploadFileAudio } = usePlayAudio(recorder)
   /** 识别是否关闭 */
-  const isRunning = ref(false)
+  const isRecording = ref(false)
   /** 输入框内容 */
   const content = ref('')
 
@@ -67,148 +62,130 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
   /**
    * 请求录音权限
    */
-  function recReq() {
+  function requestRecorderPermission() {
     return new Promise((resolve, reject) => {
-      RecordApp.UniAppUseLicense = `我已获得UniAppID=__UNI__8F99B58的商用授权`
-      RecordApp.UniWebViewActivate(vueInstance) // App环境下必须先切换成当前页面WebView
-      RecordApp.RequestPermission(
-        () => {
-          console.log('✅ 已获得录音权限，可以开始录音了')
+      recorder.requestPermission((res) => {
+        console.log('🎯 权限结果:', res)
+        if (res?.granted) {
           resolve(true)
-          fileLog('已获得录音权限，可以开始录音了---RecordApp.RequestPermission')
-        },
-        (msg: string, isUserNotAllow: boolean) => {
-          const errMsg = `请求录音权限失败：${msg} - ${isUserNotAllow ? '用户拒绝' : '其他原因'}`
-          console.error(errMsg)
-          fileLog(`请求录音权限失败：${msg} - ${isUserNotAllow ? '用户拒绝' : '其他原因'}`)
-          reject(new Error(errMsg))
-        },
-      )
+        }
+        else {
+          reject(new Error('用户拒绝录音权限'))
+        }
+      })
     })
   }
 
   /**
    * 开始录音
    */
-  async function recStart() {
-    let lastIdx = 1e9
-    let chunk: any = null
-    const set = {
-      type: 'pcm',
+  function recStart() {
+    recorder.startRecord({
       sampleRate: 16000,
-      bitRate: 16,
-      // setSpeakerOff: { off: false, headset: true }, // true表示听筒模式，false表示扬声器模式，headset表示是否耳机插入时也强制使用听筒模式
-      // android_audioSource: 0, // 0 DEFAULT 默认音频源，1 MIC 主麦克风，5 CAMCORDER 相机方向的麦，6 VOICE_RECOGNITION 语音识别，7 VOICE_COMMUNICATION 语音通信(带回声消除)
-      onProcess: (buffers: ArrayBuffer[], powerLevel: number, duration: any, sampleRate: number, _newBufferIdx: any, _asyncEnd: any) => {
-        if (lastIdx > _newBufferIdx) {
-          chunk = null // 重新录音了，重置环境
+      enableAEC: true,
+      enableNS: true,
+      enableAGC: true,
+    }, (res) => {
+      // 有时 Android 返回字符串 JSON
+      const msg: RecorderEvent
+    = typeof res === 'string' ? (JSON.parse(res) as RecorderEvent) : res
+
+      // 事件类型
+      const event = msg.event
+
+      switch (event) {
+        /** ✅ 录音开始 */
+        case 'start': {
+          console.log('🎙 开始录音')
+          break
         }
-        fileLog(`onProcess... buffers.length: ${buffers.length}`)
-        fileLog(`录音中... 音量：${powerLevel}`)
-        fileLog(`录音中... duration：${duration}`)
-        lastIdx = _newBufferIdx
 
-        // 连续采样处理
-        chunk = Recorder.SampleData(buffers, sampleRate, 16000, chunk)
-        const pcmInt16 = new Int16Array(chunk.data)
-        const arrayBuffer = pcmInt16.buffer
+        /** 🛑 录音结束 */
+        case 'stop': {
+          isRecording.value = false
+          console.log('🛑 停止录音')
+          break
+        }
 
-        const keep = shouldKeepAudio(powerLevel)
-        if (keep) {
-          console.warn('✅ 音量合适，上传数据')
-          RecorderCoreClass.pushAudioData(arrayBuffer)
-          silentStartTime = null
-          hasWarnedSilence.value = false
-          lastSilentWarnedSecond = 0
-          if (!isRecorderStopped.value && arrayBuffer && !isBufferSilent(arrayBuffer)) {
-            recorderBufferList.value.push(arrayBuffer)
+        /** ❌ 错误事件 */
+        case 'error': {
+          isRecording.value = false
+          const message = msg.message ?? '录音错误'
+          console.error('录音错误：', message)
+          break
+        }
+
+        /** 🎚️ 实时音频数据（音量、波形、时长） */
+        case 'process': {
+          // TS 自动识别这些字段类型（number / number / Record<string, number>[]）
+          const { volume, duration, buffers } = msg
+
+          if (volume !== undefined) {
+            // console.log(`实时音量：${volume}`)
           }
+
+          if (duration !== undefined) {
+            // console.log(`录音时长：${duration} ms`)
+          }
+
+          if (buffers && buffers.length > 0) {
+            const firstBuffer = buffers[0]
+            // const waveform = Object.values(firstBuffer).map(Number)
+            // 例如绘制波形：drawWaveform(waveform)
+            // console.log('实时波形帧：', waveform.length)
+            const frame = Object.values(firstBuffer).map(Number)
+            const pcmInt16 = new Int16Array(frame)
+            const arrayBuffer = pcmInt16.buffer
+
+            // 计算音量是否应保留
+            const keep = shouldKeepAudio(volume)
+            if (keep) {
+              console.warn('✅ 音量合适，上传数据', volume)
+              RecorderCoreClass.pushAudioData(arrayBuffer)
+              options.resetIdleTimer() // 重置定时器静默操作，防止还在说话也退出
+              // writeLogger({ event: 'pushAudioData', powerLevel: volume, duration })
+              silentStartTime = null
+              hasWarnedSilence.value = false
+              lastSilentWarnedSecond = 0
+
+              // 存储有效音频帧
+              if (!isRecorderStopped.value && arrayBuffer && !isBufferSilent(arrayBuffer)) {
+                recorderBufferList.value.push(arrayBuffer)
+              }
+            }
+            else {
+              // 静音时缓存逻辑
+              handleRecorderBuffer(arrayBuffer)
+            }
+          }
+          break
         }
-        else {
-          handleRecorderBuffer(arrayBuffer)
+
+        /** 🎧 音频输入路由信息（蓝牙、USB、麦克风等） */
+        case 'route': {
+          const route = msg.data
+          if (route) {
+            console.log(
+              `🎧 当前录音通道：${route.typeName || '未知'} (${route.productName || '设备'})`,
+            )
+          }
+          break
         }
 
-        // ⚠️ 保留这部分逻辑，不受音量影响，确保语音识别控制流程完整
-
-        // #ifdef H5 || MP-WEIXIN
-        if (vueInstance?.waveView) {
-          vueInstance.waveView.input(buffers[buffers.length - 1], powerLevel, sampleRate)
+        /** 🚫 未知事件（兼容未来扩展） */
+        default: {
+          console.warn('⚠️ 未识别的录音事件：', msg)
+          break
         }
-        // #endif
-      },
-      audioTrackSet: {
-        echoCancellation: true, // 回声消除（AEC）开关，不设置时由浏览器控制（一般为默认自动打开），设为true明确打开，设为false明确关闭
-        noiseSuppression: true, // 降噪（ANS）开关，取值和回声消除开关一样
-        autoGainControl: true, // 自动增益（AGC）开关，取值和回声消除开关一样
-      },
-      onProcess_renderjs: `function(buffers,powerLevel,duration,sampleRate,newBufferIdx,asyncEnd){
-                //App中在这里修改buffers会改变生成的音频文件，但注意：buffers会先转发到逻辑层onProcess后才会调用本方法，因此在逻辑层的onProcess中需要重新修改一遍
-                //本方法可以返回true，renderjs中的onProcess将开启异步模式，处理完后调用asyncEnd结束异步，注意：这里异步修改的buffers一样的不会在逻辑层的onProcess中生效
-                //App中是在renderjs中进行的可视化图形绘制，因此需要写在这里，this是renderjs模块的this（也可以用This变量）；如果代码比较复杂，请直接在renderjs的methods里面放个方法xxxFunc，这里直接使用this.xxxFunc(args)进行调用
-                if(this.waveView) this.waveView.input(buffers[buffers.length-1],powerLevel,sampleRate);
-                
-                /*和onProcess中一样进行释放清理内存，用于支持长时间录音
-                if(this.clearBufferIdx>newBufferIdx){ this.clearBufferIdx=0 } //重新录音了就重置
-                for(var i=this.clearBufferIdx||0;i<newBufferIdx;i++) buffers[i]=null;
-                this.clearBufferIdx=newBufferIdx; */
-            }`,
-
-      takeoffEncodeChunk: true
-        ? null
-        : (chunkBytes: any) => {
-            console.log('chunkBytes', chunkBytes)
-          },
-      takeoffEncodeChunk_renderjs: true
-        ? null
-        : `function(chunkBytes){
-                //App中这里可以做一些仅在renderjs中才生效的事情，不提供也行，this是renderjs模块的this（也可以用This变量）
-            }`,
-
-      start_renderjs: `function(){
-                //App中可以放一个函数，在Start成功时renderjs中会先调用这里的代码，this是renderjs模块的this（也可以用This变量）
-                //放一些仅在renderjs中才生效的事情，比如初始化，不提供也行
-            }`,
-      stop_renderjs: `function(arrayBuffer,duration,mime){
-                //App中可以放一个函数，在Stop成功时renderjs中会先调用这里的代码，this是renderjs模块的this（也可以用This变量）
-                //放一些仅在renderjs中才生效的事情，不提供也行
-            }`,
-
-    }
-
-    RecordApp.UniWebViewActivate(vueInstance) // App环境下必须先切换成当前页面WebView
-
-    RecordApp.Start(set, () => {
-      textRes.value = ''
-
-      handleRecognitionStart()
-      RecorderCoreClass.on('log', (msg) => {
-        console.log(msg)
-      })
-      // 创建音频可视化图形绘制，App环境下是在renderjs中绘制，H5、小程序等是在逻辑层中绘制，因此需要提供两段相同的代码
-    }, (msg: any) => {
-      console.error(`开始录音失败：${msg}`)
+      }
     })
-
-    await RecordApp.UniNativeUtsPluginCallAsync('setSpeakerOff', { off: false, headset: true })
-    const err = RecordApp.UniCheckNativeUtsPluginConfig()
-    if (err) {
-      console.warn('未启用原生插件，错误信息:', err)
-    }
-    else {
-      console.log('✅ 已启用原生插件，可以使用 setSpeakerOff / androidNotifyService 等功能')
-    }
   }
   /**
    * 停止录音
    */
   function recStop() {
-    RecordApp.Stop((arrayBuffer: ArrayBuffer, duration: any, mime: any) => {
-      if (typeof (Blob) != 'undefined' && typeof (window) == 'object') {
-        const blob = new Blob([arrayBuffer], { type: mime })
-        console.log(blob, (window.URL || webkitURL).createObjectURL(blob))
-      }
-    }, (msg: any) => {
-      console.error(`结束录音失败：${msg}`)
+    recorder.stopRecord((r: any) => {
+      console.log('stopRecord 回调:', r)
     })
   }
   /**
@@ -228,12 +205,11 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
    * 语音识别开启操作
    */
   function handleRecognitionStart() {
-    console.log('handleRecognitionStart', isAutoRecognizerEnabled.value)
+    console.log(isAutoRecognizerEnabled.value, 'handleRecognitionStart---isAutoRecognizerEnabled')
 
     if (!isAutoRecognizerEnabled.value) {
       return console.warn('语音识别功能已被禁用')
     }
-
     RecorderCoreClass.start() // 在这儿开始会发送第一帧
     isRecorderStopped.value = false // ② 开始录音时允许写入
     recorderBufferList.value = []
@@ -241,8 +217,8 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     hasWarnedSilence.value = false // 重置静音警告状态
     lastSilentWarnedSecond = 0 // 重置静音警告秒数
 
-    if (RecorderCoreClass.isRunning) {
-      isRunning.value = true
+    if (RecorderCoreClass.isRecording) {
+      isRecording.value = true
     }
   }
   /**
@@ -255,6 +231,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     }
 
     return RecorderCoreClass.stop().then(() => {
+      console.log('识别停止---handleRecognitionStop', RecorderCoreClass.isRecording)
     })
   }
 
@@ -265,6 +242,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     try {
       isAutoRecognize.value = true
       recStart()
+      console.log(isAutoRecognizerEnabled.value, 'handleRecorderStart---isAutoRecognizerEnabled')
     }
     catch (error: any) {
       showToastError(error)
@@ -314,7 +292,9 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
   /**
    * 识别结果实时返回
    */
-  function onTextChanged(text: string) {
+  function onTextChange(text: string) {
+    console.log('识别结果返回', text)
+
     textRes.value = text
   }
 
@@ -352,14 +332,6 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
             hasWarnedSilence.value = true
             handleRecognitionStart() // 你的重启函数
             break
-          // case 4:
-          //   console.warn('⏱ 4秒内无有效语音数据（即将重启）')
-          //   break
-          // case 5:
-          //   console.warn('⚠️ 5秒内无有效语音数据（已重启语音识别）')
-          //   hasWarnedSilence.value = true
-          //   handleRecognitionStart() // 你的重启函数
-          //   break
         }
         lastSilentWarnedSecond = currentSecond
       }
@@ -367,7 +339,7 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
   }
 
   function shouldKeepAudio(currentPower: number): boolean {
-    const THRESHOLD = 10 // 基准音量阈值
+    const THRESHOLD = 20 // 基准音量阈值
     const KEEP_FRAMES = 2 // 音量下降后继续保留的帧数
 
     if (currentPower > THRESHOLD) {
@@ -392,6 +364,25 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
 
     lastPowerLevel = currentPower
     return false
+  }
+
+  /**
+   * - usb - USB 外置麦克风
+   * - wired - 有线耳机麦克风
+   * - bluetooth - 蓝牙麦克风
+   * - builtin - 内置麦克风
+   */
+  function setInputMode(type: InputMode) {
+    mic.getInputDevices((res: any) => {
+      if (res.ok) {
+        console.log('输入设备', res.devices)
+        // writeLogger({ event: 'getInputDevices', devices: res.devices })
+      }
+    })
+    mic.setInputRoute(type, (ret: any) => {
+      console.log('🔄 输出通道切换：', ret)
+      // writeLogger({ event: 'setInputRoute', type, result: ret })
+    })
   }
 
   watch(() => textRes.value, (newVal, oldVal) => {
@@ -437,13 +428,13 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     /** 录音识别结果 */
     textRes,
     /** 是否正在录音 */
-    isRunning,
+    isRecording,
     /** 是否开启自动识别功能 */
     isAutoRecognize,
     /** 是否允许自动重启/自动启动语音识别 */
     isAutoRecognizerEnabled,
     /** 录音权限函数 */
-    recReq,
+    requestRecorderPermission,
     /** 开始录音函数 */
     recStart,
     /** 停止录音函数 */
@@ -454,5 +445,12 @@ export default function useRecorder(options: AnyObject & RecorderVoid) {
     handleRecognitionStop,
     /** 录音按钮按下 */
     handleRecorderStart,
+    /**
+     * - usb - USB 外置麦克风
+     * - wired - 有线耳机麦克风
+     * - bluetooth - 蓝牙麦克风
+     * - builtin - 内置麦克风
+     */
+    setInputMode,
   }
 }

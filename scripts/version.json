@@ -1,8 +1,9 @@
 {
-  "version": "1.1.3",
-  "appUrl": "https://shuke-zhang.oss-cn-chengdu.aliyuncs.com/kezai/kezai-AI.zip",
+  "version": "1.0.9",
+  "appUrl": "https://kechen-created.oss-cn-beijing.aliyuncs.com/kezai-version/kezai-AI.zip",
   "updateList": [
     "优化屏保页面",
+    "优化文本逻辑",
     "修复现有bug"
   ]
 }

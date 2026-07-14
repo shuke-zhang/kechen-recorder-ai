@@ -1,73 +1,25 @@
-<!-- eslint-disable ts/ban-ts-comment -->
-<!-- eslint-disable import/no-duplicates -->
- <!-- #ifdef APP-PLUS -->
-<script module="recorderCore" lang="renderjs">
-// @ts-ignore
-import Recorder from 'recorder-core'
-import 'recorder-core/src/extensions/buffer_stream.player.js'
-
-import RecordApp from 'recorder-core/src/app-support/app'
-// import '../../../../uni_modules/Recorder-UniCore/app-uni-support.js'
-import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
-import 'recorder-core/src/engine/pcm'
-import 'recorder-core/src/extensions/waveview'
-// @ts-ignore
-
-export default {
-  data() {
-    return {
-    }
-  },
-
-  mounted() {
-    // App的renderjs必须调用的函数，传入当前模块this
-    RecordApp.UniRenderjsRegister(this)
-  },
-  methods: {
-    // 这里定义的方法，在逻辑层中可通过 RecordApp.UniWebViewVueCall(this,'this.xxxFunc()') 直接调用
-    // 调用逻辑层的方法，请直接用 this.$ownerInstance.callMethod("xxxFunc",{args}) 调用，二进制数据需转成base64来传递
-  },
-}
-</script>
-<!-- #endif -->
-
-<!-- eslint-disable import/first, import/order, import/no-named-default,import/no-duplicates -->
 <script setup lang='ts'>
-import type StreamPlayer from '@/components/StreamPlayer/StreamPlayer.vue'
-import { NAV_BAR_HEIGHT, getStatusBarHeight } from '@/components/nav-bar/nav-bar'
-import { default as RecorderInstance } from 'recorder-core'
-import { default as RecordAppInstance } from 'recorder-core/src/app-support/app'
 import { useTextFormatter } from './hooks/useTextFormatter'
 import RecorderInputAuto from './recorder-input-auto.vue'
 import chatVideo from './components/chat-video.vue'
 import useRecorder from './hooks/useRecorder'
-import usePlayAudio, { type PlayAudioCallbackModel } from './hooks/usePlayAudio'
+import usePlayAudio from './hooks/usePlayAudio'
 import useAiPage from './hooks/useAiPage'
+import { usePluginShuke } from './hooks/usePluginShuke'
+import type { StatusModel } from '@/components/audio-wave/audio-wave'
+import type { ChatHistoryModel, UploadFileModel } from '@/model/chat'
+import { NAV_BAR_HEIGHT, getStatusBarHeight } from '@/components/nav-bar/nav-bar'
 import { useAiCall } from '@/store/modules/ai-call'
 import { doubaoSpeechSynthesisFormat } from '@/api/audio'
-import '../../../uni_modules/Recorder-UniCore/app-uni-support.js'
-// import screensaver from './components/screensaver.vue'
-/** 需要编译成微信小程序时，引入微信小程序支持文件 */
-// #ifdef MP-WEIXIN
-import 'recorder-core/src/app-support/app-miniProgram-wx-support.js'
-// #endif
 
-import 'recorder-core/src/engine/pcm'
-import 'recorder-core/src/extensions/waveview'
-import type { StatusModel } from '@/components/audio-wave/audio-wave'
-// import type { AiMessage } from '@/hooks'
-import type { ChatHistoryModel } from '@/model/chat'
-import type { UploadFileModel } from '@/model/chat'
 import { addChatHistory } from '@/api/chat-history'
-// import usePlayAudio from './hooks/usePlayAudio'
-const vueInstance = getCurrentInstance()?.proxy as any // 必须定义到最外面，getCurrentInstance得到的就是当前实例this
+
+const recorder = uni.requireNativePlugin('shuke_recorder') as ShukeRecorderPlugin
+
 const pageHeight = computed(() => {
   return `${getStatusBarHeight() + NAV_BAR_HEIGHT + 1}px`
 })
-/**
- * 音频是否正在播放
- */
-const isStreamPlaying = ref(false)
+
 const router = useRouter<{
   modelName: string
 }>()
@@ -85,13 +37,30 @@ const recorderStatus = ref<StatusModel >('pending')
 console.log(`当前页面的高度`, pageHeight.value)
 
 /**
- * 音频播放组件实例
+ * 音频播放
  */
-const streamPlayerRef = ref<InstanceType<typeof StreamPlayer>>()
+const { isAudioRunning, playAudio, stopAudio } = usePluginShuke({
+  onStart: () => {
+    onStreamPlayStart()
+  },
+  onStop: () => {
+    onStreamStop()
+  },
+  onQueueEmpty: () => {
+    onStreamPlayEnd()
+  },
+  onProgress: () => {
+    // 播放中不允许跳转屏保
+    resetIdleTimer()
+  },
+})
+
 /**
  * 视频播放组件实例
  */
-const chatVideoRef = ref<InstanceType<typeof chatVideo>>()
+const chatVideoRef = ref<InstanceType<typeof chatVideo> | null>(null)
+// 页面脚本：新增
+const canMountChatVideo = ref(false)
 
 const systemInfo = uni.getSystemInfoSync()
 const windowHeight = systemInfo.windowHeight // 单位是 px，不是 rpx
@@ -102,24 +71,8 @@ const scrollViewHeight = `${windowHeight * 0.15}px`
 console.log(scrollViewHeight, 'scrollViewHeight')
 
 const isAutoPlaying = ref(false)
-// const { handleMultiClick } = useMultiClickTrigger({
-//   onTrigger: () => {
-//     // router.push('/pages/test/index', { id: 123 })
-//     isAutoPlaying.value = !isAutoPlaying.value
-//     if (isAutoPlaying.value) {
-//       showToastSuccess('开启自动识别').then(() => {
-//         handleRecorderStart()
-//       })
-//     }
-//     else {
-//       showToastSuccess('关闭自动识别').then(() => {
-//         isAutoRecognize.value = false
-//       })
-//     }
-//   },
-// })
 
-const { base64ToArrayBuffer, playAudioInit, uploadFileAudio, saveAndPlayBase64MP3 } = usePlayAudio(RecordAppInstance)
+const { base64ToArrayBuffer, playAudioInit, uploadFileAudio } = usePlayAudio(recorder)
 
 const {
   chatSSEClientRef,
@@ -146,24 +99,24 @@ const handleTouchStart = debounce(() => {
   startTime.value = Date.now()
   stopAll()
 
-  console.log('🟢 触发发送消息', content.value)
   handleConfirm()
 }, 300)
 const {
   textRes,
-  isRunning,
+  isRecording,
   isAutoRecognize,
   isAutoRecognizerEnabled,
-  recReq,
+  requestRecorderPermission,
   handleRecorderStart,
   handleRecognitionStop,
+  handleRecognitionStart,
+  setInputMode,
+  recStop,
 } = useRecorder({
-  RecordApp: RecordAppInstance,
-  Recorder: RecorderInstance,
-  vueInstance,
   sendMessage: handleTouchStart,
   recorderAddText,
   userAudioUploadSuccess,
+  resetIdleTimer,
 })
 
 const { processText, textReset } = useTextFormatter()
@@ -172,14 +125,9 @@ const scrollViewRef = ref(null)
 const animatedDots = ref('')
 let dotTimer: NodeJS.Timeout | null = null
 const currentIndex = ref<number | null>(null)
-const isAudioPlaying = ref(false) // 音频播放真正的开始
 const tempBuffers = ref<{ audio_data: string, text: string }[]>([])
 const tempFormattedTexts = ref<string[]>([])
-const streamData = ref<{
-  text: string
-  buffer: string
-  id: number
-}>()
+
 // 是否切换到新的消息进行播放
 const isSwitchingNewMessage = ref(false)
 /** 控制屏保 */
@@ -197,9 +145,11 @@ const hasUserInterruptedAutoPlay = ref(false)
 const lastAiMsgEnd = ref(false)
 /** 无操作逻辑 */
 const idleTimeout = ref< ReturnType<typeof setTimeout> | null>(null)
-const IDLE_DELAY = 2 * 60 * 1000 // 5秒
+const IDLE_DELAY = 30 * 1000 // 2分钟
+// 使用变量统一控制时间
+const SILENCE_DELAY = 10 * 1000
 const canStartIdleTimer = computed(() => {
-  return !isStreamPlaying.value && !loading.value
+  return !isAudioRunning.value && !loading.value
 })
 
 /**
@@ -207,8 +157,6 @@ const canStartIdleTimer = computed(() => {
  */
 const isSilence = ref(false)
 const isAutoPlay = ref(false)
-// 使用变量统一控制时间
-const SILENCE_DELAY = 6 * 1000 // 10秒
 
 const silenceTimer = new IdleTimer({
   text: `当前无操作，静默模式`,
@@ -217,7 +165,7 @@ const silenceTimer = new IdleTimer({
   onTimeout: () => {
     isSilence.value = true
     isAutoPlay.value = true
-    console.warn('当前页面空闲中，触发静默模式', isSilence.value)
+    // console.warn('当前页面空闲中，触发静默模式', isSilence.value)
   },
 })
 
@@ -229,7 +177,7 @@ const screensaverTimer = new IdleTimer({
   delay: IDLE_DELAY, // 你原本的 IDLE_DELAY 值
   isLog: true,
   onTimeout: async () => {
-    console.log('⏳ 空闲超时触发，执行屏保逻辑')
+    // console.log('⏳ 空闲超时触发，执行屏保逻辑')
 
     // 停止语音识别
     await handleRecognitionStop()
@@ -239,17 +187,11 @@ const screensaverTimer = new IdleTimer({
     // 跳转屏保页面
     router.replace('/pages/screensaver/index')
 
-    // 清空内容
-    streamData.value = {
-      text: '',
-      buffer: '',
-      id: 0,
-    }
     content.value = []
     resetAi.value()
     replyForm.value = { content: '', role: 'user' }
     isAutoRecognizerEnabled.value = false
-    recReq()
+    requestRecorderPermission()
   },
 })
 
@@ -269,6 +211,7 @@ const assistantAudioTime = ref('')
  */
 const ttsPendingCount = ref(0)
 const hasPrepared = ref(false)
+
 // 每次发送 TTS（音频）接口时，+1
 function ttsRequestStart() {
   ttsPendingCount.value++
@@ -299,7 +242,7 @@ function checkIfAllReady() {
 
 function assistantReplySuccess() {
   const id = chatOrder.value?.length ? chatOrder.value[addChatHistoryId.value] : 0
-  console.log('查看这该死的内容', chatOrder.value, addChatHistoryId.value, id)
+  // console.log('查看这该死的内容', chatOrder.value, addChatHistoryId.value, id)
 
   if (!content.value.length)
     return
@@ -348,10 +291,10 @@ function submitChatHistory(id: number) {
   // const id = addChatHistoryId.value
 
   try {
-    console.error('使用了user内容')
+    // console.error('使用了user内容')
     const dataByMap = chatHistoryMap.get(id) || {}
     // addChatHistoryId.value++
-    console.log('dataByMap', id, dataByMap)
+    // console.log('dataByMap', id, dataByMap)
     // 判断 dataByMap 的每一项都有内容才开始上传
     const requiredFields = [
       'userAudio',
@@ -366,11 +309,11 @@ function submitChatHistory(id: number) {
     ]
     const allFieldsFilled = requiredFields.every(field => !!dataByMap[field])
     if (!allFieldsFilled) {
-      console.warn('chatHistory未填写完整，跳过上传', dataByMap)
+      // console.warn('chatHistory未填写完整，跳过上传', dataByMap)
       return
     }
     addChatHistory(dataByMap).then((res) => {
-      console.log('新增历史记录成功——————————', res)
+      // console.log('新增历史记录成功——————————', res)
       chatHistoryMap.delete(id) // ✅ 上传成功后删除对应记录
     }).finally(() => {
       addChatHistoryId.value++
@@ -384,7 +327,7 @@ function submitChatHistory(id: number) {
 
 /** 重置定时器 */
 function resetIdleTimer() {
-  console.log('监听到用户操作，重置定时器')
+  // console.log('监听到用户操作，重置定时器')
 
   // 如果当前状态不允许开启定时器（如正在播放或AI回复中）
   if (!canStartIdleTimer.value) {
@@ -431,50 +374,50 @@ async function autoPlayAiMessage(_text: string, index: number) {
     tempFormattedTexts.value.push(longText)
     //  判断是不是新的ai消息
     if (tempFormattedTexts.value.findIndex(t => t === longText) === 0 && !isAiMessageEnd.value) {
-      streamPlayerRef.value?.onStreamStop()
+      stopAudio()
       assistantAudioBuffers.value = []
     }
-    console.log('查看文本longText', longText, longText.length)
+    // console.log('查看文本longText', longText, longText.length)
 
     ttsRequestStart()
-    console.log('请求音频接口', longText, tempFormattedTexts.value.findIndex(t => t === longText) || 0)
+    // console.log('请求音频接口', longText, tempFormattedTexts.value.findIndex(t => t === longText) || 0)
 
     doubaoSpeechSynthesisFormat({
       text: longText,
       id: tempFormattedTexts.value.findIndex(t => t === longText) || 0,
     }, tempFormattedTexts.value.findIndex(t => t === longText) === 0).then((res) => {
       // ✅ 如果用户已经点了停止/切换，直接丢弃
-      if (!isStreamPlaying.value || currentIndex.value !== index) {
-        console.log('丢弃过期的音频', res)
+      if (currentIndex.value !== index) {
+        // console.log('丢弃过期的音频', res)
         return
       }
-      const { audio_base64, text, id } = res
-      streamData.value = {
-        buffer: audio_base64,
-        text,
+      const { audio_base64, id } = res
+
+      playAudio({
         id,
-      }
+        base64: audio_base64,
+      })
       const audio_buffer = base64ToArrayBuffer(audio_base64)
       assistantAudioBuffers.value.push({
         buffers: audio_buffer,
         id,
       })
-      console.log('接口请求成功', res)
+      // console.log('接口请求成功', res)
 
       // ai返回的消息结束了
       if (isAiMessageEnd.value) {
         tempFormattedTexts.value = []
         hasUserInterruptedAutoPlay.value = false
       }
-    }).catch((error) => {
-      isStreamPlaying.value = false
-      isAudioPlaying.value = false
-      console.log(error, 'ai自动播放音频错误')
+    }).catch((_error) => {
+      isAudioRunning.value = false
+      // console.log(_error, 'ai自动播放音频错误')
     }).finally(() => {
+      console.log('音频请求结束')
+
       ttsRequestEnd()
     })
   }
-  isStreamPlaying.value = true
 }
 
 /**
@@ -503,7 +446,7 @@ async function onScreensaverTrigger() {
   // }
   isScreensaver.value = false
   resetIdleTimer()
-  console.log('进入操作页面')
+  // console.log('进入操作页面')
 
   if (initialLoadPending.value) {
     playDefaultAudioData()
@@ -513,7 +456,7 @@ async function onScreensaverTrigger() {
     try {
       await waitUntil(() => initialLoadPending.value)
       playDefaultAudioData()
-      console.log('等待初始化完成啦')
+      // console.log('等待初始化完成啦')
     }
     catch (e) {
       console.error('等待 initialLoadPending 超时', e)
@@ -528,24 +471,9 @@ async function onScreensaverTrigger() {
  * 播放静默音频事件
  */
 function playDefaultAudioData() {
-  const callBack: PlayAudioCallbackModel = {
-    onPlay: () => {
-      onStreamPlayStart()
-    },
-    onStop: () => {
-      onStreamStop()
-    },
-    onError: () => {
-      onStreamStop()
-    },
-    onEnded: () => {
-      onStreamPlayEnd()
-    },
-  }
-  saveAndPlayBase64MP3({
+  playAudio({
+    id: 0,
     base64: aiCall.callAudioData.audioData,
-    fileNamePre: 'auto-recorder',
-    audioCallback: callBack,
   })
 }
 
@@ -580,13 +508,13 @@ function userMsgFormat(prefix: string, text: string, isFormat = true) {
  * 发送消息确认按钮
  */
 async function handleConfirm() {
-  streamPlayerRef.value?.onStreamStop()
+  stopAudio()
   tempFormattedTexts.value = []
   tempBuffers.value = []
   removeEmptyMessagesByRole('assistant') // 移除assistant角色的空消息
 
   //  点击时如果ai消息没有返回完 ，并且正在播放，直接停止
-  if ((!isAiMessageEnd.value && loading.value) || isStreamPlaying.value) {
+  if ((!isAiMessageEnd.value && loading.value) || isAudioRunning.value) {
     await stopAll()
     // 停止音频播放
     handleSendMsg()
@@ -606,25 +534,22 @@ const handleRecorder = debounce((text: string, index: number) => {
     hasUserInterruptedAutoPlay.value = true
   }
   // 当前已经在播放此条消息
-  if (currentIndex.value === index && isStreamPlaying.value) {
+  if (currentIndex.value === index && isAudioRunning.value) {
     console.log('🟡 再次点击同一条，执行停止')
-    streamPlayerRef.value?.onStreamStop()
+    stopAudio()
     currentIndex.value = null
-    isStreamPlaying.value = false
     return
   }
 
   // 如果正在播放且是新的消息，先停止当前播放
-  if (currentIndex.value !== null && isStreamPlaying.value) {
+  if (currentIndex.value !== null && isAudioRunning.value) {
     isSwitchingNewMessage.value = true
     console.log('🔴 切换新消息，先停止已播放的消息')
-    streamPlayerRef.value?.onStreamStop()
-    isStreamPlaying.value = false
+    stopAudio()
   }
 
   // ✅ 开始新的播放
   console.log('🟢 开始播放新消息')
-  isStreamPlaying.value = true
   currentIndex.value = index
   isSilence.value = false // 关闭静默模式
   isAutoPlay.value = false // 关闭自动播放 因为此时还没有真正的播放视频
@@ -639,15 +564,13 @@ const handleRecorder = debounce((text: string, index: number) => {
         text: longText,
         id: i,
       }).then((res) => {
-        const { audio_base64, text, id } = res
-        streamData.value = {
-          buffer: audio_base64,
-          text,
+        const { audio_base64, id } = res
+        playAudio({
           id,
-        }
+          base64: audio_base64,
+        })
       }).catch((e) => {
         console.log('点击时捕获到错误', e)
-        isStreamPlaying.value = false
         currentIndex.value = null
       })
     }
@@ -658,9 +581,7 @@ const handleRecorder = debounce((text: string, index: number) => {
  * 语音播放真正的开始
  */
 function onStreamPlayStart() {
-  isAudioPlaying.value = true
-  // 防止由于播放器停止时触发延迟，所以这儿也要设置状态
-  isStreamPlaying.value = true
+  isAudioRunning.value = true
   // 关闭静默模式
   isSilence.value = false
   isAutoPlay.value = true
@@ -668,7 +589,7 @@ function onStreamPlayStart() {
 }
 
 /**
- * 语音播放结束
+ * 语音任务队列播放结束
  */
 function onStreamPlayEnd() {
   console.log('语音播放结束')
@@ -683,18 +604,16 @@ function onStreamPlayEnd() {
     isSwitchingNewMessage.value = false
   }
   else {
-    isStreamPlaying.value = false
     currentIndex.value = null
   }
-  isAudioPlaying.value = false
+  isAudioRunning.value = false
   recorderStatus.value = 'pending'
 }
 /**
- * 语音播放停止
+ * 语音播放主动停止
  */
 function onStreamStop() {
-  isStreamPlaying.value = false
-  isAudioPlaying.value = false
+  isAudioRunning.value = false
   currentIndex.value = null
 }
 
@@ -822,14 +741,12 @@ async function stopAll() {
   // 停止ai回复的消息
   await stopChat.value()
   // 停止音频播放 实际上这儿并不是同步的，只是触发了stop方法
-  await streamPlayerRef.value?.onStreamStop()
+  await stopAudio()
   currentIndex.value = null
   // 重置格式化器
   textReset()
-  // 重置播放状态
-  isStreamPlaying.value = false
   // 重置音频播放真正的状态
-  isAudioPlaying.value = false
+  isAudioRunning.value = false
   hasPrepared.value = false
   ttsPendingCount.value = 0
   console.error('清空user和助手内容')
@@ -838,7 +755,7 @@ async function stopAll() {
   console.log('关闭逻辑函数结束-----')
 }
 
-watch([isStreamPlaying, loading], ([isPlaying, isLoading]) => {
+watch([isAudioRunning, loading], ([isPlaying, isLoading]) => {
   if (!isPlaying || !isLoading) {
     // 都结束了才开始倒计时
     resetIdleTimer()
@@ -852,15 +769,15 @@ watch([isStreamPlaying, loading], ([isPlaying, isLoading]) => {
 // 添加一个监听最后一条消息内容的变化（对于流式输出非常有用）
 watch(
   () => content.value[content.value.length - 1]?.content,
-  () => {
+  (newVal, oldVal) => {
     if (content.value.length > 0) {
       nextTick(() => {
-        console.log('scrollTop变化了')
-        scrollTop.value = Date.now() + 500
+        scrollTop.value = Date.now() + 1000
       })
 
       // 检查最后一条消息是否是AI的回复
       const lastMessage = content.value[content.value.length - 1]
+
       if (lastMessage?.role === 'assistant' && lastMessage?.streaming) {
         recorderStatus.value = 'stopped'
         // 自动播放
@@ -897,7 +814,7 @@ watch(
 )
 
 // 监听语音识别开始和结束 添加省略号动画
-watch(() => isRunning.value, (val: boolean) => {
+watch(() => isRecording.value, (val: boolean) => {
   if (val) {
     animatedDots.value = '.'
     dotTimer = setInterval(() => {
@@ -916,6 +833,7 @@ watch(() => isRunning.value, (val: boolean) => {
 watch(() => textRes.value, async (newVal) => {
   await nextTick() // 确保视图更新完成
   // replyForm.value.content = modelPrefix.value + newVal as string
+
   replyForm.value.content = newVal?.startsWith(modelPrefix.value) ? newVal : modelPrefix.value + newVal
   isSilence.value = false // 重置静默模式状态
   isAutoPlay.value = false // 重置自动播放状态
@@ -926,28 +844,18 @@ watch(() => replyForm.value.content, (newVal) => {
 })
 
 onMounted(() => {
-  (vueInstance as any).isMounted = true
-  fileLog('onMounted触发，进入对话页面')
-  RecordAppInstance.UniNativeUtsPlugin = { nativePlugin: true } // 启用原生插件
-  RecordAppInstance.UniNativeUtsPluginCallAsync('resolvePath', { path: '' }).then((data: any) => {
-    // this.test()
-    console.log('测试原生插件调用，可以进行原生插件测试', data)
-  }).catch((_e: any) => {
-    // this.addMsg('err', `测试原生插件调用失败，不可以进行原生插件测试：${e.message}`, 1)
-    console.log('测试原生插件调用失败，不可以进行原生插件测试', _e)
-  })
-  RecordAppInstance.UniPageOnShow(vueInstance)
-  recReq().then((res) => {
-    fileLog(`请求权限成功：${res}`)
+  requestRecorderPermission().then((res) => {
+    onScreensaverTrigger()
+    handleRecognitionStart()
+    setInputMode('usb')
+  }).catch((err) => {
+    showToastError(err)
+    console.log(err, '请求权限拒绝')
+  }).finally(() => {
+    canMountChatVideo.value = true
     setTimeout(() => {
       initialLoadPending.value = true
     }, 1500)
-    onScreensaverTrigger()
-  }).catch((err) => {
-    fileLog(`请求权限拒绝：${err}`)
-
-    showToastError(err)
-    console.log(err, '请求权限拒绝')
   })
   addChatHistoryId.value = 0
   // initHeights()
@@ -968,29 +876,14 @@ onMounted(() => {
     document.removeEventListener('touchstart', unlockAudio)
     document.removeEventListener('click', unlockAudio)
   }
+  handleChangeAiModel()
 })
 
-onShow(() => {
-  if ((vueInstance as any)?.isMounted) {
-    RecordAppInstance.UniPageOnShow(vueInstance)
-  }
-  fileLog('onShow')
-})
-onHide(() => {
-  console.log('触发onHide')
+onBeforeUnmount(() => {
   isAutoPlaying.value = false
   isAutoRecognizerEnabled.value = false
-})
-
-router.ready(() => {
-  handleChangeAiModel()
-  fileLog('router.ready')
-})
-
-usePageExpose('pages/recorder-ai/index', {
-  init() {
-    onScreensaverTrigger()
-  },
+  stopAudio()
+  recStop()
 })
 </script>
 
@@ -1005,29 +898,18 @@ usePageExpose('pages/recorder-ai/index', {
       @on-finish="onFinish"
     />
 
-    <!-- 音频播放组件 -->
-    <!-- #ifdef APP-PLUS -->
-    <StreamPlayer
-      ref="streamPlayerRef"
-      :stream-data="streamData"
-      @on-stream-play-start="onStreamPlayStart"
-      @on-stream-play-end="onStreamPlayEnd"
-      @on-stream-stop="onStreamStop"
-    />
-    <!-- #endif -->
-
-    <!-- <view v-show="!isScreensaver"> -->
     <view class="size-full ">
       <view :style="{ height: `calc(100% - ${inputHeight}  ` }" class="">
         <view
           class="w-full h-85%  pointer-events-none"
         >
           <chat-video
+            v-if="canMountChatVideo"
             ref="chatVideoRef"
             v-model:silence="isSilence"
             v-model:play="isAutoPlay"
-            :is-reset="!(isStreamPlaying && isAudioPlaying)"
-            :is-play="(isStreamPlaying && isAudioPlaying)"
+            :is-reset="!isAudioRunning"
+            :is-play="isAudioRunning"
           />
         </view>
         <view class="h-15% pb-120rpx ">
@@ -1053,7 +935,7 @@ usePageExpose('pages/recorder-ai/index', {
                       <!-- 首先判断 用户消息临时加载状态 如果是则代表是语音识别消息 否则展示已经添加进去的消息 -->
                       {{
                         msg.isRecordingPlaceholder
-                          ? (textRes || '') + (isRunning && textRes ? animatedDots : '')
+                          ? (textRes || '') + (isRecording && textRes ? animatedDots : '')
                           : Array.isArray(msg.content)
                             ? userMsgFormat(modelPrefix, (msg.content as any)[0].text, true)
                             : userMsgFormat(modelPrefix, msg.content || '', true)
@@ -1095,7 +977,7 @@ usePageExpose('pages/recorder-ai/index', {
                           </view>
                           <view class="  bg-#e8ecf5 flex-center  ml-20rpx" :class="[isPad ? 'size-30px border-rd-8px ' : 'size-60rpx border-rd-16rpx ']" @click="handleRecorder(msg.content as string, index)">
                             <audio-wave
-                              v-if="isStreamPlaying && currentIndex === index"
+                              v-if="isAudioRunning && currentIndex === index"
                               status="playing"
                               :color="COLOR_PRIMARY"
                               :bar-width="isPad ? 4 : 10"
@@ -1130,9 +1012,6 @@ usePageExpose('pages/recorder-ai/index', {
         @click-stopped="stopAll(), recorderStatus = 'pending'"
       />
     </view>
-
-    <!-- 屏保 -->
-    <!-- <screensaver v-model:show="isScreensaver" @on-trigger="onScreensaverTrigger" /> -->
   </view>
 </template>
 

@@ -2,6 +2,9 @@ import { Base64 } from 'js-base64'
 import CryptoJS from 'crypto-js'
 import type { XunFeiRecorderOptions } from './types'
 import { WebSocket } from '@/store/modules/socket/webSocket'
+import { useLogger } from '@/hooks/useLog'
+
+const { writeLogger } = useLogger()
 
 /**
  * @description 讯飞语音识别class --- https://www.xfyun.cn/doc/asr/voicedictation/API.html#%E6%8E%A5%E5%8F%A3%E8%AF%B4%E6%98%8E
@@ -22,8 +25,10 @@ export default class RecorderCoreManager extends EventEmitter {
   public socketUrl = ''
   public resultText = ''
   public resultTextTemp = ''
-  // 是否正在录音
-  public isRunning = false
+  /**
+   * 是否正在录音
+   */
+  public isRecording = false
   public isReady = false
 
   constructor(
@@ -44,7 +49,7 @@ export default class RecorderCoreManager extends EventEmitter {
     console.log('recorder-core触发')
 
     this.reset()
-    this.isRunning = true
+    this.isRecording = true
     this.resultText = ''
     this.resultTextTemp = ''
     this.audioDataList = []
@@ -58,8 +63,8 @@ export default class RecorderCoreManager extends EventEmitter {
       try {
         console.log('触发class关闭')
 
-        // ❗ 无论如何都尝试停止识别（不要依赖 isRunning 判断）
-        this.isRunning = false
+        // ❗ 无论如何都尝试停止识别（不要依赖 isRecording 判断）
+        this.isRecording = false
         this.sendLastFrame()
         this.clearHandlerInterval()
 
@@ -86,9 +91,9 @@ export default class RecorderCoreManager extends EventEmitter {
 
   /** 推送一帧音频数据 */
   public pushAudioData(data: ArrayBuffer) {
-    // console.log(!this.isRunning, this.hasSentLastFrame, 'pushAudioData')
-
-    if (!this.isRunning || this.hasSentLastFrame)
+    // 如果没在录音 或者已经发送了最后一帧 则不再推送
+    console.log('添加数据', !this.isRecording, this.hasSentLastFrame)
+    if (!this.isRecording || this.hasSentLastFrame)
       return
 
     this.audioDataList.push(data)
@@ -98,7 +103,6 @@ export default class RecorderCoreManager extends EventEmitter {
   private initSocket() {
     try {
       this.socketUrl = this.getWebSocketUrl() as string
-      console.log('讯飞socketUrl', this.socketUrl)
 
       if (!this.socketUrl)
         return
@@ -109,7 +113,6 @@ export default class RecorderCoreManager extends EventEmitter {
 
       this.socketTask.on('open', () => {
         this.emit('log', '✅ WebSocket已连接')
-        fileLog('讯飞---WebSocket已连接')
         setTimeout(() => this.sendAudioData(), 100)
       })
 
@@ -154,7 +157,7 @@ export default class RecorderCoreManager extends EventEmitter {
 
     this.emit('log', `📤 发送第一帧 ${firstFrame}`)
     console.warn(`📤 发送第一帧 ${firstFrame.data.status}`)
-    fileLog(`讯飞-📤 发送第一帧 ${firstFrame.data.status}`)
+    // writeLogger({ event: '发送第一帧', frame: firstFrame })
     this.handlerInterval = setInterval(() => {
       if (!this.socketTask?.isConnect || this.hasSentLastFrame) {
         this.clearHandlerInterval()
@@ -175,6 +178,7 @@ export default class RecorderCoreManager extends EventEmitter {
       }
 
       this.socketTask.sendMessage(midFrame)
+
       // this.emit('log', '📤 发送中间帧')
     }, 40)
   }
@@ -194,7 +198,7 @@ export default class RecorderCoreManager extends EventEmitter {
     this.socketTask.sendMessage(lastFrame)
     // this.emit('log', '📤 发送最后一帧')
     console.log(`📤 发送最后一帧 `)
-    fileLog(`讯飞-📤 发送最后一帧 `)
+    // writeLogger({ event: '发送最后一帧', frame: lastFrame })
     this.hasSentLastFrame = true
   }
 
@@ -255,7 +259,7 @@ export default class RecorderCoreManager extends EventEmitter {
 
       // 实时触发变更回调
       this.onTextChange?.(this.resultTextTemp || this.resultText || '')
-
+      // writeLogger({ event: '识别结果返回', text: this.resultTextTemp || this.resultText || '' })
       // 最后一帧
       if (json.data.status === 2) {
         this.sendLastFrame()

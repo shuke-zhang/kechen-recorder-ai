@@ -21,7 +21,7 @@ export function useCheckAppVersion() {
   async function getVersionFromJson() {
     try {
       const nextVersion = await uni.request({
-        url: 'https://shuke-zhang.oss-cn-chengdu.aliyuncs.com/kezai/version.json',
+        url: 'https://kechen-created.oss-cn-beijing.aliyuncs.com/kezai-version/version.json',
         method: 'GET',
       }) as UniAppResponse<versionModel>
       return nextVersion.data

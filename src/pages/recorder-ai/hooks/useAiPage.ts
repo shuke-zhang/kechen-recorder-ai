@@ -1,27 +1,55 @@
 import type { AiMessage } from '@/hooks'
-import { aiModelList, setAiContent } from '@/pages/ai/const'
-import { useAiStore } from '@/store/modules/ai'
+import type { AiOptionsModel } from '@/model/ai'
 
 export const defaultSendMsgPre = '你叫柯仔，你只能叫柯仔，不能使其他名字。你也不用每次回答说你是柯仔.是由昆明柯臣商贸有限公司创造的。如果用户询问再回答，否则回答问题就可以。问题:'
+
+const aiModel: AiOptionsModel = {
+  name: 'doubao',
+  subTitle: '柯仔',
+  mark: '柯臣出品，适合日常轻使用',
+  sendMsgPrefix: '你叫柯仔，你只能叫柯仔，不能使其他名字。你也不用每次回答说你是柯仔。是广大小伙伴用心打造的心理咨询小助手，愿做你身边的暖心陪伴。如果用户询问再回答，否则回答问题就可以。你只能回答心理咨询相关方面的问题，其他问题你不能回答。问题:',
+  model: 'doubao-1-5-pro-32k-250115',
+  icon: 'kezai-2',
+  params: 'messages',
+  sendParamsName: 'content',
+  apiKey: '12d2a70e-f213-4148-8451-12af29a246b9',
+  baseURL: 'https://ark.cn-beijing.volces.com/api/v3/chat/completions',
+  stream: true,
+  resultName: 'assistant',
+}
+
+export function setAiContent(
+  options:
+  {
+    type: 'send' | 'accept'
+    msg: string
+    streaming?: boolean
+    id: number
+  },
+
+): AiMessage {
+  return {
+    role: options.type === 'send' ? 'user' : 'assistant',
+    content: options.msg,
+    streaming: options.streaming,
+    id: options.id,
+  }
+}
+
 /**
  * 整合页面ai回复逻辑
  */
 export default function useAiPage() {
   const replyForm = ref({ content: '', role: 'user' })
-  const popupVisible = ref(false)
   const popupRef = ref<any>(null)
-  const aiStore = useAiStore()
-
-  const aiNameList = aiModelList.map(item => item.name || '')
-  const aiModelInstanceList = aiModelList.map(item => ({ ...item, messages: [] }))
 
   const aiCurrentIndex = ref(0)
   const aiInited = ref(false)
 
-  const modelName = computed(() => aiModelList[aiCurrentIndex.value]?.name || '')
-  const modelSubTitle = computed(() => aiModelList[aiCurrentIndex.value]?.subTitle || '')
-  const modelPrefix = computed(() => aiModelList[aiCurrentIndex.value]?.sendMsgPrefix || defaultSendMsgPre)
-  const currentModel = computed(() => aiModelList[aiCurrentIndex.value])
+  const modelName = computed(() => aiModel.name)
+  const modelSubTitle = computed(() => aiModel.subTitle || '')
+  const modelPrefix = computed(() => aiModel.sendMsgPrefix || defaultSendMsgPre)
+  const currentModel = computed(() => aiModel)
 
   // 动态挂载 useAi 的返回值
   const chatSSEClientRef = ref()
@@ -38,11 +66,7 @@ export default function useAiPage() {
   const onFinish = ref<() => void>(() => {})
   const resetAi = ref<() => void>(() => {})
   function init() {
-    const model = aiModelList[aiCurrentIndex.value]
-    if (!model)
-      return
-
-    const aiHooks = useAi(model, chatSSEClientRef.value)
+    const aiHooks = useAi(aiModel, chatSSEClientRef.value)
     chatSSEClientRef.value = aiHooks.chatSSEClientRef
 
     startChat = aiHooks.startChat
@@ -77,10 +101,6 @@ export default function useAiPage() {
     }, { immediate: true, deep: true })
   }
 
-  function handleToggle() {
-    popupVisible.value = true
-  }
-
   function handleCopy(str: string) {
     uni.setClipboardData({
       data: str,
@@ -97,22 +117,9 @@ export default function useAiPage() {
   //   }
   // })
   function handleChangeAiModel() {
-    const modelName: typeof aiModelList[number]['name'] = aiStore.currentAiModel
-
-    const index = aiModelList.findIndex(item => item.name === modelName)
-
-    if (index === -1) {
-      console.warn(`找不到模型名 ${modelName}，handleChangeAiModel 被跳过`)
-      return
-    }
-
-    aiCurrentIndex.value = index
-
     if (!aiInited.value) {
       init()
     }
-
-    popupVisible.value = false
   }
 
   function handleSendMsg() {
@@ -123,7 +130,7 @@ export default function useAiPage() {
     // 判断没有内容 并且不是语音识别的加载状态
     if (!text?.trim() && !isVoicePlaceholder) {
       // showToastError('请输入内容')
-      return 
+      return
     }
 
     if (last?.isRecordingPlaceholder) {
@@ -137,7 +144,6 @@ export default function useAiPage() {
         type: 'send',
         id: content.value[content.value.length - 1].id || 0,
         msg: replyForm.value.content.startsWith(modelPrefix.value) ? replyForm.value.content : modelPrefix.value + replyForm.value.content,
-        modeName: modelName.value || '',
       })
 
       content.value.push(sendText)
@@ -157,9 +163,6 @@ export default function useAiPage() {
   return {
     replyForm,
     popupRef,
-    aiNameList,
-    aiModelInstanceList,
-    popupVisible,
     aiCurrentIndex,
     chatSSEClientRef,
     modelName,
@@ -171,7 +174,6 @@ export default function useAiPage() {
     isAiMessageEnd,
     isStreaming,
     chatSSEClientShow,
-    handleToggle,
     handleChangeAiModel,
     startChat,
     stopChat,

@@ -5,8 +5,6 @@
 
 interface NavigateToOptions {
   url: "/pages/screensaver/index" |
-       "/pages/ai/deepseek" |
-       "/pages/ai/index" |
        "/pages/expired/index" |
        "/pages/home/index" |
        "/pages/mine/index" |

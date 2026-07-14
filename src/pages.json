@@ -22,17 +22,6 @@
       }
     },
     {
-      "path": "pages/ai/deepseek",
-      "type": "page"
-    },
-    {
-      "path": "pages/ai/index",
-      "type": "page",
-      "style": {
-        "navigationBarTitleText": "AI对话"
-      }
-    },
-    {
       "path": "pages/expired/index",
       "type": "page",
       "style": {

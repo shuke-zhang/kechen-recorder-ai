@@ -79,7 +79,6 @@ const {
   content,
   isAiMessageEnd,
   loading,
-  modelName,
   modelPrefix,
   replyForm,
   onSuccess,
@@ -686,7 +685,6 @@ function addText(text: string) {
   const sendText = setAiContent({
     type: 'send',
     msg: replyForm.value.content, // 空消息作为占位
-    modeName: modelName.value || '',
     id: content.value.length,
   })
   sendText.isRecordingPlaceholder = true // ✅ 标记占位消息

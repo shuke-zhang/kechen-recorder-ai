@@ -1,5 +1,5 @@
 import type { AiOptionsModel } from '@/model/ai'
-import { setAiContent } from '@/pages/ai/const'
+import { setAiContent } from '@/pages/recorder-ai/hooks/useAiPage'
 
 export interface AiMessage extends AiModel.AiRequestMessagesModel {
   /**
@@ -201,7 +201,6 @@ export function useAi(options: AiOptionsModel, chatSSEClientRef: AiModel.GaoChat
     // 确保存在进行中的AI消息
     if (lastIndex < 0 || content.value[lastIndex].role !== 'assistant') {
       const text = setAiContent({
-        modeName: modelName.value || '',
         type: 'accept',
         msg: acceptMsg,
         streaming: true,

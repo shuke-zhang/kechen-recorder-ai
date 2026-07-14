@@ -3,6 +3,7 @@
     "configurations" : [
         {
             "customPlaygroundType" : "local",
+            "localRepoPath" : "D:/project/kechen/kechen-recorder-ai",
             "playground" : "custom",
             "type" : "uni-app:app-android"
         }
